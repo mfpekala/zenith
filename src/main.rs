@@ -1,4 +1,6 @@
+pub mod drawing;
 pub mod environment;
+pub mod math;
 pub mod meta;
 
 use bevy::{prelude::*, window::WindowResolution};
@@ -14,9 +16,7 @@ pub fn main_setup(
     commands.spawn(Camera2dBundle::default());
 }
 
-pub fn scratch_fn(mut gz: Gizmos) {
-    gz.line_2d(Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0), Color::WHITE);
-}
+pub fn scratch_fn(mut gz: Gizmos) {}
 
 fn main() {
     let mut app = App::new();
