@@ -2,10 +2,12 @@ pub mod drawing;
 pub mod environment;
 pub mod math;
 pub mod meta;
+pub mod physics;
 
 use bevy::{prelude::*, window::WindowResolution};
 use environment::register_environment;
 use meta::consts::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use physics::register_physics;
 
 pub fn main_setup(
     mut commands: Commands,
@@ -33,5 +35,6 @@ fn main() {
     .add_systems(Startup, main_setup);
     app.add_systems(Update, scratch_fn);
     register_environment(&mut app);
+    register_physics(&mut app);
     app.run();
 }

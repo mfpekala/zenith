@@ -5,6 +5,18 @@ pub struct MathLine {
     p2: Vec2,
 }
 impl MathLine {
+    pub fn from_points(points: &[Vec2]) -> Vec<MathLine> {
+        let mut result: Vec<MathLine> = vec![];
+        for ix in 0..points.len() {
+            let line = MathLine {
+                p1: points[ix],
+                p2: points[(ix + 1) % points.len()],
+            };
+            result.push(line);
+        }
+        result
+    }
+
     pub fn rise(&self) -> f32 {
         self.p2.x - self.p1.x
     }
@@ -44,6 +56,23 @@ impl MathLine {
         let x = (b2 * c1 - b1 * c2) / determinant;
         let y = (a1 * c2 - a2 * c1) / determinant;
         Some(Vec2 { x, y })
+    }
+
+    pub fn closest_point(&self, other_point: &Vec2) -> Vec2 {
+        let l2 = (self.p2.x - self.p1.x).powi(2) + (self.p2.y - self.p1.y).powi(2);
+        let t = ((other_point.x - self.p1.x) * (self.p2.x - self.p1.x)
+            + (other_point.y - self.p1.y) * (self.p2.y - self.p1.y))
+            / l2;
+        if t < 0.0 {
+            self.p1
+        } else if t > 1.0 {
+            self.p2
+        } else {
+            Vec2 {
+                x: self.p1.x + t * (self.p2.x - self.p1.x),
+                y: self.p1.y + t * (self.p2.y - self.p1.y),
+            }
+        }
     }
 }
 

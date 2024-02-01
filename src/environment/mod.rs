@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     drawable,
     drawing::{draw_polygon, Drawable},
-    math::get_shell,
+    math::{get_shell, MathLine},
 };
 
 /// NOTE: Points MUST be in clockwise order
@@ -11,7 +11,25 @@ use crate::{
 pub struct Rock {
     pub points: Vec<Vec2>,
 }
-impl Rock {}
+impl Rock {
+    pub fn closest_point(&self, point: &Vec2) -> Vec2 {
+        let lines = MathLine::from_points(&self.points);
+        let mut min_dist = f32::MAX;
+        let mut min_point = Vec2 {
+            x: f32::MAX,
+            y: f32::MAX,
+        };
+        for line in lines {
+            let close_point = line.closest_point(point);
+            let dist = point.distance(close_point);
+            if dist < min_dist {
+                min_dist = dist;
+                min_point = close_point;
+            }
+        }
+        min_point
+    }
+}
 impl Drawable for Rock {
     fn draw(&self, base_pos: Vec2, gz: &mut Gizmos) {
         draw_polygon(base_pos, &self.points, Color::WHITE, gz);
