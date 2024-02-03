@@ -5,12 +5,14 @@ use bevy::window::PrimaryWindow;
 pub struct MouseState {
     pub pos: Option<Vec2>,
     pub pending_launch_start: Option<Vec2>,
+    pub pending_launch_vel: Option<Vec2>,
 }
 impl MouseState {
     pub fn empty() -> Self {
         Self {
             pos: None,
             pending_launch_start: None,
+            pending_launch_vel: None,
         }
     }
 }
@@ -34,13 +36,19 @@ pub fn watch_mouse(
     if buttons.just_pressed(MouseButton::Left) {
         // Beginning launch
         mouse_state.pending_launch_start = Some(mouse_pos);
-    } else if !buttons.pressed(MouseButton::Left) {
-        match mouse_state.pending_launch_start {
-            Some(start_pos) => {
-                let mut almost_vel = (mouse_pos - start_pos) * 0.03;
-                almost_vel.x *= -1.0;
-                launch_event.send(LaunchEvent { vel: almost_vel });
+    }
+    if buttons.pressed(MouseButton::Left) {
+        if let Some(start_pos) = mouse_state.pending_launch_start {
+            let mut almost_vel = (mouse_pos - start_pos) * 0.03;
+            almost_vel.x *= -1.0;
+            mouse_state.pending_launch_vel = Some(almost_vel);
+        }
+    } else {
+        match mouse_state.pending_launch_vel {
+            Some(vel) => {
+                launch_event.send(LaunchEvent { vel });
                 mouse_state.pending_launch_start = None;
+                mouse_state.pending_launch_vel = None;
             }
             None => {
                 // Nothing to do

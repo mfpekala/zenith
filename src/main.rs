@@ -5,6 +5,7 @@ pub mod input;
 pub mod math;
 pub mod meta;
 pub mod physics;
+pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
@@ -12,6 +13,7 @@ use environment::register_environment;
 use input::register_input;
 use meta::consts::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use physics::register_physics;
+use ship::register_ship;
 
 pub fn main_setup() {}
 
@@ -32,5 +34,6 @@ fn main() {
     register_environment(&mut app);
     register_input(&mut app);
     register_physics(&mut app);
+    register_ship(&mut app);
     app.run();
 }
