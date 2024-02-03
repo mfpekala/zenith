@@ -1,24 +1,19 @@
+pub mod camera;
 pub mod drawing;
 pub mod environment;
+pub mod input;
 pub mod math;
 pub mod meta;
 pub mod physics;
 
 use bevy::{prelude::*, window::WindowResolution};
+use camera::register_camera;
 use environment::register_environment;
+use input::register_input;
 use meta::consts::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use physics::register_physics;
 
-pub fn main_setup(
-    mut commands: Commands,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials: ResMut<Assets<ColorMaterial>>,
-    // asset_server: Res<AssetServer>,
-) {
-    commands.spawn(Camera2dBundle::default());
-}
-
-pub fn scratch_fn(mut gz: Gizmos) {}
+pub fn main_setup() {}
 
 fn main() {
     let mut app = App::new();
@@ -33,8 +28,9 @@ fn main() {
     }))
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
-    app.add_systems(Update, scratch_fn);
+    register_camera(&mut app);
     register_environment(&mut app);
+    register_input(&mut app);
     register_physics(&mut app);
     app.run();
 }

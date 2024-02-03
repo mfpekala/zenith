@@ -58,7 +58,7 @@ impl MathLine {
         Some(Vec2 { x, y })
     }
 
-    pub fn closest_point(&self, other_point: &Vec2) -> Vec2 {
+    pub fn closest_point_on_segment(&self, other_point: &Vec2) -> Vec2 {
         let l2 = (self.p2.x - self.p1.x).powi(2) + (self.p2.y - self.p1.y).powi(2);
         let t = ((other_point.x - self.p1.x) * (self.p2.x - self.p1.x)
             + (other_point.y - self.p1.y) * (self.p2.y - self.p1.y))
@@ -73,6 +73,29 @@ impl MathLine {
                 y: self.p1.y + t * (self.p2.y - self.p1.y),
             }
         }
+    }
+
+    pub fn closest_point_on_line(&self, other_point: &Vec2) -> Vec2 {
+        let l2 = (self.p2.x - self.p1.x).powi(2) + (self.p2.y - self.p1.y).powi(2);
+        let t = ((other_point.x - self.p1.x) * (self.p2.x - self.p1.x)
+            + (other_point.y - self.p1.y) * (self.p2.y - self.p1.y))
+            / l2;
+        Vec2 {
+            x: self.p1.x + t * (self.p2.x - self.p1.x),
+            y: self.p1.y + t * (self.p2.y - self.p1.y),
+        }
+    }
+
+    pub fn signed_distance_from_point(&self, other_point: &Vec2) -> f32 {
+        let line_diff = self.p2 - self.p1;
+        let normal_pointing = Vec2 {
+            x: line_diff.y,
+            y: -line_diff.x,
+        };
+        let diff = self.p1 - *other_point;
+        let dotprod = diff.dot(normal_pointing);
+        let closest_point = self.closest_point_on_line(other_point);
+        dotprod.signum() * other_point.distance(closest_point)
     }
 }
 
