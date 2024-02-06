@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 use crate::{
     input::{CameraControlState, SwitchCameraModeEvent},
-    meta::game_state::GameState,
-    physics::Dyno,
+    meta::game_state::{in_editor, in_level},
+    physics::{move_dynos, Dyno},
 };
 
 pub enum CameraMode {
@@ -95,5 +95,10 @@ fn update_camera(
 
 pub fn register_camera(app: &mut App) {
     app.add_systems(Startup, setup_camera);
-    app.add_systems(Update, update_camera);
+    app.add_systems(
+        Update,
+        update_camera
+            .run_if(in_editor.or_else(in_level))
+            .after(move_dynos),
+    );
 }

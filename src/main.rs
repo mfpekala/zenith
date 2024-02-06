@@ -3,6 +3,7 @@ pub mod drawing;
 pub mod environment;
 pub mod input;
 pub mod math;
+pub mod menu;
 pub mod meta;
 pub mod physics;
 pub mod ship;
@@ -11,6 +12,7 @@ use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
 use environment::register_environment;
 use input::register_input;
+use menu::register_menus;
 use meta::{
     consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
@@ -33,10 +35,13 @@ fn main() {
     }))
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
+    // First register the game state
     register_game_state(&mut app);
+    // Then we can register everything else
     register_camera(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
+    register_menus(&mut app);
     register_physics(&mut app);
     register_ship(&mut app);
     app.run();

@@ -4,6 +4,7 @@ use crate::{
     drawable,
     drawing::{draw_polygon, Drawable},
     math::{get_shell, MathLine},
+    meta::game_state::{entered_editor, in_editor, in_level},
 };
 
 /// NOTE: Points MUST be in clockwise order
@@ -166,7 +167,7 @@ impl PlanetBundle {
     }
 }
 
-fn test_comets(mut commands: Commands) {
+fn spawn_test_comet(mut commands: Commands) {
     let bundle = PlanetBundle::new(
         Vec2::new(40.0, 0.0),
         Rock::regular_polygon(6, 100.0, 20.0, 0.6, 0.3),
@@ -176,6 +177,9 @@ fn test_comets(mut commands: Commands) {
 }
 
 pub fn register_environment(app: &mut App) {
-    app.add_systems(Startup, test_comets);
-    app.add_systems(Update, (draw_rocks, draw_fields));
+    app.add_systems(Update, spawn_test_comet.run_if(entered_editor));
+    app.add_systems(
+        Update,
+        (draw_rocks, draw_fields).run_if(in_editor.or_else(in_level)),
+    );
 }

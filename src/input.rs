@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
+use crate::meta::game_state::{in_editor, in_level};
+
 #[derive(Resource, Debug)]
 pub struct MouseState {
     pub pos: Option<Vec2>,
@@ -121,5 +123,8 @@ pub fn register_input(app: &mut App) {
     app.add_systems(Update, watch_mouse);
     app.insert_resource(CameraControlState::new());
     app.add_event::<SwitchCameraModeEvent>();
-    app.add_systems(Update, watch_camera_input);
+    app.add_systems(
+        Update,
+        watch_camera_input.run_if(in_editor.or_else(in_level)),
+    );
 }
