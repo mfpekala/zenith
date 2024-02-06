@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     input::{CameraControlState, SwitchCameraModeEvent},
+    meta::game_state::GameState,
     physics::Dyno,
 };
 
@@ -51,7 +52,9 @@ fn update_camera(
     mut switch_event: EventReader<SwitchCameraModeEvent>,
 ) {
     // Get the camera (do nothing if we can't find one)
-    let Ok((mut cam_tran, mut marker)) = tran_n_marker.get_single_mut() else {
+    let (Ok((mut cam_tran, mut marker)), Ok(mut cam_proj)) =
+        (tran_n_marker.get_single_mut(), projection.get_single_mut())
+    else {
         return;
     };
     // Handle switching
@@ -83,6 +86,11 @@ fn update_camera(
         }
     }
     // Handle zooming
+    if control_state.zoom < 0.0 {
+        cam_proj.scale *= 1.02;
+    } else if control_state.zoom > 0.0 {
+        cam_proj.scale /= 1.02;
+    }
 }
 
 pub fn register_camera(app: &mut App) {

@@ -169,7 +169,7 @@ impl PlanetBundle {
 fn test_comets(mut commands: Commands) {
     let bundle = PlanetBundle::new(
         Vec2::new(40.0, 0.0),
-        Rock::regular_polygon(5, 100.0, 20.0, 0.6, 0.3),
+        Rock::regular_polygon(6, 100.0, 20.0, 0.6, 0.3),
         Some((200.0, 0.0002)),
     );
     commands.spawn(bundle);

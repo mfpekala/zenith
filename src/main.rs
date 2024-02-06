@@ -11,7 +11,10 @@ use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
 use environment::register_environment;
 use input::register_input;
-use meta::consts::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use meta::{
+    consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    game_state::register_game_state,
+};
 use physics::register_physics;
 use ship::register_ship;
 
@@ -30,6 +33,7 @@ fn main() {
     }))
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
+    register_game_state(&mut app);
     register_camera(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
