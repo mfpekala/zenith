@@ -1,17 +1,31 @@
 use bevy::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct MenuState;
 
-#[derive(Clone, Debug)]
-pub struct EditorState {
-    pub is_testing: bool,
+#[derive(Clone, Copy, Debug)]
+pub enum EditingMode {
+    Free,
+    CreatingRock(Entity),
+    EditingRock(Entity),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
+pub struct EditingState {
+    pub mode: EditingMode,
+    pub paused: bool,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum EditorState {
+    Editing(EditingState),
+    Testing,
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct LevelState;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum MetaState {
     Menu(MenuState),
     Editor(EditorState),
@@ -75,9 +89,11 @@ pub fn register_game_state(app: &mut App) {
 #[macro_export]
 macro_rules! when_becomes_true {
     ($ref_fn: ident, $fname: ident) => {
-        pub fn $fname(mut state_change: EventReader<SetGameState>) -> bool {
+        pub fn $fname(
+            mut state_change: EventReader<crate::meta::game_state::SetGameState>,
+        ) -> bool {
             match state_change.read().last() {
-                Some(SetGameState(state)) => $ref_fn(state),
+                Some(crate::meta::game_state::SetGameState(state)) => $ref_fn(state),
                 None => false,
             }
         }
@@ -87,9 +103,11 @@ macro_rules! when_becomes_true {
 #[macro_export]
 macro_rules! when_becomes_false {
     ($ref_fn: ident, $fname: ident) => {
-        pub fn $fname(mut state_change: EventReader<SetGameState>) -> bool {
+        pub fn $fname(
+            mut state_change: EventReader<crate::meta::game_state::SetGameState>,
+        ) -> bool {
             match state_change.read().last() {
-                Some(SetGameState(state)) => !$ref_fn(state),
+                Some(crate::meta::game_state::SetGameState(state)) => !$ref_fn(state),
                 None => false,
             }
         }

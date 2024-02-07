@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::meta::game_state::{
-    entered_menu, left_menu, EditorState, GameState, MetaState, SetGameState,
+    entered_menu, left_menu, EditingState, EditorState, GameState, MetaState, SetGameState,
 };
 
 #[derive(Component)]
@@ -70,7 +70,10 @@ fn button_system(
         match *interaction {
             Interaction::Pressed => {
                 state_changer.send(SetGameState(GameState {
-                    meta: MetaState::Editor(EditorState { is_testing: false }),
+                    meta: MetaState::Editor(EditorState::Editing(EditingState {
+                        mode: crate::meta::game_state::EditingMode::Free,
+                        paused: false,
+                    })),
                 }));
             }
             Interaction::Hovered => {

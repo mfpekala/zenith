@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     drawing::Drawable,
     environment::{Field, Rock},
+    meta::game_state::{EditorState, GameState, MetaState},
 };
 
 #[derive(Component, Clone, Debug)]
@@ -106,7 +107,23 @@ pub fn force_quad_gravity(
     }
 }
 
+pub fn should_apply_physics(gs: Res<GameState>) -> bool {
+    match gs.meta {
+        MetaState::Menu(_) => false,
+        MetaState::Editor(editor_state) => match editor_state {
+            EditorState::Testing => true,
+            _ => false,
+        },
+        MetaState::Level(_) => true,
+    }
+}
+
 pub fn register_physics(app: &mut App) {
-    app.add_systems(Update, force_quad_gravity);
-    app.add_systems(Update, move_dynos.after(force_quad_gravity));
+    app.add_systems(Update, force_quad_gravity.run_if(should_apply_physics));
+    app.add_systems(
+        Update,
+        move_dynos
+            .after(force_quad_gravity)
+            .run_if(should_apply_physics),
+    );
 }

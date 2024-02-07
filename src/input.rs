@@ -1,18 +1,28 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use crate::meta::game_state::{in_editor, in_level};
+use crate::{
+    camera::CameraMarker,
+    meta::{
+        consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
+        game_state::{in_editor, in_level},
+    },
+};
 
 #[derive(Resource, Debug)]
 pub struct MouseState {
-    pub pos: Option<Vec2>,
+    pub pos: Vec2,
+    pub world_pos: Vec2,
+    pub left_pressed: bool,
     pub pending_launch_start: Option<Vec2>,
     pub pending_launch_vel: Option<Vec2>,
 }
 impl MouseState {
     pub fn empty() -> Self {
         Self {
-            pos: None,
+            pos: Vec2::ZERO,
+            world_pos: Vec2::ZERO,
+            left_pressed: false,
             pending_launch_start: None,
             pending_launch_vel: None,
         }
@@ -29,12 +39,24 @@ pub fn watch_mouse(
     q_windows: Query<&Window, With<PrimaryWindow>>,
     mut mouse_state: ResMut<MouseState>,
     mut launch_event: EventWriter<LaunchEvent>,
+    camera_n_tran: Query<(&Transform, &CameraMarker)>,
 ) {
     let Some(mouse_pos) = q_windows.single().cursor_position() else {
         // Mouse is not in the window, don't do anything
         return;
     };
-    mouse_state.pos = Some(mouse_pos);
+    let Some((camera_tran, camera_marker)) = camera_n_tran.iter().next() else {
+        // Camera not found, don't do anything
+        return;
+    };
+    mouse_state.pos = mouse_pos;
+    mouse_state.world_pos = camera_tran.translation.truncate()
+        - Vec2 {
+            x: camera_marker.zoom * (WINDOW_WIDTH as f32 / 2.0 - mouse_pos.x),
+            y: -camera_marker.zoom * (WINDOW_HEIGHT as f32 / 2.0 - mouse_pos.y),
+        };
+
+    mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
     if buttons.just_pressed(MouseButton::Left) {
         // Beginning launch
         mouse_state.pending_launch_start = Some(mouse_pos);

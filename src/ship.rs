@@ -4,7 +4,9 @@ use crate::drawing::Drawable;
 use crate::environment::{Field, Rock};
 use crate::input::MouseState;
 use crate::meta::game_state::{entered_editor, in_editor, in_level};
-use crate::physics::{force_quad_gravity_helper, move_dyno_helper, move_dynos};
+use crate::physics::{
+    force_quad_gravity_helper, move_dyno_helper, move_dynos, should_apply_physics,
+};
 use crate::{input::LaunchEvent, physics::Dyno};
 
 #[derive(Bundle)]
@@ -115,8 +117,14 @@ pub fn register_ship(app: &mut App) {
     app.add_systems(Update, launch_test_ship.run_if(in_editor.or_else(in_level)));
     app.add_systems(
         Update,
-        (draw_ships, draw_launch_previews)
+        draw_ships
             .after(move_dynos)
             .run_if(in_editor.or_else(in_level)),
+    );
+    app.add_systems(
+        Update,
+        draw_launch_previews
+            .after(draw_ships)
+            .run_if(should_apply_physics),
     );
 }

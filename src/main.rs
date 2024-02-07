@@ -1,5 +1,6 @@
 pub mod camera;
 pub mod drawing;
+pub mod editor;
 pub mod environment;
 pub mod input;
 pub mod math;
@@ -10,6 +11,8 @@ pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
+use drawing::register_drawing;
+use editor::register_editor;
 use environment::register_environment;
 use input::register_input;
 use menu::register_menus;
@@ -28,7 +31,7 @@ fn main() {
         primary_window: Some(Window {
             // present_mode: (),
             resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
-            title: "PUPIL".to_string(),
+            title: "Zenith".to_string(),
             ..default()
         }),
         ..default()
@@ -39,6 +42,8 @@ fn main() {
     register_game_state(&mut app);
     // Then we can register everything else
     register_camera(&mut app);
+    register_drawing(&mut app);
+    register_editor(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
     register_menus(&mut app);

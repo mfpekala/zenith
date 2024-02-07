@@ -23,6 +23,7 @@ impl CameraMode {
 pub struct CameraMarker {
     mode: CameraMode,
     vel: Vec2,
+    pub zoom: f32,
 }
 impl CameraMarker {
     pub fn rotate(&mut self) {
@@ -40,6 +41,7 @@ fn setup_camera(mut commands: Commands) {
         CameraMarker {
             mode: CameraMode::Follow,
             vel: Vec2::ZERO,
+            zoom: 1.0,
         },
     ));
 }
@@ -87,10 +89,11 @@ fn update_camera(
     }
     // Handle zooming
     if control_state.zoom < 0.0 {
-        cam_proj.scale *= 1.02;
+        marker.zoom *= 1.02;
     } else if control_state.zoom > 0.0 {
-        cam_proj.scale /= 1.02;
+        marker.zoom /= 1.02;
     }
+    cam_proj.scale = marker.zoom;
 }
 
 pub fn register_camera(app: &mut App) {
