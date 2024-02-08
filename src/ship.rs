@@ -93,17 +93,6 @@ fn draw_launch_previews(
     }
 }
 
-fn setup_test_ship(mut commands: Commands) {
-    let ship = ShipBundle::new(
-        Vec2 {
-            x: -205.0,
-            y: 200.0,
-        },
-        16.0,
-    );
-    commands.spawn(ship);
-}
-
 fn launch_test_ship(mut dynos: Query<&mut Dyno>, mut launch_events: EventReader<LaunchEvent>) {
     for launch in launch_events.read() {
         for mut dyno in dynos.iter_mut() {
@@ -113,8 +102,7 @@ fn launch_test_ship(mut dynos: Query<&mut Dyno>, mut launch_events: EventReader<
 }
 
 pub fn register_ship(app: &mut App) {
-    app.add_systems(Update, setup_test_ship.run_if(entered_editor));
-    app.add_systems(Update, launch_test_ship.run_if(in_editor.or_else(in_level)));
+    app.add_systems(Update, launch_test_ship.run_if(should_apply_physics));
     app.add_systems(
         Update,
         draw_ships

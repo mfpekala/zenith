@@ -89,5 +89,5 @@ fn button_system(
 pub fn register_main_menu(app: &mut App) {
     app.add_systems(Update, setup_main_menu.run_if(entered_menu));
     app.add_systems(Update, destroy_main_menu.run_if(left_menu));
-    app.add_systems(Update, button_system);
+    app.add_systems(PreUpdate, button_system);
 }

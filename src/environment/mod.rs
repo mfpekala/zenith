@@ -4,7 +4,7 @@ use crate::{
     drawable,
     drawing::{draw_polygon, Drawable},
     math::{get_shell, MathLine},
-    meta::game_state::{entered_editor, in_editor, in_level},
+    meta::game_state::{in_editor, in_level},
 };
 
 /// NOTE: Points MUST be in clockwise order
@@ -137,8 +137,12 @@ impl Drawable for Field {
 }
 drawable!(Field, draw_fields);
 
+#[derive(Component)]
+pub struct Planet;
+
 #[derive(Bundle)]
 pub struct PlanetBundle {
+    planet: Planet,
     rock: Rock,
     field: Field,
     spatial: SpatialBundle,
@@ -154,11 +158,13 @@ impl PlanetBundle {
         };
         match reach_n_strength {
             Some((reach, strength)) => Self {
+                planet: Planet,
                 field: Field::uniform_around_rock(&rock, reach, strength),
                 rock,
                 spatial,
             },
             None => Self {
+                planet: Planet,
                 rock,
                 field: Field::empty(),
                 spatial,
@@ -167,17 +173,7 @@ impl PlanetBundle {
     }
 }
 
-fn spawn_test_comet(mut commands: Commands) {
-    let bundle = PlanetBundle::new(
-        Vec2::new(40.0, 0.0),
-        Rock::regular_polygon(6, 100.0, 20.0, 0.6, 0.3),
-        Some((200.0, 0.0002)),
-    );
-    commands.spawn(bundle);
-}
-
 pub fn register_environment(app: &mut App) {
-    app.add_systems(Update, spawn_test_comet.run_if(entered_editor));
     app.add_systems(
         Update,
         (draw_rocks, draw_fields).run_if(in_editor.or_else(in_level)),

@@ -1,4 +1,8 @@
-use super::draggable::Draggable;
+use super::{
+    draggable::Draggable,
+    editable_point::{EditablePoint, EditablePointBundle},
+};
+use crate::drawing::CircleMarker;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -12,7 +16,9 @@ pub struct EditableRock {
 #[derive(Bundle)]
 pub struct EditableRockBundle {
     pub erock: EditableRock,
+    pub editable_point: EditablePoint,
     pub draggable: Draggable,
+    pub circle: CircleMarker,
     pub spatial: SpatialBundle,
 }
 impl EditableRockBundle {
@@ -24,7 +30,9 @@ impl EditableRockBundle {
                 gravity_strength: None,
                 points: vec![id],
             },
+            editable_point: EditablePoint { is_focused: true },
             draggable: Draggable::new(10.0),
+            circle: CircleMarker::new(10.0, Color::SEA_GREEN),
             spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
         }
     }

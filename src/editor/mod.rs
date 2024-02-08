@@ -3,7 +3,10 @@ pub mod editable_point;
 pub mod editable_rock;
 pub mod state_machine;
 
-use self::{draggable::register_draggables, editable_point::register_editable_points};
+use self::{
+    draggable::register_draggables, editable_point::register_editable_points,
+    state_machine::register_editor_state_machine,
+};
 use crate::{
     meta::game_state::{EditorState, GameState, MetaState},
     when_becomes_false, when_becomes_true,
@@ -43,4 +46,5 @@ when_becomes_false!(is_testing_helper, left_testing);
 pub fn register_editor(app: &mut App) {
     register_draggables(app);
     register_editable_points(app);
+    register_editor_state_machine(app);
 }

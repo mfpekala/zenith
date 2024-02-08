@@ -15,6 +15,13 @@ pub struct EditingState {
     pub mode: EditingMode,
     pub paused: bool,
 }
+impl EditingState {
+    pub fn to_game_state(&self) -> GameState {
+        GameState {
+            meta: MetaState::Editor(EditorState::Editing(self.clone())),
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum EditorState {
@@ -77,11 +84,11 @@ fn set_initial_game_state(mut gs_writer: EventWriter<SetGameState>) {
 
 pub fn register_game_state(app: &mut App) {
     app.insert_resource(GameState {
-        meta: MetaState::Menu(MenuState),
+        meta: MetaState::Level(LevelState),
     });
     app.add_event::<SetGameState>();
     app.add_systems(Startup, set_initial_game_state);
-    app.add_systems(Update, translate_events);
+    app.add_systems(PostUpdate, translate_events);
 }
 
 // Helper functions for common state transitions
@@ -91,9 +98,16 @@ macro_rules! when_becomes_true {
     ($ref_fn: ident, $fname: ident) => {
         pub fn $fname(
             mut state_change: EventReader<crate::meta::game_state::SetGameState>,
+            old_state: Res<GameState>,
         ) -> bool {
             match state_change.read().last() {
-                Some(crate::meta::game_state::SetGameState(state)) => $ref_fn(state),
+                Some(crate::meta::game_state::SetGameState(state)) => {
+                    if $ref_fn(&old_state) {
+                        // It's already true
+                        return false;
+                    }
+                    return $ref_fn(state);
+                }
                 None => false,
             }
         }
@@ -105,9 +119,16 @@ macro_rules! when_becomes_false {
     ($ref_fn: ident, $fname: ident) => {
         pub fn $fname(
             mut state_change: EventReader<crate::meta::game_state::SetGameState>,
+            old_state: Res<GameState>,
         ) -> bool {
             match state_change.read().last() {
-                Some(crate::meta::game_state::SetGameState(state)) => !$ref_fn(state),
+                Some(crate::meta::game_state::SetGameState(state)) => {
+                    if !$ref_fn(&old_state) {
+                        // It's already false
+                        return false;
+                    }
+                    return !$ref_fn(state);
+                }
                 None => false,
             }
         }

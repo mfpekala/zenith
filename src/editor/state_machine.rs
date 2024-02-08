@@ -1,0 +1,170 @@
+use super::{
+    draggable::Draggable,
+    editable_point::{EditablePoint, EditablePointBundle},
+    editable_rock::{EditableRock, EditableRockBundle},
+    entered_testing, is_editing, is_editing_helper, is_testing_helper, left_testing,
+};
+use crate::{
+    environment::{Planet, PlanetBundle, Rock},
+    input::MouseState,
+    meta::game_state::{
+        in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
+    },
+    physics::Dyno,
+    ship::ShipBundle,
+};
+use bevy::prelude::*;
+
+fn editing_state_machine(
+    gs: Res<GameState>,
+    mouse_state: Res<MouseState>,
+    mouse_buttons: Res<Input<MouseButton>>,
+    mut commands: Commands,
+    mut editable_rocks: Query<&mut EditableRock>,
+    center_points: Query<(Entity, &Transform, &Draggable), With<EditableRock>>,
+    exterior_points: Query<
+        (Entity, &Transform, &Draggable),
+        (With<EditablePoint>, Without<EditableRock>),
+    >,
+    mut gs_writer: EventWriter<SetGameState>,
+) {
+    let editing_state = match gs.meta {
+        MetaState::Editor(EditorState::Editing(state)) => state,
+        _ => return,
+    };
+    match editing_state.mode {
+        EditingMode::Free => {
+            if mouse_buttons.just_pressed(MouseButton::Right) {
+                // If we right click, start creating a new rock
+                let point_id = commands
+                    .spawn(EditablePointBundle::new(mouse_state.world_pos))
+                    .id();
+                let editable_rock_id = commands
+                    .spawn(EditableRockBundle::from_single_point(
+                        point_id,
+                        mouse_state.world_pos,
+                    ))
+                    .id();
+                // let new_editing_state = EditingState {
+                //     mode: EditingMode::CreatingRock(editable_rock_id),
+                //     paused: false,
+                // };
+                // gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+            } else if mouse_buttons.just_pressed(MouseButton::Left) {
+                // If we left click, see if there's an existing rock to focus on
+                println!("TODO: Look for rock to focus on");
+            }
+        }
+        EditingMode::CreatingRock(id) => {
+            let mut editing_rock = editable_rocks.get_mut(id).unwrap();
+            let first_ext_id = editing_rock.points[0];
+            let (_, first_ext_tran, first_ext_drag) = exterior_points.get(first_ext_id).unwrap();
+            if mouse_buttons.just_pressed(MouseButton::Right) {
+                if first_ext_drag.is_mouse_over(first_ext_tran.translation.truncate(), &mouse_state)
+                {
+                    // If we right click the first point, close it and go to editing
+                    editing_rock.closed = true;
+                    let new_editing_state = EditingState {
+                        mode: EditingMode::EditingRock(id),
+                        paused: false,
+                    };
+                    gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                } else {
+                    // If we right click anywhere else, just make a new point
+                    let point_id = commands
+                        .spawn(EditablePointBundle::new(mouse_state.world_pos))
+                        .id();
+                    editing_rock.points.push(point_id);
+                }
+            }
+        }
+        EditingMode::EditingRock(id) => {
+            let editing_rock = editable_rocks.get(id).unwrap();
+            let (_, editing_tran, editing_draggable) = center_points.get(id).unwrap();
+            if mouse_buttons.just_pressed(MouseButton::Left) {
+                // If this click was on any of my points, stay in this state
+                if editing_draggable
+                    .is_mouse_over(editing_tran.translation.truncate(), &mouse_state)
+                {
+                    return;
+                }
+                for ext_id in editing_rock.points.iter() {
+                    let (_, ex_tran, ex_drag) = exterior_points.get(ext_id.clone()).unwrap();
+                    if ex_drag.is_mouse_over(ex_tran.translation.truncate(), &mouse_state) {
+                        return;
+                    }
+                }
+                // Otherwise, default back to free
+                let new_editing_state = EditingState {
+                    mode: EditingMode::Free,
+                    paused: false,
+                };
+                gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+            }
+        }
+    }
+}
+
+fn watch_for_edit_test_switch(
+    keys: Res<Input<KeyCode>>,
+    gs: Res<GameState>,
+    mut gs_writer: EventWriter<SetGameState>,
+) {
+    let mut set_action: Option<SetGameState> = None;
+    if keys.just_pressed(KeyCode::Return) {
+        if !is_testing_helper(&gs) {
+            set_action = Some(SetGameState(GameState {
+                meta: MetaState::Editor(EditorState::Testing),
+            }));
+        }
+    } else if keys.just_pressed(KeyCode::Escape) {
+        if !is_editing_helper(&gs) {
+            set_action = Some(SetGameState(GameState {
+                meta: MetaState::Editor(EditorState::Editing(EditingState {
+                    mode: EditingMode::Free,
+                    paused: false,
+                })),
+            }))
+        }
+    }
+    if let Some(event) = set_action {
+        gs_writer.send(event);
+    }
+}
+
+fn start_testing(mut commands: Commands) {
+    let ship = ShipBundle::new(
+        Vec2 {
+            x: -205.0,
+            y: 200.0,
+        },
+        16.0,
+    );
+    commands.spawn(ship);
+    let bundle = PlanetBundle::new(
+        Vec2::new(40.0, 0.0),
+        Rock::regular_polygon(6, 100.0, 20.0, 0.6, 0.3),
+        Some((200.0, 0.0002)),
+    );
+    commands.spawn(bundle);
+}
+
+fn stop_testing(
+    dyno_ids: Query<Entity, With<Dyno>>,
+    planet_ids: Query<Entity, With<Planet>>,
+    mut commands: Commands,
+) {
+    for id in dyno_ids.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+    for id in planet_ids.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+}
+
+pub fn register_editor_state_machine(app: &mut App) {
+    app.add_systems(PreUpdate, watch_for_edit_test_switch.run_if(in_editor));
+    app.add_systems(Update, start_testing.run_if(entered_testing));
+    app.add_systems(Update, stop_testing.run_if(left_testing));
+    app.add_systems(Update, editing_state_machine.run_if(is_editing));
+}
