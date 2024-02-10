@@ -45,14 +45,24 @@ fn editing_state_machine(
                         mouse_state.world_pos,
                     ))
                     .id();
-                // let new_editing_state = EditingState {
-                //     mode: EditingMode::CreatingRock(editable_rock_id),
-                //     paused: false,
-                // };
-                // gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                let new_editing_state = EditingState {
+                    mode: EditingMode::CreatingRock(editable_rock_id),
+                    paused: false,
+                };
+                gs_writer.send(SetGameState(new_editing_state.to_game_state()));
             } else if mouse_buttons.just_pressed(MouseButton::Left) {
                 // If we left click, see if there's an existing rock to focus on
-                println!("TODO: Look for rock to focus on");
+                for (cid, ctran, cdrag) in center_points.iter() {
+                    if cdrag.is_mouse_over(ctran.translation.truncate(), &mouse_state) {
+                        // Start editing this rock
+                        let new_editing_state = EditingState {
+                            mode: EditingMode::EditingRock(cid),
+                            paused: false,
+                        };
+                        gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                        return;
+                    }
+                }
             }
         }
         EditingMode::CreatingRock(id) => {
@@ -62,12 +72,31 @@ fn editing_state_machine(
             if mouse_buttons.just_pressed(MouseButton::Right) {
                 if first_ext_drag.is_mouse_over(first_ext_tran.translation.truncate(), &mouse_state)
                 {
+                    if editing_rock.points.len() < 2 {
+                        // All rocks need at least two points
+                        return;
+                    }
                     // If we right click the first point, close it and go to editing
                     editing_rock.closed = true;
                     let new_editing_state = EditingState {
                         mode: EditingMode::EditingRock(id),
                         paused: false,
                     };
+                    let Ok((_, first_tran, _)) = exterior_points.get(editing_rock.points[0]) else {
+                        return;
+                    };
+                    let Ok((_, last_tran, _)) = exterior_points.get(editing_rock.points[1]) else {
+                        return;
+                    };
+                    let normal = (last_tran.translation.truncate()
+                        - first_tran.translation.truncate())
+                    .perp()
+                    .normalize();
+                    let gravity_point_loc = first_tran.translation.truncate() + normal * 50.0;
+                    let gpl_id = commands
+                        .spawn(EditablePointBundle::new(gravity_point_loc))
+                        .id();
+                    editing_rock.gravity_reach_point = Some(gpl_id);
                     gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                 } else {
                     // If we right click anywhere else, just make a new point
@@ -90,6 +119,12 @@ fn editing_state_machine(
                 }
                 for ext_id in editing_rock.points.iter() {
                     let (_, ex_tran, ex_drag) = exterior_points.get(ext_id.clone()).unwrap();
+                    if ex_drag.is_mouse_over(ex_tran.translation.truncate(), &mouse_state) {
+                        return;
+                    }
+                }
+                if let Some(reach_id) = editing_rock.gravity_reach_point {
+                    let (_, ex_tran, ex_drag) = exterior_points.get(reach_id).unwrap();
                     if ex_drag.is_mouse_over(ex_tran.translation.truncate(), &mouse_state) {
                         return;
                     }

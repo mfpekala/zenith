@@ -1,4 +1,4 @@
-use super::is_editing;
+use super::{editable_rock::EditableRock, is_editing};
 use crate::{drawing::CircleMarker, input::MouseState};
 use bevy::prelude::*;
 
@@ -22,12 +22,17 @@ impl Draggable {
     }
 }
 
-fn handle_draggables(
+pub fn handle_draggables(
     mouse_state: Res<MouseState>,
     mouse_buttons: Res<Input<MouseButton>>,
-    mut draggables: Query<(&mut Draggable, &mut Transform, Option<&mut CircleMarker>)>,
+    mut draggables: Query<(
+        &mut Draggable,
+        &mut Transform,
+        Option<&mut CircleMarker>,
+        Option<&EditableRock>,
+    )>,
 ) {
-    for (mut draggable, mut tran, cm) in draggables.iter_mut() {
+    for (mut draggable, mut tran, cm, erock) in draggables.iter_mut() {
         // First set the circle size
         if let Some(mut cm) = cm {
             cm.radius = if draggable.enabled {
@@ -43,7 +48,13 @@ fn handle_draggables(
         // Do the dragging if it's enabled
         if draggable.is_dragging {
             if mouse_state.left_pressed {
+                // Dragging for editable rock centers is handled elsewhere
+                if erock.is_some() {
+                    return;
+                }
                 tran.translation = mouse_state.world_pos.extend(0.0);
+                // We only want to drag one thing at a time, so return early
+                return;
             } else {
                 draggable.is_dragging = false;
             }
@@ -52,6 +63,8 @@ fn handle_draggables(
                 && draggable.is_mouse_over(tran.translation.truncate(), &mouse_state)
             {
                 draggable.is_dragging = true;
+                // We only want to drag one thing at a time, so return early
+                return;
             }
         }
     }

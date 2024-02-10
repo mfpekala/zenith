@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 pub struct MathLine {
-    p1: Vec2,
-    p2: Vec2,
+    pub p1: Vec2,
+    pub p2: Vec2,
 }
 impl MathLine {
     pub fn from_points(points: &[Vec2]) -> Vec<MathLine> {
