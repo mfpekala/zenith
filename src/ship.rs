@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::drawing::Drawable;
 use crate::environment::{Field, Rock};
 use crate::input::MouseState;
-use crate::meta::game_state::{entered_editor, in_editor, in_level};
+use crate::meta::game_state::{in_editor, in_level};
 use crate::physics::{
     force_quad_gravity_helper, move_dyno_helper, move_dynos, should_apply_physics,
 };

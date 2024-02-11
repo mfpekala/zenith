@@ -1,4 +1,4 @@
-use super::{editable_rock::EditableRock, is_editing};
+use super::{editable_rock::EditableRock, is_editing, state_machine::editing_state_machine};
 use crate::{drawing::CircleMarker, input::MouseState};
 use bevy::prelude::*;
 
@@ -71,5 +71,10 @@ pub fn handle_draggables(
 }
 
 pub fn register_draggables(app: &mut App) {
-    app.add_systems(Update, handle_draggables.run_if(is_editing));
+    app.add_systems(
+        Update,
+        handle_draggables
+            .run_if(is_editing)
+            .after(editing_state_machine),
+    );
 }

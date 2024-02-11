@@ -106,7 +106,7 @@ impl Field {
         for ix in 0..rock.points.len() {
             let p1 = shell[ix];
             let p2 = shell[(ix + 1) % shell.len()];
-            let diff = p2 - p1;
+            let diff = (p2 - p1).normalize();
             let region = ForceQuad {
                 points: [
                     p1,

@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
 use crate::{
-    input::{CameraControlState, SwitchCameraModeEvent},
+    input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::game_state::{in_editor, in_level},
     physics::{move_dynos, Dyno},
 };
 
+#[derive(Debug, Clone)]
 pub enum CameraMode {
     Follow,
     Free,
@@ -52,6 +53,7 @@ fn update_camera(
     mut projection: Query<&mut OrthographicProjection, With<CameraMarker>>,
     control_state: Res<CameraControlState>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
+    mut set_event: EventReader<SetCameraModeEvent>,
 ) {
     // Get the camera (do nothing if we can't find one)
     let (Ok((mut cam_tran, mut marker)), Ok(mut cam_proj)) =
@@ -63,6 +65,10 @@ fn update_camera(
     let num_switches = switch_event.read().into_iter().count();
     if num_switches % 2 == 1 {
         marker.rotate();
+    }
+    // Handle setting
+    if let Some(set_event) = set_event.read().last() {
+        marker.mode = set_event.mode.clone();
     }
     // Handle movement
     match marker.mode {

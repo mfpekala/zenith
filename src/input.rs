@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::{
-    camera::CameraMarker,
+    camera::{CameraMarker, CameraMode},
     meta::{
         consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
         game_state::{in_editor, in_level},
@@ -98,6 +98,11 @@ impl CameraControlState {
 #[derive(Event, Debug)]
 pub struct SwitchCameraModeEvent;
 
+#[derive(Event, Debug)]
+pub struct SetCameraModeEvent {
+    pub mode: CameraMode,
+}
+
 pub fn watch_camera_input(
     mut camera_control_state: ResMut<CameraControlState>,
     keys: Res<Input<KeyCode>>,
@@ -145,6 +150,7 @@ pub fn register_input(app: &mut App) {
     app.add_systems(Update, watch_mouse);
     app.insert_resource(CameraControlState::new());
     app.add_event::<SwitchCameraModeEvent>();
+    app.add_event::<SetCameraModeEvent>();
     app.add_systems(
         Update,
         watch_camera_input.run_if(in_editor.or_else(in_level)),

@@ -1,12 +1,14 @@
 use super::{
     draggable::Draggable,
-    editable_point::{EditablePoint, EditablePointBundle},
+    editable_point::{destroy_points, EditablePoint, EditablePointBundle},
     editable_rock::{EditableRock, EditableRockBundle},
-    entered_testing, is_editing, is_editing_helper, is_testing_helper, left_testing,
+    entered_editing, entered_testing, is_editing, is_editing_helper, is_testing_helper,
+    left_editing, left_testing,
 };
 use crate::{
+    camera::CameraMode,
     environment::{Planet, PlanetBundle, Rock},
-    input::MouseState,
+    input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
@@ -15,7 +17,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
-fn editing_state_machine(
+pub fn editing_state_machine(
     gs: Res<GameState>,
     mouse_state: Res<MouseState>,
     mouse_buttons: Res<Input<MouseButton>>,
@@ -66,7 +68,15 @@ fn editing_state_machine(
             }
         }
         EditingMode::CreatingRock(id) => {
-            let mut editing_rock = editable_rocks.get_mut(id).unwrap();
+            let Ok(mut editing_rock) = editable_rocks.get_mut(id) else {
+                // Start editing this rock
+                let new_editing_state = EditingState {
+                    mode: EditingMode::Free,
+                    paused: false,
+                };
+                gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                return;
+            };
             let first_ext_id = editing_rock.points[0];
             let (_, first_ext_tran, first_ext_drag) = exterior_points.get(first_ext_id).unwrap();
             if mouse_buttons.just_pressed(MouseButton::Right) {
@@ -88,6 +98,7 @@ fn editing_state_machine(
                     let Ok((_, last_tran, _)) = exterior_points.get(editing_rock.points[1]) else {
                         return;
                     };
+                    // This logic calculates where to place the gravity_point_loc
                     let normal = (last_tran.translation.truncate()
                         - first_tran.translation.truncate())
                     .perp()
@@ -108,7 +119,15 @@ fn editing_state_machine(
             }
         }
         EditingMode::EditingRock(id) => {
-            let editing_rock = editable_rocks.get(id).unwrap();
+            let Ok(editing_rock) = editable_rocks.get(id) else {
+                // The focused rock just got deleted, go back to free
+                let new_editing_state = EditingState {
+                    mode: EditingMode::Free,
+                    paused: false,
+                };
+                gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                return;
+            };
             let (_, editing_tran, editing_draggable) = center_points.get(id).unwrap();
             if mouse_buttons.just_pressed(MouseButton::Left) {
                 // If this click was on any of my points, stay in this state
@@ -167,7 +186,15 @@ fn watch_for_edit_test_switch(
     }
 }
 
-fn start_testing(mut commands: Commands) {
+fn start_testing(
+    mut commands: Commands,
+    mut camera_switch_writer: EventWriter<SetCameraModeEvent>,
+    erocks: Query<(&EditableRock, &Transform)>,
+    epoints: Query<&Transform, With<EditablePoint>>,
+) {
+    camera_switch_writer.send(SetCameraModeEvent {
+        mode: CameraMode::Follow,
+    });
     let ship = ShipBundle::new(
         Vec2 {
             x: -205.0,
@@ -176,12 +203,19 @@ fn start_testing(mut commands: Commands) {
         16.0,
     );
     commands.spawn(ship);
-    let bundle = PlanetBundle::new(
-        Vec2::new(40.0, 0.0),
-        Rock::regular_polygon(6, 100.0, 20.0, 0.6, 0.3),
-        Some((200.0, 0.0002)),
-    );
-    commands.spawn(bundle);
+    for (erock, tran) in erocks.iter() {
+        let rock = erock.to_rock(&epoints, tran.translation.truncate());
+        let reach_n_strength = match erock.gravity_reach_point {
+            Some(pid) => {
+                let p1 = epoints.get(pid).unwrap().translation.truncate();
+                let p2 = epoints.get(erock.points[0]).unwrap().translation.truncate();
+                Some((p1.distance(p2), 0.04 as f32))
+            }
+            None => None,
+        };
+        let bundle = PlanetBundle::new(tran.translation.truncate(), rock, reach_n_strength);
+        commands.spawn(bundle);
+    }
 }
 
 fn stop_testing(
@@ -197,9 +231,35 @@ fn stop_testing(
     }
 }
 
+fn start_editing(
+    mut commands: Commands,
+    mut camera_switch_writer: EventWriter<SetCameraModeEvent>,
+    mut gs_writer: EventWriter<SetGameState>,
+) {
+    // Start in free editing mode
+    let new_editing_state = EditingState {
+        mode: EditingMode::Free,
+        paused: false,
+    };
+    gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+    // Free the camera too
+    camera_switch_writer.send(SetCameraModeEvent {
+        mode: CameraMode::Free,
+    });
+}
+
+fn stop_editing(mut commands: Commands) {}
+
 pub fn register_editor_state_machine(app: &mut App) {
     app.add_systems(PreUpdate, watch_for_edit_test_switch.run_if(in_editor));
     app.add_systems(Update, start_testing.run_if(entered_testing));
     app.add_systems(Update, stop_testing.run_if(left_testing));
-    app.add_systems(Update, editing_state_machine.run_if(is_editing));
+    app.add_systems(Update, start_editing.run_if(entered_editing));
+    app.add_systems(Update, stop_editing.run_if(left_editing));
+    app.add_systems(
+        Update,
+        editing_state_machine
+            .run_if(is_editing)
+            .after(destroy_points),
+    );
 }

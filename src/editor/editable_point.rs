@@ -1,4 +1,4 @@
-use super::{draggable::Draggable, is_editing};
+use super::{draggable::Draggable, editable_rock::EditableRock, is_editing};
 use crate::{drawing::CircleMarker, input::MouseState};
 use bevy::prelude::*;
 
@@ -35,6 +35,7 @@ pub fn destroy_points(
     mouse_buttons: Res<Input<MouseButton>>,
     mut commands: Commands,
     existing_points: Query<(Entity, &Transform, &Draggable), With<EditablePoint>>,
+    mut erocks: Query<(Entity, &mut EditableRock)>,
 ) {
     if mouse_buttons.just_pressed(MouseButton::Middle) {
         for (id, tran, draggable) in existing_points.iter() {
@@ -42,6 +43,27 @@ pub fn destroy_points(
                 continue;
             }
             if draggable.is_mouse_over(tran.translation.truncate(), &mouse_state) {
+                // If we are deleting a rock, despawn it
+                if let Ok((eid, mut erock)) = erocks.get_mut(id) {
+                    erock.despawn(eid, &mut commands);
+                    return;
+                }
+                // Otherwise, find the rock that this is associated with and clean it up
+                for (eid, mut erock) in erocks.iter_mut() {
+                    if erock.points.iter().any(|pid| *pid == id)
+                        || erock.gravity_reach_point == Some(id)
+                    {
+                        erock.points.retain(|pid| *pid != id);
+                        if erock.gravity_reach_point == Some(id) {
+                            erock.gravity_reach_point = None;
+                        }
+                        if erock.points.len() < 3 {
+                            erock.despawn(eid, &mut commands);
+                            commands.entity(id).despawn_recursive();
+                            return;
+                        }
+                    }
+                }
                 commands.entity(id).despawn_recursive();
             }
         }
