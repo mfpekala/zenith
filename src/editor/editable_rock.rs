@@ -4,8 +4,8 @@ use super::{
     is_editing,
 };
 use crate::{
-    drawing::{CircleMarker, Drawable},
-    environment::{Field, Rock},
+    drawing::hollow::{CircleMarker, HollowDrawable},
+    environment::{Field, Rock, RockFeatures, RockResources, RockType},
     input::MouseState,
     math::MathLine,
     meta::game_state::{EditingMode, EditorState, GameState, MetaState},
@@ -20,17 +20,18 @@ pub struct EditableRock {
     pub points: Vec<Entity>,
 }
 impl EditableRock {
-    pub fn to_rock(&self, epoints: &Query<&Transform, With<EditablePoint>>, offset: Vec2) -> Rock {
+    pub fn to_rock(
+        &self,
+        epoints: &Query<&Transform, With<EditablePoint>>,
+        offset: Vec2,
+        features: RockFeatures,
+    ) -> Rock {
         let mut points = vec![];
         for pid in self.points.iter() {
             let tran = epoints.get(pid.clone()).unwrap();
             points.push(tran.translation.truncate() - offset);
         }
-        Rock {
-            points,
-            bounciness: 0.6,
-            friction: 0.3,
-        }
+        Rock::new(points, features)
     }
 
     pub fn despawn(&mut self, my_pid: Entity, commands: &mut Commands) {
@@ -43,6 +44,18 @@ impl EditableRock {
         self.points = vec![];
         self.gravity_reach_point = None;
         commands.entity(my_pid).despawn_recursive();
+    }
+
+    /// Helper function to return a vector of exterior points including the reach point if it exists
+    pub fn get_all_ext_points(&self) -> Vec<Entity> {
+        match self.gravity_reach_point {
+            Some(pid) => {
+                let mut tmp = self.points.clone();
+                tmp.extend([pid].into_iter());
+                tmp
+            }
+            None => self.points.clone(),
+        }
     }
 }
 
@@ -70,33 +83,6 @@ impl EditableRockBundle {
         }
     }
 }
-
-// /// Should be called before all other functions here. Makes sure that non-existent points get
-// /// deleted/set to None as appropriate
-// fn graveyard_shift(
-//     mut erocks: Query<&mut EditableRock, With<EditableRock>>,
-//     epoints: Query<&mut Transform, (With<EditablePoint>, Without<EditableRock>)>,
-// ) {
-//     for mut rock in erocks.iter_mut() {
-//         if let Some(gpid) = rock.gravity_reach_point {
-//             if epoints.get(gpid).is_err() {
-//                 rock.gravity_reach_point = None;
-//                 return;
-//             }
-//         }
-//         let mut new_points = vec![];
-//         println!("before: {:?}", rock.points);
-//         for pid in rock.points.iter() {
-//             if epoints.get(pid.clone()).is_ok() {
-//                 new_points.push(pid.clone());
-//             }
-//         }
-//         println!("after: {:?}", new_points);
-//         if new_points.len() != rock.points.len() {
-//             rock.points = new_points;
-//         }
-//     }
-// }
 
 fn update_centers(
     mut erocks: Query<(&EditableRock, &Draggable, &mut Transform), With<EditableRock>>,
@@ -135,6 +121,49 @@ fn update_centers(
                 total = total / (count as f32);
             }
             etran.translation = total.extend(0.0);
+        }
+    }
+}
+
+fn enable_only_active_rock(
+    gs: Res<GameState>,
+    erocks: Query<(Entity, &EditableRock)>,
+    mut epoints: Query<
+        (&mut EditablePoint, &mut Draggable),
+        (With<EditablePoint>, Without<EditableRock>),
+    >,
+    mut center_points: Query<&mut EditablePoint, With<EditableRock>>,
+) {
+    let MetaState::Editor(EditorState::Editing(state)) = gs.meta else {
+        return;
+    };
+    let rid = match state.mode {
+        EditingMode::CreatingRock(rid) | EditingMode::EditingRock(rid) => Some(rid),
+        _ => None,
+    };
+    for (id, rock) in erocks.iter() {
+        for pid in rock.get_all_ext_points() {
+            let Ok((mut epoint, mut edrag)) = epoints.get_mut(pid) else {
+                continue;
+            };
+            if Some(id) == rid {
+                // Yay! The chosen rock
+                epoint.is_focused = true;
+                edrag.enabled = true;
+            } else {
+                // Nope
+                epoint.is_focused = false;
+                edrag.enabled = false;
+            }
+        }
+        // Finally mark the center accordingly (NOTE: It's always enabled so it can be focused)
+        let Ok(mut cpoint) = center_points.get_mut(id) else {
+            continue;
+        };
+        if Some(id) == rid {
+            cpoint.is_focused = true;
+        } else {
+            cpoint.is_focused = false;
         }
     }
 }
@@ -188,6 +217,7 @@ fn draw_editable_rocks(
     erocks: Query<(&EditableRock, &Transform)>,
     epoints: Query<&Transform, With<EditablePoint>>,
     mut gz: Gizmos,
+    rock_resources: Res<RockResources>,
 ) {
     for (rock, tran) in erocks.iter() {
         if rock.points.len() < 3 {
@@ -229,9 +259,13 @@ fn draw_editable_rocks(
                 .translation
                 .truncate()
                 .distance(rp_point.translation.truncate());
-            let as_rock = rock.to_rock(&epoints, tran.translation.truncate());
+            let as_rock = rock.to_rock(
+                &epoints,
+                tran.translation.truncate(),
+                rock_resources.get_type(RockType::Normal),
+            );
             let show_field = Field::uniform_around_rock(&as_rock, dist, 1.0);
-            show_field.draw(tran.translation.truncate(), &mut gz);
+            show_field.draw_hollow(tran.translation.truncate(), &mut gz);
         }
     }
 }
@@ -253,5 +287,11 @@ pub fn register_editable_rocks(app: &mut App) {
             .run_if(is_editing)
             .after(handle_draggables)
             .after(destroy_points),
+    );
+    app.add_systems(
+        Update,
+        enable_only_active_rock
+            .run_if(is_editing)
+            .after(handle_draggables),
     );
 }

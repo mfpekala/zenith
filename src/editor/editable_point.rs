@@ -1,5 +1,5 @@
 use super::{draggable::Draggable, editable_rock::EditableRock, is_editing};
-use crate::{drawing::CircleMarker, input::MouseState};
+use crate::{drawing::hollow::CircleMarker, input::MouseState};
 use bevy::prelude::*;
 
 #[derive(Component)]

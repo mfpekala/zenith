@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    drawing::Drawable,
+    drawing::hollow::HollowDrawable,
     environment::{Field, Rock},
     meta::game_state::{EditorState, GameState, MetaState},
 };
@@ -11,8 +11,8 @@ pub struct Dyno {
     pub vel: Vec2,
     pub radius: f32,
 }
-impl Drawable for Dyno {
-    fn draw(&self, base_pos: Vec2, gz: &mut Gizmos) {
+impl HollowDrawable for Dyno {
+    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
         gz.circle_2d(base_pos, self.radius, Color::rgb(0.9, 0.7, 0.7));
     }
 }
@@ -47,8 +47,8 @@ pub fn resolve_dyno_rock_collisions(
     let min_rock = min_rock.unwrap();
     let normal = diff.normalize();
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
-    let new_vel = pure_parr * (1.0 - min_rock.friction)
-        - 1.0 * dyno.vel.dot(normal) * normal * min_rock.bounciness;
+    let new_vel = pure_parr * (1.0 - min_rock.features.friction)
+        - 1.0 * dyno.vel.dot(normal) * normal * min_rock.features.bounciness;
     dyno.vel = new_vel;
 }
 

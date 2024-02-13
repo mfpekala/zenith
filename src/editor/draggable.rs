@@ -1,5 +1,5 @@
 use super::{editable_rock::EditableRock, is_editing, state_machine::editing_state_machine};
-use crate::{drawing::CircleMarker, input::MouseState};
+use crate::{drawing::hollow::CircleMarker, input::MouseState};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -55,9 +55,8 @@ pub fn handle_draggables(
                 tran.translation = mouse_state.world_pos.extend(0.0);
                 // We only want to drag one thing at a time, so return early
                 return;
-            } else {
-                draggable.is_dragging = false;
             }
+            draggable.is_dragging = false;
         } else {
             if mouse_buttons.just_pressed(MouseButton::Left)
                 && draggable.is_mouse_over(tran.translation.truncate(), &mouse_state)

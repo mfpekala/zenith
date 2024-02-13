@@ -1,20 +1,25 @@
-use bevy::prelude::*;
-
 use crate::{
-    drawable,
-    drawing::{draw_polygon, Drawable},
+    drawing::{
+        hollow::{draw_hollow_polygon, HollowDrawable},
+        mesh::generate_new_mesh,
+    },
+    hollow_drawable,
     math::{get_shell, MathLine},
     meta::game_state::{in_editor, in_level},
 };
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::HashMap};
 
 /// NOTE: Points MUST be in clockwise order
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone)]
 pub struct Rock {
     pub points: Vec<Vec2>,
-    pub bounciness: f32,
-    pub friction: f32,
+    pub features: RockFeatures,
 }
 impl Rock {
+    pub fn new(points: Vec<Vec2>, features: RockFeatures) -> Self {
+        Rock { points, features }
+    }
+
     pub fn closest_point(&self, point: &Vec2, base_point: &Vec2) -> Vec2 {
         let lines = MathLine::from_points(&self.points);
         let mut min_dist = f32::MAX;
@@ -38,8 +43,7 @@ impl Rock {
         num_sides: u32,
         radius: f32,
         mut angle: f32,
-        bounciness: f32,
-        friction: f32,
+        features: RockFeatures,
     ) -> Self {
         let mut points: Vec<Vec2> = vec![];
         for _ in 0..num_sides {
@@ -48,19 +52,21 @@ impl Rock {
             points.push(Vec2 { x, y });
             angle -= 360.0 / (num_sides as f32);
         }
-        Self {
-            points,
-            bounciness,
-            friction,
-        }
+        Self { points, features }
     }
 }
-impl Drawable for Rock {
-    fn draw(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        draw_polygon(base_pos, &self.points, Color::WHITE, gz);
+
+#[derive(Bundle)]
+pub struct RockBundle {
+    pub rock: Rock,
+    pub mesh: MaterialMesh2dBundle<ColorMaterial>,
+}
+impl RockBundle {
+    pub fn from_rock(rock: Rock, meshes: &mut ResMut<Assets<Mesh>>) -> Self {
+        let mesh = generate_new_mesh(&rock.points, &rock.features.mat, meshes);
+        Self { rock, mesh }
     }
 }
-drawable!(Rock, draw_rocks);
 
 /// NOTE: Points MUST be in clockwise order
 #[derive(Component, Clone, Debug)]
@@ -70,9 +76,9 @@ pub struct ForceQuad {
     pub dir: Vec2,
     pub drag: f32,
 }
-impl Drawable for ForceQuad {
-    fn draw(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        draw_polygon(base_pos, &self.points, Color::YELLOW, gz);
+impl HollowDrawable for ForceQuad {
+    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
+        draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
     }
 }
 impl ForceQuad {
@@ -128,14 +134,14 @@ impl Field {
         }
     }
 }
-impl Drawable for Field {
-    fn draw(&self, base_pos: Vec2, gz: &mut Gizmos) {
+impl HollowDrawable for Field {
+    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
         for fq in self.force_quads.iter() {
-            fq.draw(base_pos, gz);
+            fq.draw_hollow(base_pos, gz);
         }
     }
 }
-drawable!(Field, draw_fields);
+hollow_drawable!(Field, draw_fields);
 
 #[derive(Component)]
 pub struct Planet;
@@ -143,39 +149,78 @@ pub struct Planet;
 #[derive(Bundle)]
 pub struct PlanetBundle {
     planet: Planet,
-    rock: Rock,
+    rock: RockBundle,
     field: Field,
-    spatial: SpatialBundle,
 }
 impl PlanetBundle {
-    pub fn new(base_pos: Vec2, rock: Rock, reach_n_strength: Option<(f32, f32)>) -> Self {
-        let spatial = SpatialBundle {
-            transform: Transform {
-                translation: base_pos.extend(0.0),
-                ..default()
-            },
-            ..default()
-        };
+    pub fn new(
+        base_pos: Vec2,
+        rock: Rock,
+        reach_n_strength: Option<(f32, f32)>,
+        meshes: &mut ResMut<Assets<Mesh>>,
+    ) -> Self {
+        let mut rock_bundle = RockBundle::from_rock(rock.clone(), meshes);
+        rock_bundle.mesh.transform.translation = base_pos.extend(0.0);
         match reach_n_strength {
             Some((reach, strength)) => Self {
                 planet: Planet,
                 field: Field::uniform_around_rock(&rock, reach, strength),
-                rock,
-                spatial,
+                rock: rock_bundle,
             },
             None => Self {
                 planet: Planet,
-                rock,
+                rock: rock_bundle,
                 field: Field::empty(),
-                spatial,
             },
         }
     }
 }
 
+#[derive(Clone, Eq, Hash, PartialEq)]
+pub enum RockType {
+    Normal,
+}
+
+#[derive(Clone)]
+pub struct RockFeatures {
+    pub bounciness: f32,
+    pub friction: f32,
+    mat: Handle<ColorMaterial>,
+}
+
+#[derive(Resource)]
+pub struct RockResources {
+    pub feature_map: HashMap<RockType, RockFeatures>,
+}
+impl RockResources {
+    pub fn blank() -> Self {
+        Self {
+            feature_map: HashMap::new(),
+        }
+    }
+
+    pub fn get_type(&self, rock_type: RockType) -> RockFeatures {
+        self.feature_map[&rock_type].clone()
+    }
+}
+
+fn init_rock_materials(
+    mut rock_resources: ResMut<RockResources>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    // Normal rock
+    let normal_features = RockFeatures {
+        bounciness: 0.6,
+        friction: 0.3,
+        mat: materials.add(ColorMaterial::from(Color::ANTIQUE_WHITE)),
+    };
+    rock_resources
+        .feature_map
+        .insert(RockType::Normal, normal_features);
+}
+
 pub fn register_environment(app: &mut App) {
-    app.add_systems(
-        Update,
-        (draw_rocks, draw_fields).run_if(in_editor.or_else(in_level)),
-    );
+    app.insert_resource(RockResources::blank());
+    app.add_systems(Startup, init_rock_materials);
+    app.add_systems(Update, draw_fields.run_if(in_editor.or_else(in_level)));
 }

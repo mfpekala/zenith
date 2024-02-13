@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
-pub trait Drawable {
-    fn draw(&self, base_pos: Vec2, gz: &mut Gizmos);
+pub trait HollowDrawable {
+    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos);
 }
 
-pub fn draw_polygon(base_pos: Vec2, points: &[Vec2], color: Color, gz: &mut Gizmos) {
+pub fn draw_hollow_polygon(base_pos: Vec2, points: &[Vec2], color: Color, gz: &mut Gizmos) {
     for ix in 0..points.len() {
         gz.line_2d(
             base_pos + points[ix],
@@ -15,11 +15,11 @@ pub fn draw_polygon(base_pos: Vec2, points: &[Vec2], color: Color, gz: &mut Gizm
 }
 
 #[macro_export]
-macro_rules! drawable {
+macro_rules! hollow_drawable {
     ($type: ty, $fname: ident) => {
         fn $fname(mut gz: Gizmos, things: Query<(&$type, &Transform)>) {
             for (thing, transform) in things.iter() {
-                thing.draw(
+                thing.draw_hollow(
                     Vec2::new(transform.translation.x, transform.translation.y),
                     &mut gz,
                 );
@@ -44,7 +44,7 @@ impl CircleMarker {
     }
 }
 
-fn draw_circles(circles_n_transforms: Query<(&CircleMarker, &Transform)>, mut gz: Gizmos) {
+fn draw_hollow_circles(circles_n_transforms: Query<(&CircleMarker, &Transform)>, mut gz: Gizmos) {
     for (circle, tran) in circles_n_transforms.iter() {
         if !circle.shown {
             continue;
@@ -53,6 +53,6 @@ fn draw_circles(circles_n_transforms: Query<(&CircleMarker, &Transform)>, mut gz
     }
 }
 
-pub fn register_drawing(app: &mut App) {
-    app.add_systems(Update, draw_circles);
+pub fn register_hollow_drawing(app: &mut App) {
+    app.add_systems(Update, draw_hollow_circles);
 }

@@ -23,7 +23,9 @@ use meta::{
 use physics::register_physics;
 use ship::register_ship;
 
-pub fn main_setup() {}
+pub fn main_setup(mut gz_conf: ResMut<GizmoConfig>) {
+    gz_conf.line_width = 4.0;
+}
 
 fn main() {
     let mut app = App::new();

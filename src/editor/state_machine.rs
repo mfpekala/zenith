@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     camera::CameraMode,
-    environment::{Planet, PlanetBundle, Rock},
+    environment::{Planet, PlanetBundle, RockResources, RockType},
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
@@ -69,7 +69,7 @@ pub fn editing_state_machine(
         }
         EditingMode::CreatingRock(id) => {
             let Ok(mut editing_rock) = editable_rocks.get_mut(id) else {
-                // Start editing this rock
+                // The rock doesn't exist anymore
                 let new_editing_state = EditingState {
                     mode: EditingMode::Free,
                     paused: false,
@@ -77,8 +77,16 @@ pub fn editing_state_machine(
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                 return;
             };
-            let first_ext_id = editing_rock.points[0];
-            let (_, first_ext_tran, first_ext_drag) = exterior_points.get(first_ext_id).unwrap();
+            let Some(first_ext_id) = editing_rock.points.get(0) else {
+                // The rock doesn't exist anymore
+                let new_editing_state = EditingState {
+                    mode: EditingMode::Free,
+                    paused: false,
+                };
+                gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                return;
+            };
+            let (_, first_ext_tran, first_ext_drag) = exterior_points.get(*first_ext_id).unwrap();
             if mouse_buttons.just_pressed(MouseButton::Right) {
                 if first_ext_drag.is_mouse_over(first_ext_tran.translation.truncate(), &mouse_state)
                 {
@@ -191,6 +199,8 @@ fn start_testing(
     mut camera_switch_writer: EventWriter<SetCameraModeEvent>,
     erocks: Query<(&EditableRock, &Transform)>,
     epoints: Query<&Transform, With<EditablePoint>>,
+    rock_resources: Res<RockResources>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     camera_switch_writer.send(SetCameraModeEvent {
         mode: CameraMode::Follow,
@@ -204,7 +214,11 @@ fn start_testing(
     );
     commands.spawn(ship);
     for (erock, tran) in erocks.iter() {
-        let rock = erock.to_rock(&epoints, tran.translation.truncate());
+        let rock = erock.to_rock(
+            &epoints,
+            tran.translation.truncate(),
+            rock_resources.get_type(RockType::Normal),
+        );
         let reach_n_strength = match erock.gravity_reach_point {
             Some(pid) => {
                 let p1 = epoints.get(pid).unwrap().translation.truncate();
@@ -213,7 +227,12 @@ fn start_testing(
             }
             None => None,
         };
-        let bundle = PlanetBundle::new(tran.translation.truncate(), rock, reach_n_strength);
+        let bundle = PlanetBundle::new(
+            tran.translation.truncate(),
+            rock,
+            reach_n_strength,
+            &mut meshes,
+        );
         commands.spawn(bundle);
     }
 }

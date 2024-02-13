@@ -1,6 +1,4 @@
-use bevy::prelude::*;
-
-use crate::drawing::Drawable;
+use crate::drawing::hollow::HollowDrawable;
 use crate::environment::{Field, Rock};
 use crate::input::MouseState;
 use crate::meta::game_state::{in_editor, in_level};
@@ -8,6 +6,7 @@ use crate::physics::{
     force_quad_gravity_helper, move_dyno_helper, move_dynos, should_apply_physics,
 };
 use crate::{input::LaunchEvent, physics::Dyno};
+use bevy::prelude::*;
 
 #[derive(Bundle)]
 pub struct ShipBundle {
@@ -54,7 +53,7 @@ impl LaunchPreview {
 
 fn draw_ships(dyno_n_trans: Query<(&Dyno, &Transform)>, mut gz: Gizmos) {
     for (dyno, tran) in dyno_n_trans.iter() {
-        dyno.draw(tran.translation.truncate(), &mut gz);
+        dyno.draw_hollow(tran.translation.truncate(), &mut gz);
     }
 }
 
