@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     drawing::hollow::HollowDrawable,
-    environment::{Field, Rock},
+    environment::{field::Field, rock::Rock},
     meta::game_state::{EditorState, GameState, MetaState},
 };
 
@@ -82,28 +82,29 @@ pub fn move_dynos(
     }
 }
 
-pub fn force_quad_gravity_helper(
+pub fn field_gravity_helper(
     dyno: &mut Dyno,
     point: &Vec2,
-    fields: &Query<(&Field, &Transform), Without<Dyno>>,
+    fields: &Query<(&Field, &GlobalTransform), Without<Dyno>>,
 ) {
-    for (field, field_tran) in fields.iter() {
-        for fq in field.force_quads.iter() {
-            let mult = fq.effective_mult(point, &field_tran.translation.truncate(), dyno.radius);
-            if mult > 0.00001 {
-                dyno.vel *= 1.0 - fq.drag;
-                dyno.vel += fq.dir * fq.strength * mult;
-            }
+    let mut handle_field = |field: &Field, field_tran: &GlobalTransform| {
+        let mult = field.effective_mult(point, &field_tran.translation().truncate(), dyno.radius);
+        if mult > 0.00001 {
+            dyno.vel *= 1.0 - field.drag;
+            dyno.vel += field.dir * field.strength * mult;
         }
+    };
+    for (field, field_tran) in fields.iter() {
+        handle_field(field, field_tran);
     }
 }
 
-pub fn force_quad_gravity(
+pub fn field_gravity(
     mut dynos: Query<(&mut Dyno, &Transform), Without<Field>>,
-    fields: Query<(&Field, &Transform), Without<Dyno>>,
+    fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
 ) {
     for (mut dyno, dyno_tran) in dynos.iter_mut() {
-        force_quad_gravity_helper(dyno.as_mut(), &dyno_tran.translation.truncate(), &fields);
+        field_gravity_helper(dyno.as_mut(), &dyno_tran.translation.truncate(), &fields);
     }
 }
 
@@ -119,11 +120,9 @@ pub fn should_apply_physics(gs: Res<GameState>) -> bool {
 }
 
 pub fn register_physics(app: &mut App) {
-    app.add_systems(Update, force_quad_gravity.run_if(should_apply_physics));
+    app.add_systems(Update, field_gravity.run_if(should_apply_physics));
     app.add_systems(
         Update,
-        move_dynos
-            .after(force_quad_gravity)
-            .run_if(should_apply_physics),
+        move_dynos.after(field_gravity).run_if(should_apply_physics),
     );
 }

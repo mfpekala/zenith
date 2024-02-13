@@ -17,10 +17,10 @@ pub fn draw_hollow_polygon(base_pos: Vec2, points: &[Vec2], color: Color, gz: &m
 #[macro_export]
 macro_rules! hollow_drawable {
     ($type: ty, $fname: ident) => {
-        fn $fname(mut gz: Gizmos, things: Query<(&$type, &Transform)>) {
+        fn $fname(mut gz: Gizmos, things: Query<(&$type, &GlobalTransform)>) {
             for (thing, transform) in things.iter() {
                 thing.draw_hollow(
-                    Vec2::new(transform.translation.x, transform.translation.y),
+                    Vec2::new(transform.translation().x, transform.translation().y),
                     &mut gz,
                 );
             }

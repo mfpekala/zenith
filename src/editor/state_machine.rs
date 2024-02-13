@@ -7,7 +7,10 @@ use super::{
 };
 use crate::{
     camera::CameraMode,
-    environment::{Planet, PlanetBundle, RockResources, RockType},
+    environment::{
+        planet::{Planet, PlanetBundle},
+        rock::{RockResources, RockType},
+    },
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
@@ -227,13 +230,13 @@ fn start_testing(
             }
             None => None,
         };
-        let bundle = PlanetBundle::new(
+        PlanetBundle::spawn(
+            &mut commands,
             tran.translation.truncate(),
             rock,
             reach_n_strength,
             &mut meshes,
         );
-        commands.spawn(bundle);
     }
 }
 
@@ -251,7 +254,7 @@ fn stop_testing(
 }
 
 fn start_editing(
-    mut commands: Commands,
+    mut _commands: Commands,
     mut camera_switch_writer: EventWriter<SetCameraModeEvent>,
     mut gs_writer: EventWriter<SetGameState>,
 ) {
@@ -267,7 +270,7 @@ fn start_editing(
     });
 }
 
-fn stop_editing(mut commands: Commands) {}
+fn stop_editing(mut _commands: Commands) {}
 
 pub fn register_editor_state_machine(app: &mut App) {
     app.add_systems(PreUpdate, watch_for_edit_test_switch.run_if(in_editor));

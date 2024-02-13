@@ -5,7 +5,10 @@ use super::{
 };
 use crate::{
     drawing::hollow::{CircleMarker, HollowDrawable},
-    environment::{Field, Rock, RockFeatures, RockResources, RockType},
+    environment::{
+        field::Field,
+        rock::{Rock, RockFeatures, RockResources, RockType},
+    },
     input::MouseState,
     math::MathLine,
     meta::game_state::{EditingMode, EditorState, GameState, MetaState},
@@ -264,8 +267,10 @@ fn draw_editable_rocks(
                 tran.translation.truncate(),
                 rock_resources.get_type(RockType::Normal),
             );
-            let show_field = Field::uniform_around_rock(&as_rock, dist, 1.0);
-            show_field.draw_hollow(tran.translation.truncate(), &mut gz);
+            let show_fields = Field::uniform_around_rock(&as_rock, dist, 1.0);
+            for field in show_fields {
+                field.draw_hollow(tran.translation.truncate(), &mut gz);
+            }
         }
     }
 }
