@@ -126,3 +126,14 @@ pub fn get_shell(rock_points: &Vec<Vec2>, space: f32) -> Vec<Vec2> {
     result.insert(0, end);
     result
 }
+
+pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2> {
+    let mut points: Vec<Vec2> = vec![];
+    for _ in 0..num_sides {
+        let x = angle.to_radians().cos() * radius;
+        let y = angle.to_radians().sin() * radius;
+        points.push(Vec2 { x, y });
+        angle -= 360.0 / (num_sides as f32);
+    }
+    points
+}

@@ -5,8 +5,9 @@ use crate::{
     camera::{CameraMarker, CameraMode},
     meta::{
         consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
-        game_state::{in_editor, in_level},
+        game_state::{in_editor, in_level, GameState},
     },
+    physics::should_apply_physics,
 };
 
 #[derive(Resource, Debug)]
@@ -40,6 +41,7 @@ pub fn watch_mouse(
     mut mouse_state: ResMut<MouseState>,
     mut launch_event: EventWriter<LaunchEvent>,
     camera_n_tran: Query<(&Transform, &CameraMarker)>,
+    gs: Res<GameState>,
 ) {
     let Some(mouse_pos) = q_windows.single().cursor_position() else {
         // Mouse is not in the window, don't do anything
@@ -70,7 +72,9 @@ pub fn watch_mouse(
     } else {
         match mouse_state.pending_launch_vel {
             Some(vel) => {
-                launch_event.send(LaunchEvent { vel });
+                if should_apply_physics(gs) {
+                    launch_event.send(LaunchEvent { vel });
+                }
                 mouse_state.pending_launch_start = None;
                 mouse_state.pending_launch_vel = None;
             }

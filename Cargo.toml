@@ -10,6 +10,7 @@ bevy = "0.12.1"
 earcutr = "0.4.3"
 rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.113"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

@@ -23,7 +23,7 @@ pub struct EditableRock {
     pub points: Vec<Entity>,
 }
 impl EditableRock {
-    pub fn to_rock(
+    fn to_rock(
         &self,
         epoints: &Query<&Transform, With<EditablePoint>>,
         offset: Vec2,
@@ -35,6 +35,27 @@ impl EditableRock {
             points.push(tran.translation.truncate() - offset);
         }
         Rock::new(points, features)
+    }
+
+    pub fn to_rock_n_reach(
+        &self,
+        epoints: &Query<&Transform, With<EditablePoint>>,
+        offset: Vec2,
+        features: RockFeatures,
+    ) -> (Rock, Option<f32>) {
+        let first_point = epoints.get(self.points[0]).unwrap();
+        let as_rock = self.to_rock(&epoints, offset, features);
+        let Some(rp) = self.gravity_reach_point else {
+            return (as_rock, None);
+        };
+        let Ok(rp_point) = epoints.get(rp) else {
+            return (as_rock, None);
+        };
+        let dist = first_point
+            .translation
+            .truncate()
+            .distance(rp_point.translation.truncate());
+        (as_rock, Some(dist))
     }
 
     pub fn despawn(&mut self, my_pid: Entity, commands: &mut Commands) {
@@ -80,6 +101,26 @@ impl EditableRockBundle {
                 points: vec![id],
             },
             editable_point: EditablePoint { is_focused: true },
+            draggable: Draggable::new(10.0),
+            circle: CircleMarker::new(10.0, Color::SEA_GREEN),
+            spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
+        }
+    }
+
+    pub fn from_points(
+        pos: Vec2,
+        points: Vec<Entity>,
+        gravity_reach_point: Option<Entity>,
+        gravity_strength: Option<f32>,
+    ) -> Self {
+        Self {
+            erock: EditableRock {
+                closed: true,
+                gravity_reach_point,
+                gravity_strength,
+                points,
+            },
+            editable_point: EditablePoint { is_focused: false },
             draggable: Draggable::new(10.0),
             circle: CircleMarker::new(10.0, Color::SEA_GREEN),
             spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),

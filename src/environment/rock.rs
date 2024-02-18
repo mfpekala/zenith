@@ -1,7 +1,10 @@
-use crate::{drawing::mesh::generate_new_mesh, math::MathLine};
+use crate::{
+    drawing::mesh::generate_new_mesh,
+    math::{regular_polygon, MathLine},
+};
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::HashMap};
 
-#[derive(Clone, Eq, Hash, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RockType {
     Normal,
 }
@@ -74,19 +77,13 @@ impl Rock {
         min_point + *base_point
     }
 
-    pub fn regular_polygon(
+    pub fn from_regular_polygon(
         num_sides: u32,
         radius: f32,
-        mut angle: f32,
+        angle: f32,
         features: RockFeatures,
     ) -> Self {
-        let mut points: Vec<Vec2> = vec![];
-        for _ in 0..num_sides {
-            let x = angle.to_radians().cos() * radius;
-            let y = angle.to_radians().sin() * radius;
-            points.push(Vec2 { x, y });
-            angle -= 360.0 / (num_sides as f32);
-        }
+        let points = regular_polygon(num_sides, angle, radius);
         Self { points, features }
     }
 }

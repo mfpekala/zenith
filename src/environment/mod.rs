@@ -1,4 +1,5 @@
 pub mod field;
+pub mod goal;
 pub mod planet;
 pub mod rock;
 

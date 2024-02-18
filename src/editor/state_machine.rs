@@ -1,14 +1,18 @@
 use super::{
     draggable::Draggable,
+    editable_goal::EditableGoal,
     editable_point::{destroy_points, EditablePoint, EditablePointBundle},
     editable_rock::{EditableRock, EditableRockBundle},
+    editable_starting_point::EditableStartingPoint,
     entered_editing, entered_testing, is_editing, is_editing_helper, is_testing_helper,
     left_editing, left_testing,
 };
 use crate::{
     camera::CameraMode,
+    drawing::hollow::CircleMarker,
     environment::{
         field::Field,
+        goal::{Goal, GoalBundle},
         planet::spawn_planet,
         rock::{Rock, RockBundle, RockResources, RockType},
     },
@@ -204,37 +208,32 @@ fn start_testing(
     erocks: Query<(&EditableRock, &Transform)>,
     epoints: Query<&Transform, With<EditablePoint>>,
     rock_resources: Res<RockResources>,
+    estart: Query<&Transform, With<EditableStartingPoint>>,
+    egoal: Query<&Transform, With<EditableGoal>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     camera_switch_writer.send(SetCameraModeEvent {
         mode: CameraMode::Follow,
     });
-    let ship = ShipBundle::new(
-        Vec2 {
-            x: -205.0,
-            y: 200.0,
-        },
-        16.0,
-    );
+    let ship = ShipBundle::new(estart.single().translation.truncate(), 16.0);
     commands.spawn(ship);
+    let goal = GoalBundle::new(egoal.single().translation.truncate(), 30.0, 0.1);
+    commands.spawn(goal).with_children(|comms| {
+        comms.spawn((
+            CircleMarker::new(30.0, Color::TOMATO),
+            SpatialBundle::default(),
+        ));
+    });
     for (erock, tran) in erocks.iter() {
-        let rock = erock.to_rock(
+        let (rock, reach) = erock.to_rock_n_reach(
             &epoints,
             tran.translation.truncate(),
             rock_resources.get_type(RockType::Normal),
         );
-        let reach_n_strength = match erock.gravity_reach_point {
-            Some(pid) => {
-                let p1 = epoints.get(pid).unwrap().translation.truncate();
-                let p2 = epoints.get(erock.points[0]).unwrap().translation.truncate();
-                Some((p1.distance(p2), 0.04 as f32))
-            }
-            None => None,
-        };
         let base_pos = tran.translation.truncate();
-        match reach_n_strength {
-            Some((reach, strength)) => {
-                spawn_planet(&mut commands, base_pos, rock, reach, strength, &mut meshes);
+        match reach {
+            Some(reach) => {
+                spawn_planet(&mut commands, base_pos, rock, reach, 0.06, &mut meshes);
             }
             None => {
                 RockBundle::spawn(&mut commands, base_pos, rock, &mut meshes);
@@ -245,11 +244,15 @@ fn start_testing(
 
 fn stop_testing(
     dyno_ids: Query<Entity, With<Dyno>>,
+    goal_ids: Query<Entity, With<Goal>>,
     rock_ids: Query<Entity, With<Rock>>,
     field_ids: Query<Entity, With<Field>>,
     mut commands: Commands,
 ) {
     for id in dyno_ids.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+    for id in goal_ids.iter() {
         commands.entity(id).despawn_recursive();
     }
     for id in rock_ids.iter() {

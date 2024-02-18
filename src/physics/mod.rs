@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     drawing::hollow::HollowDrawable,
-    environment::{field::Field, rock::Rock},
+    environment::{field::Field, goal::Goal, rock::Rock},
     meta::game_state::{EditorState, GameState, MetaState},
 };
 
@@ -64,7 +64,7 @@ pub fn move_dyno_helper(
             dyno.vel = Vec2 { x: 0.0, y: 0.0 };
             break;
         }
-        let moving_this_step = left_to_move.min(1.0);
+        let moving_this_step = left_to_move.min(2.0);
         *point += dyno.vel.normalize() * moving_this_step;
         resolve_dyno_rock_collisions(dyno, point, &rocks);
         left_to_move -= moving_this_step;
@@ -82,10 +82,11 @@ pub fn move_dynos(
     }
 }
 
-pub fn field_gravity_helper(
+pub fn gravity_helper(
     dyno: &mut Dyno,
     point: &Vec2,
     fields: &Query<(&Field, &GlobalTransform), Without<Dyno>>,
+    goal: &Query<(&Goal, &Transform)>,
 ) {
     let mut handle_field = |field: &Field, field_tran: &GlobalTransform| {
         let mult = field.effective_mult(point, &field_tran.translation().truncate(), dyno.radius);
@@ -97,14 +98,31 @@ pub fn field_gravity_helper(
     for (field, field_tran) in fields.iter() {
         handle_field(field, field_tran);
     }
+    let (goal, tran) = goal.single();
+    if tran.translation.truncate().distance_squared(*point)
+        < (dyno.radius + goal.radius) * (dyno.radius + goal.radius)
+    {
+        let diff = tran.translation.truncate() - *point;
+        if diff.length_squared() > 0.001 {
+            dyno.vel += diff.normalize() * goal.strength;
+        }
+        // We're in the goal field!
+        dyno.vel *= 1.0 - 0.03; // Increase drag
+    }
 }
 
-pub fn field_gravity(
+pub fn apply_gravity(
     mut dynos: Query<(&mut Dyno, &Transform), Without<Field>>,
     fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
+    goal: Query<(&Goal, &Transform)>,
 ) {
     for (mut dyno, dyno_tran) in dynos.iter_mut() {
-        field_gravity_helper(dyno.as_mut(), &dyno_tran.translation.truncate(), &fields);
+        gravity_helper(
+            dyno.as_mut(),
+            &dyno_tran.translation.truncate(),
+            &fields,
+            &goal,
+        );
     }
 }
 
@@ -120,9 +138,9 @@ pub fn should_apply_physics(gs: Res<GameState>) -> bool {
 }
 
 pub fn register_physics(app: &mut App) {
-    app.add_systems(Update, field_gravity.run_if(should_apply_physics));
+    app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
         Update,
-        move_dynos.after(field_gravity).run_if(should_apply_physics),
+        move_dynos.after(apply_gravity).run_if(should_apply_physics),
     );
 }

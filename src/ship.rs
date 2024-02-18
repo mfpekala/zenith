@@ -1,8 +1,9 @@
 use crate::drawing::hollow::HollowDrawable;
+use crate::environment::goal::Goal;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::MouseState;
 use crate::meta::game_state::{in_editor, in_level};
-use crate::physics::{field_gravity_helper, move_dyno_helper, move_dynos, should_apply_physics};
+use crate::physics::{gravity_helper, move_dyno_helper, move_dynos, should_apply_physics};
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::prelude::*;
 
@@ -61,6 +62,7 @@ fn draw_launch_previews(
     mut gz: Gizmos,
     rocks: Query<(&Rock, &Transform), Without<Dyno>>,
     fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
+    goal: Query<(&Goal, &Transform)>,
 ) {
     let Some(launch_vel) = mouse_state.pending_launch_vel else {
         return;
@@ -72,7 +74,7 @@ fn draw_launch_previews(
         // Offset
         let prev_applied = prev.tick / prev.speed;
         for _tick in 0..prev_applied {
-            field_gravity_helper(&mut scratch_dyno, &scratch_point, &fields);
+            gravity_helper(&mut scratch_dyno, &scratch_point, &fields, &goal);
             move_dyno_helper(&mut scratch_dyno, &mut scratch_point, &rocks);
         }
         prev.tick = (prev.tick + 1) % (prev.ticks_between_skins * prev.speed);
@@ -83,7 +85,7 @@ fn draw_launch_previews(
                     / (prev.num_skins as f32 * prev.ticks_between_skins as f32);
             gz.circle_2d(scratch_point, 5.0, Color::rgba(0.7, 0.7, 0.7, alpha));
             for _ in 0..prev.ticks_between_skins {
-                field_gravity_helper(&mut scratch_dyno, &scratch_point, &fields);
+                gravity_helper(&mut scratch_dyno, &scratch_point, &fields, &goal);
                 move_dyno_helper(&mut scratch_dyno, &mut scratch_point, &rocks);
             }
         }
