@@ -1,11 +1,13 @@
 pub mod draggable;
 pub mod editable_point;
 pub mod editable_rock;
+pub mod saver;
 pub mod state_machine;
 
 use self::{
     draggable::register_draggables, editable_point::register_editable_points,
-    editable_rock::register_editable_rocks, state_machine::register_editor_state_machine,
+    editable_rock::register_editable_rocks, saver::register_saver,
+    state_machine::register_editor_state_machine,
 };
 use crate::{
     meta::game_state::{EditorState, GameState, MetaState},
@@ -48,4 +50,5 @@ pub fn register_editor(app: &mut App) {
     register_editable_points(app);
     register_editable_rocks(app);
     register_editor_state_machine(app);
+    register_saver(app);
 }

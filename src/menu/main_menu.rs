@@ -17,6 +17,7 @@ fn setup_main_menu(mut commands: Commands) {
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::Column,
                     ..default()
                 },
                 background_color: BackgroundColor(Color::rgb(0.01, 0.03, 0.01)),
@@ -42,7 +43,33 @@ fn setup_main_menu(mut commands: Commands) {
                 })
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Button",
+                        "PLAY",
+                        TextStyle {
+                            font_size: 40.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ));
+                });
+            parent
+                .spawn(ButtonBundle {
+                    style: Style {
+                        width: Val::Px(150.0),
+                        height: Val::Px(65.0),
+                        border: UiRect::all(Val::Px(5.0)),
+                        // horizontally center child text
+                        justify_content: JustifyContent::Center,
+                        // vertically center child text
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    border_color: BorderColor(Color::BLACK),
+                    background_color: Color::WHITE.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "LEVEL EDITOR",
                         TextStyle {
                             font_size: 40.0,
                             color: Color::rgb(0.9, 0.9, 0.9),
@@ -61,20 +88,29 @@ fn destroy_main_menu(mut commands: Commands, ids: Query<Entity, With<MainMenuMar
 
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&Interaction, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>),
     >,
+    text: Query<&Text>,
     mut state_changer: EventWriter<SetGameState>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
+    for (interaction, mut color, children) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                state_changer.send(SetGameState(GameState {
-                    meta: MetaState::Editor(EditorState::Editing(EditingState {
-                        mode: crate::meta::game_state::EditingMode::Free,
-                        paused: false,
-                    })),
-                }));
+                let child_text = text.get(children[0]).unwrap();
+                let match_string = child_text.sections[0].value.clone();
+                if match_string == "PLAY".to_string() {
+                    panic!("not quite cooked PLAY");
+                } else if match_string == "LEVEL EDITOR".to_string() {
+                    state_changer.send(SetGameState(GameState {
+                        meta: MetaState::Editor(EditorState::Editing(EditingState {
+                            mode: crate::meta::game_state::EditingMode::Free,
+                            paused: false,
+                        })),
+                    }));
+                } else {
+                    panic!("uhhhhh menu shit the bed");
+                }
             }
             Interaction::Hovered => {
                 *color = Color::RED.into();

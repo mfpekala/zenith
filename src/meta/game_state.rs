@@ -107,7 +107,7 @@ macro_rules! when_becomes_true {
                         // It's already true
                         return false;
                     }
-                    return $ref_fn(state);
+                    $ref_fn(state)
                 }
                 None => false,
             }
@@ -128,7 +128,7 @@ macro_rules! when_becomes_false {
                         // It's already false
                         return false;
                     }
-                    return !$ref_fn(state);
+                    !$ref_fn(state)
                 }
                 None => false,
             }

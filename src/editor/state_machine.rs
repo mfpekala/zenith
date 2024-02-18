@@ -8,8 +8,9 @@ use super::{
 use crate::{
     camera::CameraMode,
     environment::{
-        planet::{Planet, PlanetBundle},
-        rock::{RockResources, RockType},
+        field::Field,
+        planet::spawn_planet,
+        rock::{Rock, RockBundle, RockResources, RockType},
     },
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
@@ -230,25 +231,31 @@ fn start_testing(
             }
             None => None,
         };
-        PlanetBundle::spawn(
-            &mut commands,
-            tran.translation.truncate(),
-            rock,
-            reach_n_strength,
-            &mut meshes,
-        );
+        let base_pos = tran.translation.truncate();
+        match reach_n_strength {
+            Some((reach, strength)) => {
+                spawn_planet(&mut commands, base_pos, rock, reach, strength, &mut meshes);
+            }
+            None => {
+                RockBundle::spawn(&mut commands, base_pos, rock, &mut meshes);
+            }
+        }
     }
 }
 
 fn stop_testing(
     dyno_ids: Query<Entity, With<Dyno>>,
-    planet_ids: Query<Entity, With<Planet>>,
+    rock_ids: Query<Entity, With<Rock>>,
+    field_ids: Query<Entity, With<Field>>,
     mut commands: Commands,
 ) {
     for id in dyno_ids.iter() {
         commands.entity(id).despawn_recursive();
     }
-    for id in planet_ids.iter() {
+    for id in rock_ids.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+    for id in field_ids.iter() {
         commands.entity(id).despawn_recursive();
     }
 }

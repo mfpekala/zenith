@@ -3901,6 +3901,7 @@ dependencies = [
  "bevy",
  "earcutr",
  "rand",
+ "serde",
 ]
 
 [[package]]

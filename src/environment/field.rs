@@ -76,6 +76,15 @@ impl FieldBundle {
             spatial: default(),
         }
     }
+
+    pub fn spawn(commands: &mut Commands, base_pos: Vec2, field: Field) {
+        commands.spawn(Self {
+            field,
+            spatial: SpatialBundle::from_transform(Transform::from_translation(
+                base_pos.extend(0.0),
+            )),
+        });
+    }
 }
 
 #[derive(Component)]

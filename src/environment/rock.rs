@@ -1,7 +1,7 @@
 use crate::{drawing::mesh::generate_new_mesh, math::MathLine};
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::HashMap};
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq, serde::Serialize)]
 pub enum RockType {
     Normal,
 }
@@ -100,6 +100,17 @@ impl RockBundle {
     pub fn from_rock(rock: Rock, meshes: &mut ResMut<Assets<Mesh>>) -> Self {
         let mesh = generate_new_mesh(&rock.points, &rock.features.mat, meshes);
         Self { rock, mesh }
+    }
+
+    pub fn spawn(
+        commands: &mut Commands,
+        base_pos: Vec2,
+        rock: Rock,
+        meshes: &mut ResMut<Assets<Mesh>>,
+    ) {
+        let mut bundle = Self::from_rock(rock, meshes);
+        bundle.mesh.transform.translation = base_pos.extend(0.0);
+        commands.spawn(bundle);
     }
 }
 
