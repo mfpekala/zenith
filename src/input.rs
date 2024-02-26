@@ -148,6 +148,41 @@ pub fn watch_camera_input(
     }
 }
 
+#[derive(Component, Debug)]
+pub struct LongKeyPress {
+    ticks: u32,
+    ticks_held: u32,
+    pub key_code: KeyCode,
+}
+impl LongKeyPress {
+    pub fn new(key_code: KeyCode, length: u32) -> Self {
+        Self {
+            key_code,
+            ticks: length,
+            ticks_held: 0,
+        }
+    }
+
+    /// NOTE: Consumes the state
+    pub fn was_activated(&mut self) -> bool {
+        if self.ticks_held > self.ticks {
+            self.ticks_held = 0;
+            return true;
+        }
+        false
+    }
+}
+
+fn update_long_presses(mut lps: Query<&mut LongKeyPress>, keys: Res<Input<KeyCode>>) {
+    for mut lp in lps.iter_mut() {
+        if keys.pressed(lp.key_code) {
+            lp.ticks_held += 1;
+        } else {
+            lp.ticks_held = 0;
+        }
+    }
+}
+
 pub fn register_input(app: &mut App) {
     app.insert_resource(MouseState::empty());
     app.add_event::<LaunchEvent>();
@@ -159,4 +194,5 @@ pub fn register_input(app: &mut App) {
         Update,
         watch_camera_input.run_if(in_editor.or_else(in_level)),
     );
+    app.add_systems(Update, update_long_presses);
 }

@@ -29,10 +29,27 @@ pub enum EditorState {
     Testing,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct LevelState;
+#[derive(Clone, Debug)]
+pub struct LevelState {
+    pub id: String,
+    pub is_settled: bool,
+    pub is_won: bool,
+    pub last_safe_location: Vec2,
+    pub num_shots: i32,
+}
+impl LevelState {
+    pub fn fresh_from_id(id: String) -> Self {
+        Self {
+            id,
+            is_settled: false,
+            is_won: false,
+            last_safe_location: Vec2::ZERO,
+            num_shots: 0,
+        }
+    }
+}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum MetaState {
     Menu(MenuState),
     Editor(EditorState),
@@ -64,10 +81,41 @@ impl GameState {
             _ => false,
         }
     }
+
+    pub fn get_level_state(&self) -> Option<LevelState> {
+        match &self.meta {
+            MetaState::Level(state) => Some(state.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn into_next(self) -> NextGameState {
+        NextGameState { meta: self.meta }
+    }
+}
+
+#[derive(Resource, Clone, Debug)]
+pub struct NextGameState {
+    pub meta: MetaState,
+}
+impl NextGameState {
+    pub fn into_game_state(self) -> GameState {
+        GameState { meta: self.meta }
+    }
 }
 
 #[derive(Event)]
 pub struct SetGameState(pub GameState);
+
+pub fn pretranslate_events(
+    mut state_change: EventReader<SetGameState>,
+    mut next_gs: ResMut<NextGameState>,
+) {
+    let Some(SetGameState(new_state)) = state_change.read().last() else {
+        return;
+    };
+    *next_gs = new_state.clone().into_next();
+}
 
 fn translate_events(mut state_change: EventReader<SetGameState>, mut gs: ResMut<GameState>) {
     let Some(SetGameState(new_state)) = state_change.read().last() else {
@@ -84,11 +132,22 @@ fn set_initial_game_state(mut gs_writer: EventWriter<SetGameState>) {
 }
 
 pub fn register_game_state(app: &mut App) {
+    let initial_state = MetaState::Level(LevelState {
+        id: "".to_string(),
+        is_settled: false,
+        is_won: false,
+        last_safe_location: Vec2::ZERO,
+        num_shots: 0,
+    });
     app.insert_resource(GameState {
-        meta: MetaState::Level(LevelState),
+        meta: initial_state.clone(),
+    });
+    app.insert_resource(NextGameState {
+        meta: initial_state,
     });
     app.add_event::<SetGameState>();
     app.add_systems(Startup, set_initial_game_state);
+    app.add_systems(Update, pretranslate_events);
     app.add_systems(PostUpdate, translate_events);
 }
 

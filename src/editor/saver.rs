@@ -9,7 +9,7 @@ use crate::{
     },
     meta::{
         game_state::in_editor,
-        level::{get_level_folder, LevelData, SaveableField, SaveableRock},
+        level_data::{get_level_folder, LevelData, SaveableField, SaveableRock},
     },
 };
 use bevy::prelude::*;
@@ -53,7 +53,11 @@ fn watch_for_save(
             let fields = Field::uniform_around_rock(&rock, reach, 0.06);
             for field in fields {
                 sfields.push(SaveableField {
-                    points: field.points,
+                    points: field
+                        .points
+                        .into_iter()
+                        .map(|p| p + tran.translation.truncate())
+                        .collect(),
                     strength: field.strength,
                     dir: field.dir,
                     drag: field.drag,

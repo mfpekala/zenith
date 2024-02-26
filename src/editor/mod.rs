@@ -14,7 +14,7 @@ use self::{
 use crate::{
     meta::{
         game_state::{entered_editor, EditorState, GameState, MetaState},
-        level::{get_level_folder, LevelData},
+        level_data::{get_level_folder, LevelData},
     },
     when_becomes_false, when_becomes_true,
 };

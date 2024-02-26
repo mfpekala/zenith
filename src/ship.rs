@@ -1,14 +1,21 @@
 use crate::drawing::hollow::HollowDrawable;
 use crate::environment::goal::Goal;
 use crate::environment::{field::Field, rock::Rock};
-use crate::input::MouseState;
-use crate::meta::game_state::{in_editor, in_level};
+use crate::input::{LongKeyPress, MouseState};
+use crate::meta::game_state::{in_editor, in_level, GameState, MetaState, SetGameState};
 use crate::physics::{gravity_helper, move_dyno_helper, move_dynos, should_apply_physics};
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::prelude::*;
 
+#[derive(Component)]
+pub struct Ship {
+    pub can_shoot: bool,
+}
+
 #[derive(Bundle)]
 pub struct ShipBundle {
+    ship: Ship,
+    respawn_watcher: LongKeyPress,
     dyno: Dyno,
     spatial: SpatialBundle,
     launch_preview: LaunchPreview,
@@ -16,9 +23,12 @@ pub struct ShipBundle {
 impl ShipBundle {
     pub fn new(pos: Vec2, radius: f32) -> Self {
         Self {
+            ship: Ship { can_shoot: false },
+            respawn_watcher: LongKeyPress::new(KeyCode::R, 60),
             dyno: Dyno {
                 vel: Vec2::ZERO,
                 radius,
+                is_touching_rock: false,
             },
             spatial: SpatialBundle {
                 transform: Transform {
@@ -57,7 +67,7 @@ fn draw_ships(dyno_n_trans: Query<(&Dyno, &Transform)>, mut gz: Gizmos) {
 }
 
 fn draw_launch_previews(
-    mut prev_n_trans: Query<(&mut LaunchPreview, &Dyno, &Transform)>,
+    mut ship_q: Query<(&mut LaunchPreview, &Ship, &Dyno, &Transform)>,
     mouse_state: Res<MouseState>,
     mut gz: Gizmos,
     rocks: Query<(&Rock, &Transform), Without<Dyno>>,
@@ -67,7 +77,10 @@ fn draw_launch_previews(
     let Some(launch_vel) = mouse_state.pending_launch_vel else {
         return;
     };
-    for (mut prev, dyno, tran) in prev_n_trans.iter_mut() {
+    for (mut prev, ship, dyno, tran) in ship_q.iter_mut() {
+        if !ship.can_shoot {
+            continue;
+        }
         let mut scratch_dyno = dyno.clone();
         scratch_dyno.vel = launch_vel;
         let mut scratch_point = tran.translation.truncate();
@@ -92,16 +105,73 @@ fn draw_launch_previews(
     }
 }
 
-fn launch_test_ship(mut dynos: Query<&mut Dyno>, mut launch_events: EventReader<LaunchEvent>) {
+fn launch_ship(
+    mut ship_q: Query<(&mut Dyno, &mut Ship)>,
+    mut launch_events: EventReader<LaunchEvent>,
+    gs: Res<GameState>,
+    mut gs_writer: EventWriter<SetGameState>,
+) {
+    let Some(mut level_state) = gs.get_level_state() else {
+        return;
+    };
     for launch in launch_events.read() {
-        for mut dyno in dynos.iter_mut() {
+        for (mut dyno, mut ship) in ship_q.iter_mut() {
+            if !ship.can_shoot {
+                continue;
+            }
             dyno.vel = launch.vel;
+            ship.can_shoot = false;
+            level_state.num_shots += 1;
+            gs_writer.send(SetGameState(GameState {
+                meta: MetaState::Level(level_state.clone()),
+            }))
+        }
+    }
+}
+
+fn watch_for_respawn(
+    mut commands: Commands,
+    gs: Res<GameState>,
+    mut entity_n_lp: Query<(Entity, &mut LongKeyPress), With<Ship>>,
+) {
+    let MetaState::Level(level_state) = &gs.meta else {
+        error!("Setuping level but the next game state doesn't seem to be for level...");
+        return;
+    };
+    for (id, mut lp) in entity_n_lp.iter_mut() {
+        if lp.was_activated() {
+            commands.entity(id).despawn_recursive();
+            commands.spawn(ShipBundle::new(level_state.last_safe_location, 16.0));
+        }
+    }
+}
+
+fn replenish_shot(
+    mut ship_q: Query<(&mut Ship, &mut Dyno, &GlobalTransform)>,
+    gs: Res<GameState>,
+    mut gs_writer: EventWriter<SetGameState>,
+) {
+    let Some(level_state) = gs.get_level_state() else {
+        return;
+    };
+    for (mut ship, mut dyno, tran) in ship_q.iter_mut() {
+        if ship.can_shoot {
+            continue;
+        }
+        if dyno.vel.length() < 0.04 && dyno.is_touching_rock {
+            ship.can_shoot = true;
+            dyno.vel = Vec2::ZERO;
+            let mut ls = level_state.clone();
+            ls.last_safe_location = tran.translation().truncate();
+            gs_writer.send(SetGameState(GameState {
+                meta: MetaState::Level(ls),
+            }))
         }
     }
 }
 
 pub fn register_ship(app: &mut App) {
-    app.add_systems(Update, launch_test_ship.run_if(should_apply_physics));
+    app.add_systems(Update, launch_ship.run_if(should_apply_physics));
     app.add_systems(
         Update,
         draw_ships
@@ -110,7 +180,7 @@ pub fn register_ship(app: &mut App) {
     );
     app.add_systems(
         Update,
-        draw_launch_previews
+        (draw_launch_previews, watch_for_respawn, replenish_shot)
             .after(draw_ships)
             .run_if(should_apply_physics),
     );

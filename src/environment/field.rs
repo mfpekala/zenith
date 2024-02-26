@@ -3,7 +3,10 @@ use crate::{
     drawing::hollow::{draw_hollow_polygon, CircleMarker, HollowDrawable},
     hollow_drawable,
     math::{get_shell, MathLine},
-    meta::game_state::{in_editor, in_level},
+    meta::{
+        game_state::{in_editor, in_level},
+        level_data::SaveableField,
+    },
 };
 use bevy::prelude::*;
 
@@ -60,6 +63,30 @@ impl Field {
             regions.push(region);
         }
         regions
+    }
+
+    pub fn from_saveable(sfield: &SaveableField) -> (Self, Vec2) {
+        let mut center = Vec2::ZERO;
+        for point in sfield.points.iter() {
+            center += *point;
+        }
+        center /= sfield.points.len() as f32;
+        let clean_points = sfield
+            .points
+            .clone()
+            .into_iter()
+            .map(|p| p - center)
+            .collect();
+        (
+            Self {
+                particle_manager: ForceParticleManager::new(&clean_points),
+                points: clean_points,
+                strength: sfield.strength,
+                dir: sfield.dir,
+                drag: sfield.drag,
+            },
+            center,
+        )
     }
 }
 hollow_drawable!(Field, draw_fields);

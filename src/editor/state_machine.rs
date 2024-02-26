@@ -217,13 +217,7 @@ fn start_testing(
     });
     let ship = ShipBundle::new(estart.single().translation.truncate(), 16.0);
     commands.spawn(ship);
-    let goal = GoalBundle::new(egoal.single().translation.truncate(), 30.0, 0.1);
-    commands.spawn(goal).with_children(|comms| {
-        comms.spawn((
-            CircleMarker::new(30.0, Color::TOMATO),
-            SpatialBundle::default(),
-        ));
-    });
+    GoalBundle::spawn(egoal.single().translation.truncate(), &mut commands);
     for (erock, tran) in erocks.iter() {
         let (rock, reach) = erock.to_rock_n_reach(
             &epoints,

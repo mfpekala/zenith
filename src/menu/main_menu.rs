@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
 use crate::meta::game_state::{
-    entered_menu, left_menu, EditingState, EditorState, GameState, MetaState, SetGameState,
+    entered_menu, left_menu, EditingState, EditorState, GameState, LevelState, MetaState,
+    SetGameState,
 };
 
 #[derive(Component)]
@@ -86,7 +87,7 @@ fn destroy_main_menu(mut commands: Commands, ids: Query<Entity, With<MainMenuMar
     }
 }
 
-fn button_system(
+pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>),
@@ -100,7 +101,9 @@ fn button_system(
                 let child_text = text.get(children[0]).unwrap();
                 let match_string = child_text.sections[0].value.clone();
                 if match_string == "PLAY".to_string() {
-                    panic!("not quite cooked PLAY");
+                    state_changer.send(SetGameState(GameState {
+                        meta: MetaState::Level(LevelState::fresh_from_id("editing".to_string())),
+                    }));
                 } else if match_string == "LEVEL EDITOR".to_string() {
                     state_changer.send(SetGameState(GameState {
                         meta: MetaState::Editor(EditorState::Editing(EditingState {

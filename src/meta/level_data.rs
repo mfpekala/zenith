@@ -3,9 +3,15 @@ use crate::{
         editable_goal::EditableGoalBundle, editable_point::EditablePointBundle,
         editable_rock::EditableRockBundle, editable_starting_point::EditableStartingPointBundle,
     },
-    environment::rock::RockType,
+    environment::{
+        field::{Field, FieldBundle},
+        goal::GoalBundle,
+        rock::{Rock, RockBundle, RockFeatures, RockType},
+        starting_point::StartingPointBundle,
+    },
+    ship::ShipBundle,
 };
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use std::{
     fs::File,
     io::Read,
@@ -55,6 +61,34 @@ impl SaveableRock {
         );
         commands.spawn(erock);
     }
+
+    pub fn spawn_rock(
+        &self,
+        commands: &mut Commands,
+        feature_map: &HashMap<RockType, RockFeatures>,
+        meshes: &mut ResMut<Assets<Mesh>>,
+    ) {
+        if self.points.len() <= 0 {
+            return;
+        }
+        let mut center = Vec2::ZERO;
+        for point in self.points.iter() {
+            center += *point;
+        }
+        center /= self.points.len() as f32;
+        let rock = Rock {
+            points: self
+                .points
+                .clone()
+                .into_iter()
+                .map(|p| p - center)
+                .collect(),
+            features: feature_map.get(&RockType::Normal).unwrap().clone(),
+        };
+        // TODO: Fix the editor so it doesn't tie rocks to fields as much
+        RockBundle::spawn(commands, center, rock, meshes);
+        // commands.spawn(RockBundle::from_rock(rock, meshes));
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -67,6 +101,11 @@ pub struct SaveableField {
 impl SaveableField {
     pub fn spawn_editable_field(&self, _commands: &mut Commands) {
         unimplemented!();
+    }
+
+    pub fn spawn_field(&self, commands: &mut Commands) {
+        let (field, pos) = Field::from_saveable(&self);
+        FieldBundle::spawn(commands, pos, field);
     }
 }
 
@@ -96,5 +135,22 @@ impl LevelData {
         for rock in self.rocks.iter() {
             rock.spawn_editable_rock(commands);
         }
+    }
+
+    pub fn load_level(
+        &self,
+        commands: &mut Commands,
+        feature_map: &HashMap<RockType, RockFeatures>,
+        meshes: &mut ResMut<Assets<Mesh>>,
+    ) {
+        for srock in self.rocks.iter() {
+            srock.spawn_rock(commands, feature_map, meshes);
+        }
+        for field in self.fields.iter() {
+            field.spawn_field(commands);
+        }
+        commands.spawn(StartingPointBundle::new(self.starting_point));
+        GoalBundle::spawn(self.goal_point, commands);
+        commands.spawn(ShipBundle::new(self.starting_point, 16.0));
     }
 }

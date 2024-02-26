@@ -3,6 +3,7 @@ pub mod drawing;
 pub mod editor;
 pub mod environment;
 pub mod input;
+pub mod leveler;
 pub mod math;
 pub mod menu;
 pub mod meta;
@@ -15,6 +16,7 @@ use drawing::register_drawing;
 use editor::register_editor;
 use environment::register_environment;
 use input::register_input;
+use leveler::register_leveler;
 use menu::register_menus;
 use meta::{
     consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
@@ -28,6 +30,7 @@ pub fn main_setup(mut gz_conf: ResMut<GizmoConfig>) {
 }
 
 fn main() {
+    env_logger::init();
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
@@ -48,6 +51,7 @@ fn main() {
     register_editor(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
+    register_leveler(&mut app);
     register_menus(&mut app);
     register_physics(&mut app);
     register_ship(&mut app);
