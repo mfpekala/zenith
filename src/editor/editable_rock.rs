@@ -7,7 +7,7 @@ use crate::{
     drawing::hollow::{CircleMarker, HollowDrawable},
     environment::{
         field::Field,
-        rock::{Rock, RockFeatures, RockResources, RockType},
+        rock::{Rock, RockKind, RockResources},
     },
     input::MouseState,
     math::MathLine,
@@ -20,6 +20,7 @@ pub struct EditableRock {
     pub closed: bool,
     pub gravity_strength: Option<f32>,
     pub gravity_reach_point: Option<Entity>,
+    pub kind: RockKind,
     pub points: Vec<Entity>,
 }
 impl EditableRock {
@@ -27,24 +28,28 @@ impl EditableRock {
         &self,
         epoints: &Query<&Transform, With<EditablePoint>>,
         offset: Vec2,
-        features: RockFeatures,
+        rock_resources: &Res<RockResources>,
     ) -> Rock {
         let mut points = vec![];
         for pid in self.points.iter() {
             let tran = epoints.get(pid.clone()).unwrap();
             points.push(tran.translation.truncate() - offset);
         }
-        Rock::new(points, features)
+        Rock::new(
+            points,
+            self.kind.clone(),
+            rock_resources.feature_map.get(&self.kind).unwrap().clone(),
+        )
     }
 
     pub fn to_rock_n_reach(
         &self,
         epoints: &Query<&Transform, With<EditablePoint>>,
         offset: Vec2,
-        features: RockFeatures,
+        rock_resources: &Res<RockResources>,
     ) -> (Rock, Option<f32>) {
         let first_point = epoints.get(self.points[0]).unwrap();
-        let as_rock = self.to_rock(&epoints, offset, features);
+        let as_rock = self.to_rock(&epoints, offset, rock_resources);
         let Some(rp) = self.gravity_reach_point else {
             return (as_rock, None);
         };
@@ -98,6 +103,7 @@ impl EditableRockBundle {
                 closed: false,
                 gravity_reach_point: None,
                 gravity_strength: None,
+                kind: RockKind::Normal,
                 points: vec![id],
             },
             editable_point: EditablePoint { is_focused: true },
@@ -118,6 +124,7 @@ impl EditableRockBundle {
                 closed: true,
                 gravity_reach_point,
                 gravity_strength,
+                kind: RockKind::Normal,
                 points,
             },
             editable_point: EditablePoint { is_focused: false },
@@ -303,11 +310,7 @@ fn draw_editable_rocks(
                 .translation
                 .truncate()
                 .distance(rp_point.translation.truncate());
-            let as_rock = rock.to_rock(
-                &epoints,
-                tran.translation.truncate(),
-                rock_resources.get_type(RockType::Normal),
-            );
+            let as_rock = rock.to_rock(&epoints, tran.translation.truncate(), &rock_resources);
             let show_fields = Field::uniform_around_rock(&as_rock, dist, 1.0);
             for field in show_fields {
                 field.draw_hollow(tran.translation.truncate(), &mut gz);

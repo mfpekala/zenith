@@ -14,7 +14,7 @@ use crate::{
         field::Field,
         goal::{Goal, GoalBundle},
         planet::spawn_planet,
-        rock::{Rock, RockBundle, RockResources, RockType},
+        rock::{Rock, RockBundle, RockKind, RockResources},
     },
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
@@ -219,11 +219,8 @@ fn start_testing(
     commands.spawn(ship);
     GoalBundle::spawn(egoal.single().translation.truncate(), &mut commands);
     for (erock, tran) in erocks.iter() {
-        let (rock, reach) = erock.to_rock_n_reach(
-            &epoints,
-            tran.translation.truncate(),
-            rock_resources.get_type(RockType::Normal),
-        );
+        let (rock, reach) =
+            erock.to_rock_n_reach(&epoints, tran.translation.truncate(), &rock_resources);
         let base_pos = tran.translation.truncate();
         match reach {
             Some(reach) => {

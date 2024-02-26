@@ -1,5 +1,6 @@
 use crate::drawing::hollow::HollowDrawable;
 use crate::environment::goal::Goal;
+use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
 use crate::meta::game_state::{in_editor, in_level, GameState, MetaState, SetGameState};
@@ -28,7 +29,7 @@ impl ShipBundle {
             dyno: Dyno {
                 vel: Vec2::ZERO,
                 radius,
-                is_touching_rock: false,
+                touching_rock: None,
             },
             spatial: SpatialBundle {
                 transform: Transform {
@@ -73,12 +74,13 @@ fn draw_launch_previews(
     rocks: Query<(&Rock, &Transform), Without<Dyno>>,
     fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
     goal: Query<(&Goal, &Transform)>,
+    gs: Res<GameState>,
 ) {
     let Some(launch_vel) = mouse_state.pending_launch_vel else {
         return;
     };
     for (mut prev, ship, dyno, tran) in ship_q.iter_mut() {
-        if !ship.can_shoot {
+        if !ship.can_shoot && !gs.is_in_editor() {
             continue;
         }
         let mut scratch_dyno = dyno.clone();
@@ -111,20 +113,20 @@ fn launch_ship(
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
 ) {
-    let Some(mut level_state) = gs.get_level_state() else {
-        return;
-    };
+    let level_state = gs.get_level_state();
     for launch in launch_events.read() {
         for (mut dyno, mut ship) in ship_q.iter_mut() {
-            if !ship.can_shoot {
+            if !ship.can_shoot && level_state.is_some() {
                 continue;
             }
             dyno.vel = launch.vel;
             ship.can_shoot = false;
-            level_state.num_shots += 1;
-            gs_writer.send(SetGameState(GameState {
-                meta: MetaState::Level(level_state.clone()),
-            }))
+            if let Some(mut ls) = level_state.clone() {
+                ls.num_shots += 1;
+                gs_writer.send(SetGameState(GameState {
+                    meta: MetaState::Level(ls.clone()),
+                }))
+            }
         }
     }
 }
@@ -135,11 +137,26 @@ fn watch_for_respawn(
     mut entity_n_lp: Query<(Entity, &mut LongKeyPress), With<Ship>>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
-        error!("Setuping level but the next game state doesn't seem to be for level...");
         return;
     };
     for (id, mut lp) in entity_n_lp.iter_mut() {
         if lp.was_activated() {
+            commands.entity(id).despawn_recursive();
+            commands.spawn(ShipBundle::new(level_state.last_safe_location, 16.0));
+        }
+    }
+}
+
+fn watch_for_death(
+    mut commands: Commands,
+    gs: Res<GameState>,
+    entity_n_lp: Query<(Entity, &Dyno), With<Ship>>,
+) {
+    let MetaState::Level(level_state) = &gs.meta else {
+        return;
+    };
+    for (id, dyno) in entity_n_lp.iter() {
+        if dyno.touching_rock == Some(RockKind::SimpleKill) {
             commands.entity(id).despawn_recursive();
             commands.spawn(ShipBundle::new(level_state.last_safe_location, 16.0));
         }
@@ -158,7 +175,10 @@ fn replenish_shot(
         if ship.can_shoot {
             continue;
         }
-        if dyno.vel.length() < 0.04 && dyno.is_touching_rock {
+        if dyno.vel.length() < 0.04
+            && dyno.touching_rock.is_some()
+            && dyno.touching_rock != Some(RockKind::SimpleKill)
+        {
             ship.can_shoot = true;
             dyno.vel = Vec2::ZERO;
             let mut ls = level_state.clone();
@@ -180,7 +200,12 @@ pub fn register_ship(app: &mut App) {
     );
     app.add_systems(
         Update,
-        (draw_launch_previews, watch_for_respawn, replenish_shot)
+        (
+            draw_launch_previews,
+            watch_for_respawn,
+            replenish_shot,
+            watch_for_death,
+        )
             .after(draw_ships)
             .run_if(should_apply_physics),
     );

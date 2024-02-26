@@ -2,7 +2,11 @@ use bevy::prelude::*;
 
 use crate::{
     drawing::hollow::HollowDrawable,
-    environment::{field::Field, goal::Goal, rock::Rock},
+    environment::{
+        field::Field,
+        goal::Goal,
+        rock::{Rock, RockKind},
+    },
     meta::game_state::{EditorState, GameState, MetaState},
 };
 
@@ -10,7 +14,7 @@ use crate::{
 pub struct Dyno {
     pub vel: Vec2,
     pub radius: f32,
-    pub is_touching_rock: bool,
+    pub touching_rock: Option<RockKind>,
 }
 impl HollowDrawable for Dyno {
     fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
@@ -22,7 +26,7 @@ pub fn resolve_dyno_rock_collisions(
     dyno: &mut Dyno,
     point: &mut Vec2,
     rocks: &Query<(&Rock, &Transform), Without<Dyno>>,
-) -> bool {
+) -> Option<RockKind> {
     let radius = dyno.radius;
     let mut min_dist: Option<f32> = None;
     let mut min_point: Option<Vec2> = None;
@@ -38,7 +42,7 @@ pub fn resolve_dyno_rock_collisions(
     }
     if min_point.is_none() || min_dist.unwrap_or(f32::MAX) > radius {
         // No collision
-        return false;
+        return None;
     }
     // First move the dyno out of the rock
     let min_point = min_point.unwrap();
@@ -51,21 +55,15 @@ pub fn resolve_dyno_rock_collisions(
     let new_vel = pure_parr * (1.0 - min_rock.features.friction)
         - 1.0 * dyno.vel.dot(normal) * normal * min_rock.features.bounciness;
     dyno.vel = new_vel;
-    true
+    Some(min_rock.kind.clone())
 }
 
 pub struct MoveDynoResult {
-    pub touched_rock: bool,
+    pub touched_rock: Option<RockKind>,
 }
 impl MoveDynoResult {
     pub fn new() -> Self {
-        Self {
-            touched_rock: false,
-        }
-    }
-
-    pub fn absorb(&mut self, other: &Self) {
-        self.touched_rock = self.touched_rock || other.touched_rock;
+        Self { touched_rock: None }
     }
 }
 
@@ -85,7 +83,9 @@ pub fn move_dyno_helper(
         let moving_this_step = left_to_move.min(2.0);
         *point += dyno.vel.normalize() * moving_this_step;
         let this_step = resolve_dyno_rock_collisions(dyno, point, &rocks);
-        result.touched_rock = result.touched_rock || this_step;
+        if result.touched_rock.is_none() {
+            result.touched_rock = this_step;
+        }
         left_to_move -= moving_this_step;
     }
     result
@@ -98,7 +98,7 @@ pub fn move_dynos(
     for (mut dyno, mut tran) in dynos.iter_mut() {
         let mut point = tran.translation.truncate();
         let result = move_dyno_helper(dyno.as_mut(), &mut point, &rocks);
-        dyno.is_touching_rock = result.touched_rock;
+        dyno.touching_rock = result.touched_rock;
         tran.translation = point.extend(0.0);
     }
 }

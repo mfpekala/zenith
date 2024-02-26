@@ -5,7 +5,7 @@ use super::{
 use crate::{
     environment::{
         field::Field,
-        rock::{RockResources, RockType},
+        rock::{RockKind, RockResources},
     },
     meta::{
         game_state::in_editor,
@@ -34,11 +34,8 @@ fn watch_for_save(
         if !erock.closed {
             continue;
         }
-        let (rock, reach) = erock.to_rock_n_reach(
-            &epoints,
-            tran.translation.truncate(),
-            rock_resources.get_type(RockType::Normal),
-        );
+        let (rock, reach) =
+            erock.to_rock_n_reach(&epoints, tran.translation.truncate(), &rock_resources);
         srocks.push(SaveableRock {
             points: rock
                 .points
@@ -46,7 +43,7 @@ fn watch_for_save(
                 .into_iter()
                 .map(|p| p + tran.translation.truncate())
                 .collect(),
-            kype: RockType::Normal,
+            kype: RockKind::Normal,
             reach,
         });
         if let Some(reach) = reach {

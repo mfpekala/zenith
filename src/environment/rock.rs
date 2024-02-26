@@ -5,8 +5,9 @@ use crate::{
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::HashMap};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum RockType {
+pub enum RockKind {
     Normal,
+    SimpleKill,
 }
 
 #[derive(Clone)]
@@ -18,7 +19,7 @@ pub struct RockFeatures {
 
 #[derive(Resource)]
 pub struct RockResources {
-    pub feature_map: HashMap<RockType, RockFeatures>,
+    pub feature_map: HashMap<RockKind, RockFeatures>,
 }
 impl RockResources {
     pub fn blank() -> Self {
@@ -27,7 +28,7 @@ impl RockResources {
         }
     }
 
-    pub fn get_type(&self, rock_type: RockType) -> RockFeatures {
+    pub fn get_type(&self, rock_type: RockKind) -> RockFeatures {
         self.feature_map[&rock_type].clone()
     }
 }
@@ -44,18 +45,32 @@ fn init_rock_materials(
     };
     rock_resources
         .feature_map
-        .insert(RockType::Normal, normal_features);
+        .insert(RockKind::Normal, normal_features);
+    // Simple kill rock
+    let simple_kill_features = RockFeatures {
+        bounciness: 0.0,
+        friction: 1.0,
+        mat: materials.add(ColorMaterial::from(Color::RED)),
+    };
+    rock_resources
+        .feature_map
+        .insert(RockKind::SimpleKill, simple_kill_features);
 }
 
 /// NOTE: Points MUST be in clockwise order
 #[derive(Component, Clone)]
 pub struct Rock {
     pub points: Vec<Vec2>,
+    pub kind: RockKind,
     pub features: RockFeatures,
 }
 impl Rock {
-    pub fn new(points: Vec<Vec2>, features: RockFeatures) -> Self {
-        Rock { points, features }
+    pub fn new(points: Vec<Vec2>, kind: RockKind, features: RockFeatures) -> Self {
+        Rock {
+            points,
+            kind,
+            features,
+        }
     }
 
     pub fn closest_point(&self, point: &Vec2, base_point: &Vec2) -> Vec2 {
@@ -84,7 +99,11 @@ impl Rock {
         features: RockFeatures,
     ) -> Self {
         let points = regular_polygon(num_sides, angle, radius);
-        Self { points, features }
+        Self {
+            points,
+            kind: RockKind::Normal,
+            features,
+        }
     }
 }
 

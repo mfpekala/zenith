@@ -6,7 +6,7 @@ use crate::{
     environment::{
         field::{Field, FieldBundle},
         goal::GoalBundle,
-        rock::{Rock, RockBundle, RockFeatures, RockType},
+        rock::{Rock, RockBundle, RockFeatures, RockKind},
         starting_point::StartingPointBundle,
     },
     ship::ShipBundle,
@@ -24,7 +24,7 @@ pub fn get_level_folder() -> PathBuf {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SaveableRock {
-    pub kype: RockType,
+    pub kype: RockKind,
     pub points: Vec<Vec2>,
     pub reach: Option<f32>,
 }
@@ -65,7 +65,7 @@ impl SaveableRock {
     pub fn spawn_rock(
         &self,
         commands: &mut Commands,
-        feature_map: &HashMap<RockType, RockFeatures>,
+        feature_map: &HashMap<RockKind, RockFeatures>,
         meshes: &mut ResMut<Assets<Mesh>>,
     ) {
         if self.points.len() <= 0 {
@@ -83,7 +83,8 @@ impl SaveableRock {
                 .into_iter()
                 .map(|p| p - center)
                 .collect(),
-            features: feature_map.get(&RockType::Normal).unwrap().clone(),
+            kind: RockKind::SimpleKill,
+            features: feature_map.get(&RockKind::SimpleKill).unwrap().clone(),
         };
         // TODO: Fix the editor so it doesn't tie rocks to fields as much
         RockBundle::spawn(commands, center, rock, meshes);
@@ -140,7 +141,7 @@ impl LevelData {
     pub fn load_level(
         &self,
         commands: &mut Commands,
-        feature_map: &HashMap<RockType, RockFeatures>,
+        feature_map: &HashMap<RockKind, RockFeatures>,
         meshes: &mut ResMut<Assets<Mesh>>,
     ) {
         for srock in self.rocks.iter() {

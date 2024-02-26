@@ -121,7 +121,6 @@ fn translate_events(mut state_change: EventReader<SetGameState>, mut gs: ResMut<
     let Some(SetGameState(new_state)) = state_change.read().last() else {
         return;
     };
-    println!("Setting state to {:?}", new_state.clone());
     *gs = new_state.clone();
 }
 
