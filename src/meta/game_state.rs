@@ -32,6 +32,7 @@ pub enum EditorState {
 #[derive(Clone, Debug)]
 pub struct LevelState {
     pub id: String,
+    pub next_id: Option<String>,
     pub is_settled: bool,
     pub is_won: bool,
     pub last_safe_location: Vec2,
@@ -41,6 +42,7 @@ impl LevelState {
     pub fn fresh_from_id(id: String) -> Self {
         Self {
             id,
+            next_id: None,
             is_settled: false,
             is_won: false,
             last_safe_location: Vec2::ZERO,
@@ -133,6 +135,7 @@ fn set_initial_game_state(mut gs_writer: EventWriter<SetGameState>) {
 pub fn register_game_state(app: &mut App) {
     let initial_state = MetaState::Level(LevelState {
         id: "".to_string(),
+        next_id: None,
         is_settled: false,
         is_won: false,
         last_safe_location: Vec2::ZERO,

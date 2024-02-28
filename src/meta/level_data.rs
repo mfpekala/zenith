@@ -24,7 +24,7 @@ pub fn get_level_folder() -> PathBuf {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SaveableRock {
-    pub kype: RockKind,
+    pub kind: RockKind,
     pub points: Vec<Vec2>,
     pub reach: Option<f32>,
 }
@@ -58,6 +58,7 @@ impl SaveableRock {
             epoint_ids,
             gravity_reach_point,
             gravity_strength,
+            self.kind.clone(),
         );
         commands.spawn(erock);
     }
@@ -83,12 +84,11 @@ impl SaveableRock {
                 .into_iter()
                 .map(|p| p - center)
                 .collect(),
-            kind: RockKind::SimpleKill,
-            features: feature_map.get(&RockKind::SimpleKill).unwrap().clone(),
+            kind: self.kind.clone(),
+            features: feature_map.get(&self.kind).unwrap().clone(),
         };
         // TODO: Fix the editor so it doesn't tie rocks to fields as much
         RockBundle::spawn(commands, center, rock, meshes);
-        // commands.spawn(RockBundle::from_rock(rock, meshes));
     }
 }
 
@@ -114,12 +114,23 @@ impl SaveableField {
 /// Just the data that needs to be used to load/play the level
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct LevelData {
+    pub next_level: Option<String>,
     pub starting_point: Vec2,
     pub goal_point: Vec2,
     pub rocks: Vec<SaveableRock>,
     pub fields: Vec<SaveableField>,
 }
 impl LevelData {
+    pub fn blank() -> Self {
+        Self {
+            next_level: None,
+            starting_point: Vec2 { x: -30.0, y: 0.0 },
+            goal_point: Vec2 { x: 30.0, y: 0.0 },
+            rocks: vec![],
+            fields: vec![],
+        }
+    }
+
     pub fn load(file: PathBuf) -> Option<Self> {
         let mut fin = File::open(file).unwrap();
         let mut as_string = String::new();

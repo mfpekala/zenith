@@ -118,13 +118,14 @@ impl EditableRockBundle {
         points: Vec<Entity>,
         gravity_reach_point: Option<Entity>,
         gravity_strength: Option<f32>,
+        kind: RockKind,
     ) -> Self {
         Self {
             erock: EditableRock {
                 closed: true,
                 gravity_reach_point,
                 gravity_strength,
-                kind: RockKind::Normal,
+                kind,
                 points,
             },
             editable_point: EditablePoint { is_focused: false },
@@ -264,6 +265,27 @@ fn snap_reach_point_to_line(
     gravity_point.translation = closest.extend(0.0);
 }
 
+fn update_rock_kind(
+    gs: Res<GameState>,
+    mut erocks: Query<&mut EditableRock>,
+    keys: Res<Input<KeyCode>>,
+) {
+    let MetaState::Editor(EditorState::Editing(state)) = gs.meta else {
+        return;
+    };
+    let EditingMode::EditingRock(rid) = state.mode else {
+        return;
+    };
+    let Ok(mut editing_rock) = erocks.get_mut(rid) else {
+        return;
+    };
+    if keys.pressed(KeyCode::Key1) {
+        editing_rock.kind = RockKind::Normal;
+    } else if keys.pressed(KeyCode::Key2) {
+        editing_rock.kind = RockKind::SimpleKill;
+    }
+}
+
 fn draw_editable_rocks(
     erocks: Query<(&EditableRock, &Transform)>,
     epoints: Query<&Transform, With<EditablePoint>>,
@@ -339,7 +361,7 @@ pub fn register_editable_rocks(app: &mut App) {
     );
     app.add_systems(
         Update,
-        enable_only_active_rock
+        (enable_only_active_rock, update_rock_kind)
             .run_if(is_editing)
             .after(handle_draggables),
     );

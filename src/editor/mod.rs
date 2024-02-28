@@ -54,6 +54,9 @@ pub fn setup_editor(mut commands: Commands) {
     let level_data = LevelData::load(get_level_folder().join("editing.zenith"));
     if let Some(level_data) = level_data {
         level_data.load_editor(&mut commands);
+    } else {
+        let blank_level = LevelData::blank();
+        blank_level.load_editor(&mut commands);
     };
 }
 

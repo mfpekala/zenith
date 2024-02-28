@@ -3,10 +3,7 @@ use super::{
     editable_starting_point::EditableStartingPoint,
 };
 use crate::{
-    environment::{
-        field::Field,
-        rock::{RockKind, RockResources},
-    },
+    environment::{field::Field, rock::RockResources},
     meta::{
         game_state::in_editor,
         level_data::{get_level_folder, LevelData, SaveableField, SaveableRock},
@@ -43,7 +40,7 @@ fn watch_for_save(
                 .into_iter()
                 .map(|p| p + tran.translation.truncate())
                 .collect(),
-            kype: RockKind::Normal,
+            kind: erock.kind.clone(),
             reach,
         });
         if let Some(reach) = reach {
@@ -63,6 +60,7 @@ fn watch_for_save(
         }
     }
     let level_data = LevelData {
+        next_level: None,
         starting_point: estart.single().translation.truncate(),
         goal_point: egoal.single().translation.truncate(),
         rocks: srocks,

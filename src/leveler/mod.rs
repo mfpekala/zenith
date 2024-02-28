@@ -1,11 +1,18 @@
 use crate::{
-    environment::rock::RockResources,
+    environment::{
+        field::Field as eField,
+        goal::{Goal, GoalGet},
+        rock::{Rock, RockResources},
+        starting_point::StartingPoint,
+    },
     meta::{
         game_state::{
-            entered_level, pretranslate_events, GameState, MetaState, NextGameState, SetGameState,
+            entered_level, pretranslate_events, GameState, LevelState, MetaState, NextGameState,
+            SetGameState,
         },
         level_data::{get_level_folder, LevelData},
     },
+    ship::Ship,
     when_becomes_true,
 };
 use bevy::prelude::*;
@@ -25,6 +32,29 @@ pub fn is_level_not_won(gs: Res<GameState>) -> bool {
 }
 when_becomes_true!(is_level_won_helper, entered_won_level);
 
+fn setup_helper(
+    level_id: String,
+    commands: &mut Commands,
+    rock_res: &Res<RockResources>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    gs_writer: &mut EventWriter<SetGameState>,
+) {
+    let level_data =
+        LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
+    level_data.load_level(commands, &rock_res.feature_map, meshes);
+    let next_level_state = LevelState {
+        id: level_id.clone(),
+        next_id: level_data.next_level.clone(),
+        is_settled: false,
+        is_won: false,
+        last_safe_location: level_data.starting_point,
+        num_shots: 0,
+    };
+    gs_writer.send(SetGameState(GameState {
+        meta: MetaState::Level(next_level_state),
+    }));
+}
+
 pub fn setup_level(
     mut commands: Commands,
     gs: Res<NextGameState>,
@@ -37,14 +67,54 @@ pub fn setup_level(
         return;
     };
     let level_id = level_state.id.clone();
-    let level_data =
-        LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
-    level_data.load_level(&mut commands, &rock_res.feature_map, &mut meshes);
-    let mut next_level_state = level_state.clone();
-    next_level_state.last_safe_location = level_data.starting_point;
-    gs_writer.send(SetGameState(GameState {
-        meta: MetaState::Level(next_level_state),
-    }));
+    setup_helper(
+        level_id,
+        &mut commands,
+        &rock_res,
+        &mut meshes,
+        &mut gs_writer,
+    );
+}
+
+pub fn progress_level(
+    mut gs_reader: EventReader<GoalGet>,
+    mut commands: Commands,
+    gs: Res<GameState>,
+    rocks: Query<Entity, With<Rock>>,
+    ships: Query<Entity, With<Ship>>,
+    fields: Query<Entity, With<eField>>,
+    start: Query<Entity, With<StartingPoint>>,
+    goal: Query<Entity, With<Goal>>,
+    mut gs_writer: EventWriter<SetGameState>,
+    rock_res: Res<RockResources>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let Some(_) = gs_reader.read().last() else {
+        return;
+    };
+    // Despawn everything
+    for id in rocks
+        .iter()
+        .chain(ships.iter())
+        .chain(fields.iter())
+        .chain(start.iter())
+        .chain(goal.iter())
+    {
+        commands.entity(id).despawn_recursive();
+    }
+    let Some(level_state) = gs.get_level_state() else {
+        panic!("Bad level data loading on progress");
+    };
+    let Some(next_id) = level_state.next_id else {
+        panic!("Out of levels :/");
+    };
+    setup_helper(
+        next_id,
+        &mut commands,
+        &rock_res,
+        &mut meshes,
+        &mut gs_writer,
+    );
 }
 
 pub fn register_leveler(app: &mut App) {
@@ -52,4 +122,5 @@ pub fn register_leveler(app: &mut App) {
         Update,
         setup_level.run_if(entered_level).after(pretranslate_events),
     );
+    app.add_systems(Update, progress_level);
 }
