@@ -32,7 +32,7 @@ impl EditablePointBundle {
 
 pub fn destroy_points(
     mouse_state: Res<MouseState>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut commands: Commands,
     existing_points: Query<(Entity, &Transform, &Draggable), With<EditablePoint>>,
     mut erocks: Query<(Entity, &mut EditableRock)>,

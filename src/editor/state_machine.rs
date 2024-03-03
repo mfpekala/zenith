@@ -9,12 +9,11 @@ use super::{
 };
 use crate::{
     camera::CameraMode,
-    drawing::hollow::CircleMarker,
     environment::{
         field::Field,
         goal::{Goal, GoalBundle},
         planet::spawn_planet,
-        rock::{Rock, RockBundle, RockKind, RockResources},
+        rock::{Rock, RockBundle,  RockResources},
     },
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
@@ -28,7 +27,7 @@ use bevy::prelude::*;
 pub fn editing_state_machine(
     gs: Res<GameState>,
     mouse_state: Res<MouseState>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut commands: Commands,
     mut editable_rocks: Query<&mut EditableRock>,
     center_points: Query<(Entity, &Transform, &Draggable), With<EditableRock>>,
@@ -176,12 +175,12 @@ pub fn editing_state_machine(
 }
 
 fn watch_for_edit_test_switch(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
 ) {
     let mut set_action: Option<SetGameState> = None;
-    if keys.just_pressed(KeyCode::Return) {
+    if keys.just_pressed(KeyCode::Enter) {
         if !is_testing_helper(&gs) {
             set_action = Some(SetGameState(GameState {
                 meta: MetaState::Editor(EditorState::Testing),

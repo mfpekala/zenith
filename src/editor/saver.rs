@@ -13,14 +13,14 @@ use bevy::prelude::*;
 use std::{fs::File, io::Write};
 
 fn watch_for_save(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     epoints: Query<&Transform, With<EditablePoint>>,
     erocks: Query<(&EditableRock, &Transform)>,
     estart: Query<&Transform, With<EditableStartingPoint>>,
     egoal: Query<&Transform, With<EditableGoal>>,
     rock_resources: Res<RockResources>,
 ) {
-    if !keys.pressed(KeyCode::SuperLeft) || !keys.pressed(KeyCode::S) {
+    if !keys.pressed(KeyCode::SuperLeft) || !keys.pressed(KeyCode::KeyS) {
         // Don't save
         return;
     }

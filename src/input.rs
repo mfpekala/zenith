@@ -36,7 +36,7 @@ pub struct LaunchEvent {
 }
 
 pub fn watch_mouse(
-    buttons: Res<Input<MouseButton>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     mut mouse_state: ResMut<MouseState>,
     mut launch_event: EventWriter<LaunchEvent>,
@@ -65,7 +65,7 @@ pub fn watch_mouse(
     }
     if buttons.pressed(MouseButton::Left) {
         if let Some(start_pos) = mouse_state.pending_launch_start {
-            let mut almost_vel = (mouse_pos - start_pos) * 0.03;
+            let mut almost_vel = (mouse_pos - start_pos) * 2.0;
             almost_vel.x *= -1.0;
             mouse_state.pending_launch_vel = Some(almost_vel);
         }
@@ -109,22 +109,22 @@ pub struct SetCameraModeEvent {
 
 pub fn watch_camera_input(
     mut camera_control_state: ResMut<CameraControlState>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut switch_event: EventWriter<SwitchCameraModeEvent>,
 ) {
     // Movement
     let mut hor = 0.0;
     let mut ver = 0.0;
-    if keys.pressed(KeyCode::A) {
+    if keys.pressed(KeyCode::KeyA) {
         hor -= 1.0;
     }
-    if keys.pressed(KeyCode::D) {
+    if keys.pressed(KeyCode::KeyD) {
         hor += 1.0;
     }
-    if keys.pressed(KeyCode::W) {
+    if keys.pressed(KeyCode::KeyW) {
         ver += 1.0;
     }
-    if keys.pressed(KeyCode::S) {
+    if keys.pressed(KeyCode::KeyS) {
         ver -= 1.0;
     }
     let raw_dir = Vec2 { x: hor, y: ver };
@@ -135,10 +135,10 @@ pub fn watch_camera_input(
     };
     // Zoom
     let mut zoom = 0.0;
-    if keys.pressed(KeyCode::Q) {
+    if keys.pressed(KeyCode::KeyQ) {
         zoom -= 1.0;
     }
-    if keys.pressed(KeyCode::E) {
+    if keys.pressed(KeyCode::KeyE) {
         zoom += 1.0;
     }
     camera_control_state.zoom = zoom;
@@ -173,7 +173,7 @@ impl LongKeyPress {
     }
 }
 
-fn update_long_presses(mut lps: Query<&mut LongKeyPress>, keys: Res<Input<KeyCode>>) {
+fn update_long_presses(mut lps: Query<&mut LongKeyPress>, keys: Res<ButtonInput<KeyCode>>) {
     for mut lp in lps.iter_mut() {
         if keys.pressed(lp.key_code) {
             lp.ticks_held += 1;

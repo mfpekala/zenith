@@ -1,9 +1,6 @@
 use bevy::prelude::*;
-
 use crate::{
-    input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
-    meta::game_state::{in_editor, in_level},
-    physics::{move_dynos, Dyno},
+    drawing::post_pixel::PostProcessSettings, input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent}, meta::{consts::{PIXEL_WIDTH, WINDOW_WIDTH}, game_state::{in_editor, in_level}}, physics::{move_dynos, Dyno}
 };
 
 #[derive(Debug, Clone)]
@@ -23,6 +20,7 @@ impl CameraMode {
 #[derive(Component)]
 pub struct CameraMarker {
     mode: CameraMode,
+    fake_pos: Vec2,
     vel: Vec2,
     pub zoom: f32,
 }
@@ -37,12 +35,22 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera2dBundle {
             transform: Transform::from_xyz(100.0, 200.0, 0.0),
+            camera: Camera {
+                hdr: false,
+                ..default()
+            },
             ..default()
         },
+        // BloomSettings::OLD_SCHOOL,
         CameraMarker {
             mode: CameraMode::Follow,
             vel: Vec2::ZERO,
+            fake_pos: Vec2::ZERO,
             zoom: 1.0,
+        },
+        PostProcessSettings {
+            num_pixels: (WINDOW_WIDTH as f32) / (PIXEL_WIDTH as f32),
+            ..default()
         },
     ));
 }
@@ -76,7 +84,7 @@ fn update_camera(
             let Ok((_, dyno_tran)) = dynos.get_single() else {
                 return;
             };
-            cam_tran.translation = dyno_tran.translation;
+            marker.fake_pos = dyno_tran.translation.truncate();
         }
         CameraMode::Free => {
             if control_state.wasd_dir.length_squared() < 0.1 {
@@ -90,7 +98,8 @@ fn update_camera(
                     marker.vel = marker.vel.normalize() * max_speed;
                 }
             }
-            cam_tran.translation += marker.vel.extend(0.0);
+            let vec = marker.vel;
+            marker.fake_pos += vec;
         }
     }
     // Handle zooming
@@ -100,6 +109,8 @@ fn update_camera(
         marker.zoom /= 1.02;
     }
     cam_proj.scale = marker.zoom;
+    cam_tran.translation.x = marker.fake_pos.x - marker.fake_pos.x.rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
+    cam_tran.translation.y = marker.fake_pos.y - marker.fake_pos.y.rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
 }
 
 pub fn register_camera(app: &mut App) {

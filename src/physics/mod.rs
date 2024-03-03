@@ -10,6 +10,34 @@ use crate::{
     meta::game_state::{EditorState, GameState, MetaState},
 };
 
+#[derive(Resource)]
+pub struct AvgDeltaTime {
+    pub data: Vec<f32>,
+}
+impl AvgDeltaTime {
+    pub fn new() -> Self {
+        AvgDeltaTime {data: vec![]}
+    }
+    
+    pub fn update(&mut self, delta: f32) {
+        self.data.insert(0, delta);
+        if self.data.len() > 50 {
+            self.data.pop();
+        }
+    }
+
+    pub fn get_avg(&self) -> f32 {
+        if self.data.len() == 0 {
+            return 0.01;
+        }
+        let mut sum = 0.0;
+        for delta in self.data.iter() {
+            sum += delta;
+        }
+        sum / (self.data.len() as f32)
+    }
+}
+
 #[derive(Component, Clone, Debug)]
 pub struct Dyno {
     pub vel: Vec2,
@@ -71,8 +99,9 @@ pub fn move_dyno_helper(
     dyno: &mut Dyno,
     point: &mut Vec2,
     rocks: &Query<(&Rock, &Transform), Without<Dyno>>,
+    time_delta: f32,
 ) -> MoveDynoResult {
-    let mut left_to_move = dyno.vel.length();
+    let mut left_to_move = dyno.vel.length() * time_delta;
     let mut result = MoveDynoResult::new();
     while left_to_move > 0.0 {
         if dyno.vel.length() <= 0.000001 {
@@ -94,10 +123,11 @@ pub fn move_dyno_helper(
 pub fn move_dynos(
     mut dynos: Query<(&mut Dyno, &mut Transform), Without<Rock>>,
     rocks: Query<(&Rock, &Transform), Without<Dyno>>,
+    time: Res<Time>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         let mut point = tran.translation.truncate();
-        let result = move_dyno_helper(dyno.as_mut(), &mut point, &rocks);
+        let result = move_dyno_helper(dyno.as_mut(), &mut point, &rocks, time.delta_seconds());
         dyno.touching_rock = result.touched_rock;
         tran.translation = point.extend(0.0);
     }
@@ -108,12 +138,13 @@ pub fn gravity_helper(
     point: &Vec2,
     fields: &Query<(&Field, &GlobalTransform), Without<Dyno>>,
     goal: &Query<(&Goal, &Transform)>,
+    time_delta: f32,
 ) {
     let mut handle_field = |field: &Field, field_tran: &GlobalTransform| {
         let mult = field.effective_mult(point, &field_tran.translation().truncate(), dyno.radius);
         if mult > 0.00001 {
             dyno.vel *= 1.0 - field.drag;
-            dyno.vel += field.dir * field.strength * mult;
+            dyno.vel += field.dir * 400.0 * field.strength * mult * time_delta;
         }
     };
     for (field, field_tran) in fields.iter() {
@@ -136,6 +167,7 @@ pub fn apply_gravity(
     mut dynos: Query<(&mut Dyno, &Transform), Without<Field>>,
     fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
     goal: Query<(&Goal, &Transform)>,
+    time: Res<Time>,
 ) {
     for (mut dyno, dyno_tran) in dynos.iter_mut() {
         gravity_helper(
@@ -143,6 +175,7 @@ pub fn apply_gravity(
             &dyno_tran.translation.truncate(),
             &fields,
             &goal,
+            time.delta_seconds()
         );
     }
 }
@@ -158,10 +191,16 @@ pub fn should_apply_physics(gs: Res<GameState>) -> bool {
     }
 }
 
+pub fn update_avg_delta_time(mut adt: ResMut<AvgDeltaTime>, time: Res<Time>) {
+    adt.update(time.delta_seconds());
+}
+
 pub fn register_physics(app: &mut App) {
     app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
         Update,
         move_dynos.after(apply_gravity).run_if(should_apply_physics),
     );
+    app.add_systems(Update, update_avg_delta_time);
+    app.insert_resource(AvgDeltaTime::new());
 }

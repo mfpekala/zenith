@@ -24,7 +24,7 @@ impl Draggable {
 
 pub fn handle_draggables(
     mouse_state: Res<MouseState>,
-    mouse_buttons: Res<Input<MouseButton>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut draggables: Query<(
         &mut Draggable,
         &mut Transform,

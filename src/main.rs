@@ -12,7 +12,7 @@ pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
-use drawing::register_drawing;
+use drawing::{post_pixel::PostProcessPlugin, register_drawing};
 use editor::register_editor;
 use environment::register_environment;
 use input::register_input;
@@ -25,8 +25,7 @@ use meta::{
 use physics::register_physics;
 use ship::register_ship;
 
-pub fn main_setup(mut gz_conf: ResMut<GizmoConfig>) {
-    gz_conf.line_width = 4.0;
+pub fn main_setup() {
 }
 
 fn main() {
@@ -41,6 +40,7 @@ fn main() {
         }),
         ..default()
     }))
+    .add_plugins(PostProcessPlugin)
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
     // First register the game state

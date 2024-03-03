@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
@@ -19,7 +19,7 @@ pub fn generate_new_mesh(
         .into_iter()
         .map(|val| val as u32)
         .collect();
-    let mut triangle = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut triangle = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
     let mut positions: Vec<[f32; 3]> = vec![];
     let mut normals: Vec<[f32; 3]> = vec![];
     for p in points.iter() {
@@ -28,9 +28,7 @@ pub fn generate_new_mesh(
     }
     triangle.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     triangle.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    // triangle.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    triangle.set_indices(Some(Indices::U32(verts)));
-    // triangle.set_indices(Some(Indices::U32(vec![3, 1, 2])));
+    triangle.insert_indices(Indices::U32(verts));
     let mesh_handle: Mesh2dHandle = meshes.add(triangle).into();
     MaterialMesh2dBundle {
         mesh: mesh_handle,

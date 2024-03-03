@@ -268,7 +268,7 @@ fn snap_reach_point_to_line(
 fn update_rock_kind(
     gs: Res<GameState>,
     mut erocks: Query<&mut EditableRock>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
 ) {
     let MetaState::Editor(EditorState::Editing(state)) = gs.meta else {
         return;
@@ -279,9 +279,9 @@ fn update_rock_kind(
     let Ok(mut editing_rock) = erocks.get_mut(rid) else {
         return;
     };
-    if keys.pressed(KeyCode::Key1) {
+    if keys.pressed(KeyCode::Digit1) {
         editing_rock.kind = RockKind::Normal;
-    } else if keys.pressed(KeyCode::Key2) {
+    } else if keys.pressed(KeyCode::Digit2) {
         editing_rock.kind = RockKind::SimpleKill;
     }
 }
