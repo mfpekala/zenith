@@ -156,7 +156,7 @@ pub fn gravity_helper(
     {
         let diff = tran.translation.truncate() - *point;
         if diff.length_squared() > 0.001 {
-            dyno.vel += diff.normalize() * goal.strength;
+            dyno.vel += diff.normalize() * goal.strength * 100.0;
         }
         // We're in the goal field!
         dyno.vel *= 1.0 - 0.03; // Increase drag

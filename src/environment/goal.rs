@@ -59,7 +59,7 @@ fn watch_for_goal_get(
     };
     let sp = stran.translation().truncate();
     let gp = gtran.translation().truncate();
-    if sp.distance(gp) < dyno.radius && dyno.vel.length() < 0.25 {
+    if sp.distance(gp) < dyno.radius && dyno.vel.length() < 25.0 {
         goal.occupied_for += 1;
         if goal.occupied_for == 40 {
             send_get.send(GoalGet {});

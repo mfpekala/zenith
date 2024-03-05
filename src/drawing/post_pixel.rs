@@ -8,8 +8,6 @@ pub struct PostProcessPlugin;
 #[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType)]
 pub struct PostProcessSettings {
     pub num_pixels: f32,
-    pub left: f32,
-    pub top: f32,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
