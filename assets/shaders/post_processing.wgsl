@@ -73,23 +73,23 @@ fn gaussian_blur(texture: texture_2d<f32>, splr: sampler, uv: vec2<f32>, horizon
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     // return textureSample(screen_texture, texture_sampler, in.uv);
-    // let num_pixels = settings.num_pixels;
+    let num_pixels = settings.num_pixels;
 
-    // let pixelated_uv = floor(in.uv * vec2<f32>(num_pixels, num_pixels)) / vec2<f32>(num_pixels, num_pixels);
-    // let original_color = textureSample(screen_texture, texture_sampler, pixelated_uv);
+    let pixelated_uv = floor(in.uv * vec2<f32>(num_pixels, num_pixels)) / vec2<f32>(num_pixels, num_pixels);
+    let original_color = textureSample(screen_texture, texture_sampler, pixelated_uv);
 
-    // return original_color;
-    let color = textureSample(screen_texture, texture_sampler, in.uv);
+    return original_color;
+    // // let color = textureSample(screen_texture, texture_sampler, in.uv);
 
-    let bloom_threshold = 0.0;
-    let bloom_intensity = 7.5;
+    // let bloom_threshold = 0.3;
+    // let bloom_intensity = 7.5;
 
-    let bright_areas = max(color.rgb - bloom_threshold, vec3<f32>(0.0));
+    // let bright_areas = max(original_color.rgb - bloom_threshold, vec3<f32>(0.0));
 
-    let blurred_horizontal = gaussian_blur(screen_texture, texture_sampler, in.uv, true);
-    // let blurred_bright_areas = gaussian_blur(screen_texture, texture_sampler, in.uv, false);
+    // let blurred_horizontal = gaussian_blur(screen_texture, texture_sampler, pixelated_uv, true);
+    // let blurred_vertical = gaussian_blur(screen_texture, texture_sampler, pixelated_uv, false);
 
-    let bloom_color = color.rgb + blurred_horizontal * bloom_intensity;
+    // let bloom_color = original_color.rgb + (blurred_horizontal + blurred_vertical) * bloom_intensity;
 
-    return vec4<f32>(bloom_color, 1.0);
+    // return vec4<f32>(bloom_color, 1.0);
 }

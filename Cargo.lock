@@ -783,15 +783,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_pixel_camera"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b4166c84a8592a77a5da07a5689abb2fa09ef12259ba2832ff8a96103991794"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_ptr"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2844,15 +2835,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pixelate_mesh"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15580287e2ecb9867edbf3868e247ebc72f37cef2ee03be4a73d0574f0b4aa74"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "pkg-config"
 version = "0.3.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4159,10 +4141,8 @@ name = "zenith"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_pixel_camera",
  "earcutr",
  "env_logger",
- "pixelate_mesh",
  "rand",
  "serde",
  "serde_json",

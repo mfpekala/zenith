@@ -1,6 +1,30 @@
-use bevy::{core_pipeline::{core_2d::graph::{Core2d, Node2d}, fullscreen_vertex_shader::fullscreen_shader_vertex_state}, ecs::query::QueryItem, prelude::*, render::{extract_component::{ComponentUniforms, ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin}, render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner}, render_resource::{binding_types::{sampler, texture_2d, uniform_buffer}, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState, MultisampleState, Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages, ShaderType, TextureFormat, TextureSampleType}, renderer::{RenderContext, RenderDevice}, view::ViewTarget, RenderApp}};
 use bevy::render::render_graph::RenderGraphApp;
 use bevy::render::texture::BevyDefault;
+use bevy::{
+    core_pipeline::{
+        core_2d::graph::{Core2d, Node2d},
+        fullscreen_vertex_shader::fullscreen_shader_vertex_state,
+    },
+    ecs::query::QueryItem,
+    prelude::*,
+    render::{
+        extract_component::{
+            ComponentUniforms, ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin,
+        },
+        render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner},
+        render_resource::{
+            binding_types::{sampler, texture_2d, uniform_buffer},
+            BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId,
+            ColorTargetState, ColorWrites, FragmentState, MultisampleState, Operations,
+            PipelineCache, PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor,
+            RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
+            ShaderType, TextureFormat, TextureSampleType,
+        },
+        renderer::{RenderContext, RenderDevice},
+        view::ViewTarget,
+        RenderApp,
+    },
+};
 
 /// It is generally encouraged to set up post processing effects as a plugin
 pub struct PostProcessPlugin;
@@ -17,10 +41,7 @@ struct PostProcessLabel;
 struct PostProcessNode;
 
 impl ViewNode for PostProcessNode {
-    type ViewQuery = (
-        &'static ViewTarget,
-        &'static PostProcessSettings,
-    );
+    type ViewQuery = (&'static ViewTarget, &'static PostProcessSettings);
 
     fn run(
         &self,
@@ -114,7 +135,7 @@ impl FromWorld for PostProcessPipeline {
                     // It can be anything as long as it matches here and in the shader.
                     entry_point: "fragment".into(),
                     targets: vec![Some(ColorTargetState {
-                        format: TextureFormat::bevy_default(),
+                        format: TextureFormat::Rgba16Float,
                         blend: None,
                         write_mask: ColorWrites::ALL,
                     })],
@@ -147,12 +168,7 @@ impl Plugin for PostProcessPlugin {
         };
 
         render_app
-            .add_render_graph_node::<ViewNodeRunner<PostProcessNode>>(
-                // Specify the label of the graph, in this case we want the graph for 3d
-                Core2d,
-                // It also needs the label of the node
-                PostProcessLabel,
-            )
+            .add_render_graph_node::<ViewNodeRunner<PostProcessNode>>(Core2d, PostProcessLabel)
             .add_render_graph_edges(
                 Core2d,
                 // Specify the node ordering.

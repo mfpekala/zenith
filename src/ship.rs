@@ -4,7 +4,9 @@ use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
 use crate::meta::game_state::{in_editor, in_level, GameState, MetaState, SetGameState};
-use crate::physics::{gravity_helper, move_dyno_helper, move_dynos, should_apply_physics, AvgDeltaTime};
+use crate::physics::{
+    gravity_helper, move_dyno_helper, move_dynos, should_apply_physics, AvgDeltaTime,
+};
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::prelude::*;
 
@@ -90,8 +92,19 @@ fn draw_launch_previews(
         // Offset
         let prev_applied = prev.tick / prev.speed;
         for _tick in 0..prev_applied {
-            gravity_helper(&mut scratch_dyno, &scratch_point, &fields, &goal, avg_time.get_avg());
-            move_dyno_helper(&mut scratch_dyno, &mut scratch_point, &rocks, avg_time.get_avg());
+            gravity_helper(
+                &mut scratch_dyno,
+                &scratch_point,
+                &fields,
+                &goal,
+                avg_time.get_avg(),
+            );
+            move_dyno_helper(
+                &mut scratch_dyno,
+                &mut scratch_point,
+                &rocks,
+                avg_time.get_avg(),
+            );
         }
         prev.tick = (prev.tick + 1) % (prev.ticks_between_skins * prev.speed);
         // Draw the damn things
@@ -101,8 +114,19 @@ fn draw_launch_previews(
                     / (prev.num_skins as f32 * prev.ticks_between_skins as f32);
             gz.circle_2d(scratch_point, 5.0, Color::rgba(0.7, 0.7, 0.7, alpha));
             for _ in 0..prev.ticks_between_skins {
-                gravity_helper(&mut scratch_dyno, &scratch_point, &fields, &goal, avg_time.get_avg());
-                move_dyno_helper(&mut scratch_dyno, &mut scratch_point, &rocks, avg_time.get_avg());
+                gravity_helper(
+                    &mut scratch_dyno,
+                    &scratch_point,
+                    &fields,
+                    &goal,
+                    avg_time.get_avg(),
+                );
+                move_dyno_helper(
+                    &mut scratch_dyno,
+                    &mut scratch_point,
+                    &rocks,
+                    avg_time.get_avg(),
+                );
             }
         }
     }

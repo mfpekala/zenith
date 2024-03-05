@@ -1,6 +1,15 @@
-use bevy::prelude::*;
 use crate::{
-    drawing::post_pixel::PostProcessSettings, input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent}, meta::{consts::{PIXEL_WIDTH, WINDOW_WIDTH}, game_state::{in_editor, in_level}}, physics::{move_dynos, Dyno}
+    drawing::post_pixel::PostProcessSettings,
+    input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
+    meta::{
+        consts::{PIXEL_WIDTH, WINDOW_WIDTH},
+        game_state::{in_editor, in_level},
+    },
+    physics::{move_dynos, Dyno},
+};
+use bevy::{
+    core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
+    prelude::*,
 };
 
 #[derive(Debug, Clone)]
@@ -36,12 +45,22 @@ fn setup_camera(mut commands: Commands) {
         Camera2dBundle {
             transform: Transform::from_xyz(100.0, 200.0, 0.0),
             camera: Camera {
-                hdr: false,
+                hdr: true,
                 ..default()
             },
             ..default()
         },
-        // BloomSettings::OLD_SCHOOL,
+        BloomSettings {
+            intensity: 0.3,
+            low_frequency_boost: 0.7,
+            low_frequency_boost_curvature: 0.95,
+            high_pass_frequency: 1.0,
+            prefilter_settings: BloomPrefilterSettings {
+                threshold: 0.6,
+                threshold_softness: 0.2,
+            },
+            composite_mode: BloomCompositeMode::Additive,
+        },
         CameraMarker {
             mode: CameraMode::Follow,
             vel: Vec2::ZERO,
@@ -109,8 +128,16 @@ fn update_camera(
         marker.zoom /= 1.02;
     }
     cam_proj.scale = marker.zoom;
-    cam_tran.translation.x = marker.fake_pos.x - marker.fake_pos.x.rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
-    cam_tran.translation.y = marker.fake_pos.y - marker.fake_pos.y.rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
+    cam_tran.translation.x = marker.fake_pos.x
+        - marker
+            .fake_pos
+            .x
+            .rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
+    cam_tran.translation.y = marker.fake_pos.y
+        - marker
+            .fake_pos
+            .y
+            .rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
 }
 
 pub fn register_camera(app: &mut App) {
