@@ -1,4 +1,5 @@
-use crate::drawing::hollow::HollowDrawable;
+use crate::drawing::light::RegularLightBundle;
+use crate::drawing::lightmap::sprite_layer;
 use crate::drawing::mesh::generate_new_mesh;
 use crate::environment::goal::Goal;
 use crate::environment::rock::RockKind;
@@ -12,6 +13,7 @@ use crate::physics::{
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
+use bevy::render::view::RenderLayers;
 use bevy::sprite::MaterialMesh2dBundle;
 
 #[derive(Component)]
@@ -26,6 +28,7 @@ pub struct ShipBundle {
     pub dyno: Dyno,
     pub launch_preview: LaunchPreview,
     pub mesh: MaterialMesh2dBundle<ColorMaterial>,
+    pub render_layers: RenderLayers,
 }
 
 #[derive(Resource)]
@@ -45,17 +48,22 @@ pub fn spawn_ship(
     let points = regular_polygon(12, 0.0, radius);
     let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
     mesh.transform.translation = pos.extend(0.0);
-    commands.spawn(ShipBundle {
-        ship: Ship { can_shoot: false },
-        respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
-        dyno: Dyno {
-            vel: Vec2::ZERO,
-            radius,
-            touching_rock: None,
-        },
-        launch_preview: LaunchPreview::new(),
-        mesh,
-    });
+    commands
+        .spawn(ShipBundle {
+            ship: Ship { can_shoot: false },
+            respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
+            dyno: Dyno {
+                vel: Vec2::ZERO,
+                radius,
+                touching_rock: None,
+            },
+            launch_preview: LaunchPreview::new(),
+            mesh,
+            render_layers: sprite_layer(),
+        })
+        .with_children(|parent| {
+            parent.spawn(RegularLightBundle::new(24, 100.0, &mut mats, &mut meshes));
+        });
 }
 
 #[derive(Component)]
@@ -73,12 +81,6 @@ impl LaunchPreview {
             num_skins: 12,
             ticks_between_skins: 12,
         }
-    }
-}
-
-fn draw_ships(dyno_n_trans: Query<(&Dyno, &Transform)>, mut gz: Gizmos) {
-    for (dyno, tran) in dyno_n_trans.iter() {
-        dyno.draw_hollow(tran.translation.truncate(), &mut gz);
     }
 }
 
@@ -236,19 +238,12 @@ pub fn register_ship(app: &mut App) {
     app.add_systems(Update, launch_ship.run_if(should_apply_physics));
     app.add_systems(
         Update,
-        draw_ships
-            .after(move_dynos)
-            .run_if(in_editor.or_else(in_level)),
-    );
-    app.add_systems(
-        Update,
         (
             draw_launch_previews,
             watch_for_respawn,
             replenish_shot,
             watch_for_death,
         )
-            .after(draw_ships)
             .run_if(should_apply_physics),
     );
 }

@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 
-use crate::meta::game_state::{
-    entered_menu, left_menu, EditingState, EditorState, GameState, LevelState, MetaState,
-    SetGameState,
+use crate::{
+    drawing::lightmap::sprite_layer,
+    meta::game_state::{
+        entered_menu, left_menu, EditingState, EditorState, GameState, LevelState, MetaState,
+        SetGameState,
+    },
 };
 
 #[derive(Component)]
@@ -24,6 +27,7 @@ fn setup_main_menu(mut commands: Commands) {
                 background_color: BackgroundColor(Color::rgb(0.01, 0.03, 0.01)),
                 ..default()
             },
+            sprite_layer(),
         ))
         .with_children(|parent| {
             parent
@@ -42,15 +46,18 @@ fn setup_main_menu(mut commands: Commands) {
                     background_color: Color::WHITE.into(),
                     ..default()
                 })
+                .insert(sprite_layer())
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "PLAY",
-                        TextStyle {
-                            font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "PLAY",
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::rgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(sprite_layer());
                 });
             parent
                 .spawn(ButtonBundle {
@@ -68,15 +75,18 @@ fn setup_main_menu(mut commands: Commands) {
                     background_color: Color::WHITE.into(),
                     ..default()
                 })
+                .insert(sprite_layer())
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "LEVEL EDITOR",
-                        TextStyle {
-                            font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
+                    parent
+                        .spawn(TextBundle::from_section(
+                            "LEVEL EDITOR",
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::rgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ))
+                        .insert(sprite_layer());
                 });
         });
 }

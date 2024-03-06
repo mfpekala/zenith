@@ -1,6 +1,9 @@
 use super::rock::Rock;
 use crate::{
-    drawing::hollow::{draw_hollow_polygon, CircleMarker, HollowDrawable},
+    drawing::{
+        hollow::{draw_hollow_polygon, CircleMarker, HollowDrawable},
+        lightmap::sprite_layer,
+    },
     hollow_drawable,
     math::{get_shell, MathLine},
     meta::{
@@ -8,7 +11,7 @@ use crate::{
         level_data::SaveableField,
     },
 };
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers, sprite};
 
 /// NOTE: Points MUST be in clockwise order
 #[derive(Component, Clone, Debug)]
@@ -95,21 +98,16 @@ hollow_drawable!(Field, draw_fields);
 pub struct FieldBundle {
     pub field: Field,
     pub spatial: SpatialBundle,
+    pub render_layers: RenderLayers,
 }
 impl FieldBundle {
-    pub fn new(field: Field) -> Self {
-        Self {
-            field,
-            spatial: default(),
-        }
-    }
-
     pub fn spawn(commands: &mut Commands, base_pos: Vec2, field: Field) {
         commands.spawn(Self {
             field,
             spatial: SpatialBundle::from_transform(Transform::from_translation(
                 base_pos.extend(0.0),
             )),
+            render_layers: sprite_layer(),
         });
     }
 }

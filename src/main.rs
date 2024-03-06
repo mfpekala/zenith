@@ -12,7 +12,7 @@ pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
 use camera::register_camera;
-use drawing::{post_pixel::PostProcessPlugin, register_drawing};
+use drawing::register_drawing;
 use editor::register_editor;
 use environment::register_environment;
 use input::register_input;
@@ -25,8 +25,7 @@ use meta::{
 use physics::register_physics;
 use ship::register_ship;
 
-pub fn main_setup() {
-}
+pub fn main_setup() {}
 
 fn main() {
     env_logger::init();
@@ -40,7 +39,6 @@ fn main() {
         }),
         ..default()
     }))
-    .add_plugins(PostProcessPlugin)
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
     // First register the game state

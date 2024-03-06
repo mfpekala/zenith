@@ -1,8 +1,8 @@
 use crate::{
-    drawing::mesh::generate_new_mesh,
+    drawing::{lightmap::sprite_layer, mesh::generate_new_mesh},
     math::{regular_polygon, MathLine},
 };
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::HashMap};
+use bevy::{prelude::*, render::view::RenderLayers, sprite::MaterialMesh2dBundle, utils::HashMap};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RockKind {
@@ -44,7 +44,7 @@ fn init_rock_materials(
         mat: materials.add(ColorMaterial::from(Color::Hsla {
             hue: 87.0,
             saturation: 0.28,
-            lightness: 0.2,
+            lightness: 0.8,
             alpha: 1.0,
         })),
     };
@@ -116,11 +116,16 @@ impl Rock {
 pub struct RockBundle {
     pub rock: Rock,
     pub mesh: MaterialMesh2dBundle<ColorMaterial>,
+    pub render_layers: RenderLayers,
 }
 impl RockBundle {
     pub fn from_rock(rock: Rock, meshes: &mut ResMut<Assets<Mesh>>) -> Self {
         let mesh = generate_new_mesh(&rock.points, &rock.features.mat, meshes);
-        Self { rock, mesh }
+        Self {
+            rock,
+            mesh,
+            render_layers: sprite_layer(),
+        }
     }
 
     pub fn spawn(
