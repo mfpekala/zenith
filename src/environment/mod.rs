@@ -1,6 +1,7 @@
 pub mod background;
 pub mod field;
 pub mod goal;
+pub mod particle;
 pub mod planet;
 pub mod rock;
 pub mod starting_point;

@@ -82,7 +82,7 @@ impl Default for LightmapPluginSettings {
                 blue: 0.0,
                 alpha: 0.0,
             }),
-            ambient_light: Color::rgb(0.3, 0.3, 0.3),
+            ambient_light: Color::rgb(0.5, 0.5, 0.5),
             bloom: None,
         }
     }
