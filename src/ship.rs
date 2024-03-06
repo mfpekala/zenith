@@ -47,7 +47,7 @@ pub fn spawn_ship(
         alpha: 1.0,
     }));
     let points = regular_polygon(12, 0.0, radius);
-    let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
+    let mesh = generate_new_mesh(&points, &mat, &mut meshes);
     commands
         .spawn(ShipBundle {
             ship: Ship { can_shoot: false },

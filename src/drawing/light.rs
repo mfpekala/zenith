@@ -43,17 +43,16 @@ fn draw_regular_rings(
     mut gz: Gizmos<LightGizmoGroup>,
 ) {
     for (tran, light) in regular.iter() {
-        for add_rad in 0..light.radius as u32 {
+        for add_rad in 0..light.radius as u32 + 4 {
             let frac = (add_rad as f32) / light.radius;
             gz.circle_2d(
                 tran.translation().truncate(),
-                light.radius - 1.0 + add_rad as f32,
+                light.radius - 8.0 + add_rad as f32,
                 Color::Hsla {
                     hue: 1.0,
                     saturation: 1.0,
                     lightness: 1.0,
-                    // alpha: ((frac * 3.14159265 / 2.0).cos()).powi(3),
-                    alpha: (1.0 - frac).powi(3),
+                    alpha: (1.0 - frac).powi(2),
                 },
             );
         }

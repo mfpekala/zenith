@@ -2,7 +2,6 @@ use bevy::{prelude::*, render::view::RenderLayers, sprite::MaterialMesh2dBundle}
 
 use crate::{
     camera::{update_camera, CameraMarker, CameraMode},
-    meta::consts::PIXEL_WIDTH,
     physics::move_dynos,
     ship::Ship,
 };

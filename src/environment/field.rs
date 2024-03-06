@@ -11,7 +11,7 @@ use crate::{
         level_data::SaveableField,
     },
 };
-use bevy::{prelude::*, render::view::RenderLayers, sprite};
+use bevy::{prelude::*, render::view::RenderLayers};
 
 /// NOTE: Points MUST be in clockwise order
 #[derive(Component, Clone, Debug)]

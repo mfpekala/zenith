@@ -1,16 +1,16 @@
 use crate::{
     drawing::{
         lightmap::{LightCameraMarker, LightmapPlugin, SpriteCameraMarker},
-        post_pixel::{PostProcessPlugin, PostProcessSettings},
+        post_pixel::PostPixelPlugin,
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
-        consts::{PIXEL_WIDTH, WINDOW_WIDTH},
+        consts::PIXEL_WIDTH,
         game_state::{in_editor, in_level},
     },
     physics::{move_dynos, Dyno},
 };
-use bevy::{core_pipeline::bloom::BloomSettings, prelude::*};
+use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraMode {
@@ -144,7 +144,7 @@ pub fn update_camera(
 
 pub fn register_camera(app: &mut App) {
     app.add_plugins(LightmapPlugin);
-    app.add_plugins(PostProcessPlugin);
+    app.add_plugins(PostPixelPlugin);
     app.add_systems(
         Update,
         update_camera

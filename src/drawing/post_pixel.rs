@@ -26,10 +26,10 @@ use bevy::{
 };
 
 /// It is generally encouraged to set up post processing effects as a plugin
-pub struct PostProcessPlugin;
+pub struct PostPixelPlugin;
 
 #[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType)]
-pub struct PostProcessSettings {
+pub struct PostPixelSettings {
     pub num_pixels: f32,
 }
 
@@ -40,7 +40,7 @@ struct PostProcessLabel;
 struct PostProcessNode;
 
 impl ViewNode for PostProcessNode {
-    type ViewQuery = (&'static ViewTarget, &'static PostProcessSettings);
+    type ViewQuery = (&'static ViewTarget, &'static PostPixelSettings);
 
     fn run(
         &self,
@@ -55,7 +55,7 @@ impl ViewNode for PostProcessNode {
         else {
             return Ok(());
         };
-        let settings_uniforms = world.resource::<ComponentUniforms<PostProcessSettings>>();
+        let settings_uniforms = world.resource::<ComponentUniforms<PostPixelSettings>>();
         let Some(settings_binding) = settings_uniforms.uniforms().binding() else {
             return Ok(());
         };
@@ -108,7 +108,7 @@ impl FromWorld for PostProcessPipeline {
                 (
                     texture_2d(TextureSampleType::Float { filterable: true }),
                     sampler(SamplerBindingType::Filtering),
-                    uniform_buffer::<PostProcessSettings>(false),
+                    uniform_buffer::<PostPixelSettings>(false),
                 ),
             ),
         );
@@ -155,11 +155,11 @@ impl FromWorld for PostProcessPipeline {
     }
 }
 
-impl Plugin for PostProcessPlugin {
+impl Plugin for PostPixelPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            ExtractComponentPlugin::<PostProcessSettings>::default(),
-            UniformComponentPlugin::<PostProcessSettings>::default(),
+            ExtractComponentPlugin::<PostPixelSettings>::default(),
+            UniformComponentPlugin::<PostPixelSettings>::default(),
         ));
 
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
