@@ -12,10 +12,10 @@ use crate::{
         },
         level_data::{get_level_folder, LevelData},
     },
-    ship::Ship,
+    ship::{Ship, SpawnShipId},
     when_becomes_true,
 };
-use bevy::prelude::*;
+use bevy::{ecs::system::SystemId, prelude::*};
 
 fn is_level_won_helper(gs: &GameState) -> bool {
     match &gs.meta {
@@ -38,10 +38,11 @@ fn setup_helper(
     rock_res: &Res<RockResources>,
     meshes: &mut ResMut<Assets<Mesh>>,
     gs_writer: &mut EventWriter<SetGameState>,
+    spawn_ship_id: SystemId<(Vec2, f32)>,
 ) {
     let level_data =
         LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
-    level_data.load_level(commands, &rock_res.feature_map, meshes);
+    level_data.load_level(commands, &rock_res.feature_map, meshes, spawn_ship_id);
     let next_level_state = LevelState {
         id: level_id.clone(),
         next_id: level_data.next_level.clone(),
@@ -61,6 +62,7 @@ pub fn setup_level(
     mut gs_writer: EventWriter<SetGameState>,
     rock_res: Res<RockResources>,
     mut meshes: ResMut<Assets<Mesh>>,
+    spawn_ship_id: Res<SpawnShipId>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
         error!("Setuping level but the next game state doesn't seem to be for level...");
@@ -73,6 +75,7 @@ pub fn setup_level(
         &rock_res,
         &mut meshes,
         &mut gs_writer,
+        spawn_ship_id.0.clone(),
     );
 }
 
@@ -88,6 +91,7 @@ pub fn progress_level(
     mut gs_writer: EventWriter<SetGameState>,
     rock_res: Res<RockResources>,
     mut meshes: ResMut<Assets<Mesh>>,
+    spawn_ship_id: Res<SpawnShipId>,
 ) {
     let Some(_) = gs_reader.read().last() else {
         return;
@@ -114,6 +118,7 @@ pub fn progress_level(
         &rock_res,
         &mut meshes,
         &mut gs_writer,
+        spawn_ship_id.0.clone(),
     );
 }
 

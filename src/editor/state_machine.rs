@@ -13,14 +13,14 @@ use crate::{
         field::Field,
         goal::{Goal, GoalBundle},
         planet::spawn_planet,
-        rock::{Rock, RockBundle,  RockResources},
+        rock::{Rock, RockBundle, RockResources},
     },
     input::{MouseState, SetCameraModeEvent},
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
     physics::Dyno,
-    ship::ShipBundle,
+    ship::SpawnShipId,
 };
 use bevy::prelude::*;
 
@@ -210,12 +210,15 @@ fn start_testing(
     estart: Query<&Transform, With<EditableStartingPoint>>,
     egoal: Query<&Transform, With<EditableGoal>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    spawn_ship_id: Res<SpawnShipId>,
 ) {
     camera_switch_writer.send(SetCameraModeEvent {
         mode: CameraMode::Follow,
     });
-    let ship = ShipBundle::new(estart.single().translation.truncate(), 16.0);
-    commands.spawn(ship);
+    commands.run_system_with_input(
+        spawn_ship_id.0,
+        (estart.single().translation.truncate(), 16.0),
+    );
     GoalBundle::spawn(egoal.single().translation.truncate(), &mut commands);
     for (erock, tran) in erocks.iter() {
         let (rock, reach) =

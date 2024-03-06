@@ -41,7 +41,12 @@ fn init_rock_materials(
     let normal_features = RockFeatures {
         bounciness: 0.6,
         friction: 0.3,
-        mat: materials.add(ColorMaterial::from(Color::ANTIQUE_WHITE)),
+        mat: materials.add(ColorMaterial::from(Color::Hsla {
+            hue: 87.0,
+            saturation: 0.28,
+            lightness: 0.2,
+            alpha: 1.0,
+        })),
     };
     rock_resources
         .feature_map

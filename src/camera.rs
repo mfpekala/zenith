@@ -50,17 +50,11 @@ fn setup_camera(mut commands: Commands) {
             },
             ..default()
         },
-        BloomSettings {
-            intensity: 0.3,
-            low_frequency_boost: 0.7,
-            low_frequency_boost_curvature: 0.95,
-            high_pass_frequency: 1.0,
-            prefilter_settings: BloomPrefilterSettings {
-                threshold: 0.6,
-                threshold_softness: 0.2,
-            },
-            composite_mode: BloomCompositeMode::Additive,
-        },
+        BloomSettings::OLD_SCHOOL,
+        // BloomSettings {
+        //     intensity: 0.15,
+        //     ..default()
+        // },
         CameraMarker {
             mode: CameraMode::Follow,
             vel: Vec2::ZERO,

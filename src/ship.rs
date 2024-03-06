@@ -1,14 +1,18 @@
 use crate::drawing::hollow::HollowDrawable;
+use crate::drawing::mesh::generate_new_mesh;
 use crate::environment::goal::Goal;
 use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
+use crate::math::regular_polygon;
 use crate::meta::game_state::{in_editor, in_level, GameState, MetaState, SetGameState};
 use crate::physics::{
     gravity_helper, move_dyno_helper, move_dynos, should_apply_physics, AvgDeltaTime,
 };
 use crate::{input::LaunchEvent, physics::Dyno};
+use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
+use bevy::sprite::MaterialMesh2dBundle;
 
 #[derive(Component)]
 pub struct Ship {
@@ -17,32 +21,41 @@ pub struct Ship {
 
 #[derive(Bundle)]
 pub struct ShipBundle {
-    ship: Ship,
-    respawn_watcher: LongKeyPress,
-    dyno: Dyno,
-    spatial: SpatialBundle,
-    launch_preview: LaunchPreview,
+    pub ship: Ship,
+    pub respawn_watcher: LongKeyPress,
+    pub dyno: Dyno,
+    pub launch_preview: LaunchPreview,
+    pub mesh: MaterialMesh2dBundle<ColorMaterial>,
 }
-impl ShipBundle {
-    pub fn new(pos: Vec2, radius: f32) -> Self {
-        Self {
-            ship: Ship { can_shoot: false },
-            respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 60),
-            dyno: Dyno {
-                vel: Vec2::ZERO,
-                radius,
-                touching_rock: None,
-            },
-            spatial: SpatialBundle {
-                transform: Transform {
-                    translation: pos.extend(0.0),
-                    ..default()
-                },
-                ..default()
-            },
-            launch_preview: LaunchPreview::new(),
-        }
-    }
+
+#[derive(Resource)]
+pub struct SpawnShipId(pub SystemId<(bevy::prelude::Vec2, f32)>);
+pub fn spawn_ship(
+    In((pos, radius)): In<(Vec2, f32)>,
+    mut mats: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut commands: Commands,
+) {
+    let mat = mats.add(ColorMaterial::from(Color::Hsla {
+        hue: 0.0,
+        saturation: 1.0,
+        lightness: 1.0,
+        alpha: 1.0,
+    }));
+    let points = regular_polygon(12, 0.0, radius);
+    let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
+    mesh.transform.translation = pos.extend(0.0);
+    commands.spawn(ShipBundle {
+        ship: Ship { can_shoot: false },
+        respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
+        dyno: Dyno {
+            vel: Vec2::ZERO,
+            radius,
+            touching_rock: None,
+        },
+        launch_preview: LaunchPreview::new(),
+        mesh,
+    });
 }
 
 #[derive(Component)]
@@ -160,6 +173,7 @@ fn watch_for_respawn(
     mut commands: Commands,
     gs: Res<GameState>,
     mut entity_n_lp: Query<(Entity, &mut LongKeyPress), With<Ship>>,
+    spawn_ship_id: Res<SpawnShipId>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
         return;
@@ -167,7 +181,7 @@ fn watch_for_respawn(
     for (id, mut lp) in entity_n_lp.iter_mut() {
         if lp.was_activated() {
             commands.entity(id).despawn_recursive();
-            commands.spawn(ShipBundle::new(level_state.last_safe_location, 16.0));
+            commands.run_system_with_input(spawn_ship_id.0, (level_state.last_safe_location, 16.0));
         }
     }
 }
@@ -176,6 +190,7 @@ fn watch_for_death(
     mut commands: Commands,
     gs: Res<GameState>,
     entity_n_lp: Query<(Entity, &Dyno), With<Ship>>,
+    spawn_ship_id: Res<SpawnShipId>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
         return;
@@ -183,7 +198,7 @@ fn watch_for_death(
     for (id, dyno) in entity_n_lp.iter() {
         if dyno.touching_rock == Some(RockKind::SimpleKill) {
             commands.entity(id).despawn_recursive();
-            commands.spawn(ShipBundle::new(level_state.last_safe_location, 16.0));
+            commands.run_system_with_input(spawn_ship_id.0, (level_state.last_safe_location, 16.0));
         }
     }
 }
@@ -216,6 +231,8 @@ fn replenish_shot(
 }
 
 pub fn register_ship(app: &mut App) {
+    let spawn_id = app.world.register_system(spawn_ship);
+    app.insert_resource(SpawnShipId(spawn_id));
     app.add_systems(Update, launch_ship.run_if(should_apply_physics));
     app.add_systems(
         Update,

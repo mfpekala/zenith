@@ -9,9 +9,8 @@ use crate::{
         rock::{Rock, RockBundle, RockFeatures, RockKind},
         starting_point::StartingPointBundle,
     },
-    ship::ShipBundle,
 };
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{ecs::system::SystemId, prelude::*, utils::HashMap};
 use std::{
     fs::File,
     io::Read,
@@ -154,6 +153,7 @@ impl LevelData {
         commands: &mut Commands,
         feature_map: &HashMap<RockKind, RockFeatures>,
         meshes: &mut ResMut<Assets<Mesh>>,
+        spawn_ship_id: SystemId<(Vec2, f32)>,
     ) {
         for srock in self.rocks.iter() {
             srock.spawn_rock(commands, feature_map, meshes);
@@ -163,6 +163,6 @@ impl LevelData {
         }
         commands.spawn(StartingPointBundle::new(self.starting_point));
         GoalBundle::spawn(self.goal_point, commands);
-        commands.spawn(ShipBundle::new(self.starting_point, 16.0));
+        commands.run_system_with_input(spawn_ship_id, (self.starting_point, 16.0));
     }
 }
