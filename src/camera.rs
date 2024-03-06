@@ -12,7 +12,7 @@ use crate::{
 };
 use bevy::{core_pipeline::bloom::BloomSettings, prelude::*};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraMode {
     Follow,
     Free,
@@ -28,8 +28,8 @@ impl CameraMode {
 
 #[derive(Component)]
 pub struct CameraMarker {
-    mode: CameraMode,
-    fake_pos: Vec2,
+    pub mode: CameraMode,
+    pub fake_pos: Vec2,
     vel: Vec2,
     pub zoom: f32,
 }
@@ -47,37 +47,24 @@ impl CameraMarker {
         self.mode = self.mode.rotate();
         self.vel = Vec2::ZERO;
     }
+
+    pub fn pixel_align(&self, pos: Vec2) -> Vec2 {
+        let modulo = PIXEL_WIDTH as f32 * self.zoom;
+        let mut initial = Vec2 {
+            x: pos.x - pos.x.rem_euclid(PIXEL_WIDTH as f32 * self.zoom),
+            y: pos.y - pos.y.rem_euclid(PIXEL_WIDTH as f32 * self.zoom),
+        };
+        if initial.x < 0.0 - modulo / 2.0 {
+            initial.x += modulo;
+        }
+        if initial.y < 0.0 - modulo / 2.0 {
+            initial.y += modulo;
+        }
+        initial
+    }
 }
 
-fn setup_camera(mut commands: Commands) {
-    // commands.spawn((
-    //     Camera2dBundle {
-    //         transform: Transform::from_xyz(100.0, 200.0, 0.0),
-    //         camera: Camera {
-    //             hdr: true,
-    //             ..default()
-    //         },
-    //         ..default()
-    //     },
-    //     BloomSettings::OLD_SCHOOL,
-    //     // BloomSettings {
-    //     //     intensity: 0.15,
-    //     //     ..default()
-    //     // },
-    //     CameraMarker {
-    //         mode: CameraMode::Follow,
-    //         vel: Vec2::ZERO,
-    //         fake_pos: Vec2::ZERO,
-    //         zoom: 1.0,
-    //     },
-    //     PostProcessSettings {
-    //         num_pixels: (WINDOW_WIDTH as f32) / (PIXEL_WIDTH as f32),
-    //         ..default()
-    //     },
-    // ));
-}
-
-fn update_camera(
+pub fn update_camera(
     dynos: Query<(&Dyno, &Transform), Without<CameraMarker>>,
     mut marker: Query<&mut CameraMarker, Without<Dyno>>,
     control_state: Res<CameraControlState>,
@@ -148,16 +135,7 @@ fn update_camera(
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation.x = marker.fake_pos.x
-            - marker
-                .fake_pos
-                .x
-                .rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
-        tran.translation.y = marker.fake_pos.y
-            - marker
-                .fake_pos
-                .y
-                .rem_euclid(PIXEL_WIDTH as f32 * marker.zoom);
+        tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.zoom;
@@ -167,10 +145,9 @@ fn update_camera(
 pub fn register_camera(app: &mut App) {
     app.add_plugins(LightmapPlugin);
     app.add_plugins(PostProcessPlugin);
-    app.add_systems(Startup, setup_camera);
     app.add_systems(
         Update,
-        (update_camera)
+        update_camera
             .run_if(in_editor.or_else(in_level))
             .after(move_dynos),
     );

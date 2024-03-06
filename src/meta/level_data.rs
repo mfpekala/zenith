@@ -163,6 +163,6 @@ impl LevelData {
         }
         commands.spawn(StartingPointBundle::new(self.starting_point));
         GoalBundle::spawn(self.goal_point, commands);
-        commands.run_system_with_input(spawn_ship_id, (self.starting_point, 16.0));
+        commands.run_system_with_input(spawn_ship_id, (self.starting_point, 15.0));
     }
 }

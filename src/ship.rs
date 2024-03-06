@@ -1,6 +1,7 @@
 use crate::drawing::light::RegularLightBundle;
 use crate::drawing::lightmap::sprite_layer;
 use crate::drawing::mesh::generate_new_mesh;
+use crate::drawing::pixel_mesh::PixelMeshBundle;
 use crate::environment::goal::Goal;
 use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
@@ -27,7 +28,7 @@ pub struct ShipBundle {
     pub respawn_watcher: LongKeyPress,
     pub dyno: Dyno,
     pub launch_preview: LaunchPreview,
-    pub mesh: MaterialMesh2dBundle<ColorMaterial>,
+    pub spatial: SpatialBundle,
     pub render_layers: RenderLayers,
 }
 
@@ -47,7 +48,6 @@ pub fn spawn_ship(
     }));
     let points = regular_polygon(12, 0.0, radius);
     let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
-    mesh.transform.translation = pos.extend(0.0);
     commands
         .spawn(ShipBundle {
             ship: Ship { can_shoot: false },
@@ -58,11 +58,12 @@ pub fn spawn_ship(
                 touching_rock: None,
             },
             launch_preview: LaunchPreview::new(),
-            mesh,
+            spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
             render_layers: sprite_layer(),
         })
         .with_children(|parent| {
-            parent.spawn(RegularLightBundle::new(24, 100.0, &mut mats, &mut meshes));
+            parent.spawn(RegularLightBundle::new(12, 60.0, &mut mats, &mut meshes));
+            parent.spawn(PixelMeshBundle::new(mesh));
         });
 }
 
@@ -217,7 +218,7 @@ fn replenish_shot(
         if ship.can_shoot {
             continue;
         }
-        if dyno.vel.length() < 1.0
+        if dyno.vel.length() < 3.0
             && dyno.touching_rock.is_some()
             && dyno.touching_rock != Some(RockKind::SimpleKill)
         {
