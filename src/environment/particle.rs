@@ -94,9 +94,9 @@ impl ParticleLightingBundle {
     ) -> Self {
         let mat = mats.add(ColorMaterial::from(Color::Hsla {
             hue: color.h(),
-            saturation: 1.0,
-            lightness: 1.0,
-            alpha: 1.0,
+            saturation: color.s(),
+            lightness: color.l(),
+            alpha: color.a(),
         }));
         let points = regular_polygon(num_sides, 0.0, radius);
         let mesh = generate_new_mesh(&points, &mat, meshes);
@@ -331,7 +331,6 @@ fn update_spawners(
             };
             let size = lerp(rng.gen(), spawner.size_range.0, spawner.size_range.1);
             let color = lerp_color(rng.gen(), spawner.color_range.0, spawner.color_range.1);
-            println!("color is: {:?}", color);
             let pos = gtran.translation().truncate()
                 + spawner.segment.0
                 + rng.gen::<f32>() * (spawner.segment.1 - spawner.segment.0);
