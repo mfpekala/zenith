@@ -16,9 +16,9 @@ pub struct AvgDeltaTime {
 }
 impl AvgDeltaTime {
     pub fn new() -> Self {
-        AvgDeltaTime {data: vec![]}
+        AvgDeltaTime { data: vec![] }
     }
-    
+
     pub fn update(&mut self, delta: f32) {
         self.data.insert(0, delta);
         if self.data.len() > 50 {
@@ -129,7 +129,8 @@ pub fn move_dynos(
         let mut point = tran.translation.truncate();
         let result = move_dyno_helper(dyno.as_mut(), &mut point, &rocks, time.delta_seconds());
         dyno.touching_rock = result.touched_rock;
-        tran.translation = point.extend(0.0);
+        let z = tran.translation.z;
+        tran.translation = point.extend(z);
     }
 }
 
@@ -175,7 +176,7 @@ pub fn apply_gravity(
             &dyno_tran.translation.truncate(),
             &fields,
             &goal,
-            time.delta_seconds()
+            time.delta_seconds(),
         );
     }
 }

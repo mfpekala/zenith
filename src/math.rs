@@ -137,3 +137,61 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     }
     points
 }
+
+pub enum Spleen {
+    EaseInCubic,
+    EaseOutCubic,
+    EaseInOutCubic,
+    EaseInQuad,
+    EaseOutQuad,
+    EaseInOutQuad,
+}
+
+pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
+    start + x * (end - start)
+}
+
+impl Spleen {
+    pub fn interp(&self, x: f32) -> f32 {
+        match *self {
+            Self::EaseInCubic => ease_in_cubic(x),
+            Self::EaseOutCubic => ease_out_cubic(x),
+            Self::EaseInOutCubic => ease_in_out_cubic(x),
+            Self::EaseInQuad => ease_in_quad(x),
+            Self::EaseOutQuad => ease_out_quad(x),
+            Self::EaseInOutQuad => ease_in_out_quad(x),
+        }
+    }
+}
+
+fn ease_in_cubic(x: f32) -> f32 {
+    x * x * x
+}
+
+fn ease_out_cubic(x: f32) -> f32 {
+    1.0 - ease_in_cubic(1.0 - x)
+}
+
+fn ease_in_out_cubic(x: f32) -> f32 {
+    if x < 0.5 {
+        4.0 * x * x * x
+    } else {
+        1.0 - ((0.0 - 2.0) * x + 2.0).powf(3.0) / 2.0
+    }
+}
+
+fn ease_in_quad(x: f32) -> f32 {
+    x * x
+}
+
+fn ease_out_quad(x: f32) -> f32 {
+    1.0 - ease_in_quad(1.0 - x)
+}
+
+fn ease_in_out_quad(x: f32) -> f32 {
+    if x < 0.5 {
+        2.0 * x * x
+    } else {
+        1.0 - ((0.0 - 2.0) * x + 2.0).powf(2.0) / 2.0
+    }
+}

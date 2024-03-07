@@ -7,15 +7,12 @@ use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
 use crate::math::regular_polygon;
-use crate::meta::game_state::{in_editor, in_level, GameState, MetaState, SetGameState};
-use crate::physics::{
-    gravity_helper, move_dyno_helper, move_dynos, should_apply_physics, AvgDeltaTime,
-};
+use crate::meta::game_state::{GameState, MetaState, SetGameState};
+use crate::physics::{gravity_helper, move_dyno_helper, should_apply_physics, AvgDeltaTime};
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::sprite::MaterialMesh2dBundle;
 
 #[derive(Component)]
 pub struct Ship {
@@ -58,7 +55,7 @@ pub fn spawn_ship(
                 touching_rock: None,
             },
             launch_preview: LaunchPreview::new(),
-            spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
+            spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(1.0))),
             render_layers: sprite_layer(),
         })
         .with_children(|parent| {
