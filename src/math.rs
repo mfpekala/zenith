@@ -138,6 +138,7 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     points
 }
 
+#[derive(Debug, Clone)]
 pub enum Spleen {
     EaseInCubic,
     EaseOutCubic,
@@ -149,6 +150,15 @@ pub enum Spleen {
 
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
+}
+
+pub fn lerp_color(x: f32, c1: Color, c2: Color) -> Color {
+    Color::Hsla {
+        hue: c1.h() + x * (c2.h() - c1.h()),
+        saturation: c1.s() + x * (c2.s() - c1.s()),
+        lightness: c1.l() + x * (c2.l() - c1.l()),
+        alpha: c1.a() + x * (c2.a() - c1.a()),
+    }
 }
 
 impl Spleen {

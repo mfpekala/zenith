@@ -28,13 +28,13 @@ pub struct StarOrder(pub Vec<Entity>);
 fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
     let mut rng = thread_rng();
     let mut dni = vec![];
-    for _ in 0..300 {
+    for _ in 0..100 {
         let depth = rng.gen_range(12..=24);
         let star = Star {
             color: Color::Hsla {
                 hue: 20.0 + rng.gen::<f32>() * 180.0,
                 saturation: 0.3 + rng.gen::<f32>() * 0.3,
-                lightness: 0.3 + rng.gen::<f32>() * 0.3,
+                lightness: 0.2 + rng.gen::<f32>() * 0.6,
                 alpha: 1.0,
             },
             depth,
@@ -54,7 +54,7 @@ fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
 }
 
 fn depth_to_size_mult(depth: u8) -> f32 {
-    5.0 + 15.0 * (0.75 as f32).powi(depth as i32 - 12)
+    5.0 + 10.0 * (0.75 as f32).powi(depth as i32 - 12)
 }
 
 fn draw_star(

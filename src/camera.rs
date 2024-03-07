@@ -135,7 +135,8 @@ pub fn update_camera(
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
+        // tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
+        tran.translation = marker.fake_pos.extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.zoom;

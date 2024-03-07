@@ -41,11 +41,11 @@ fn snap_pixel_meshes(
         };
         let parent_pos = parent_tran.translation().truncate();
         // TODO: Maybe less jank? Maybe it's ok? Idk
-        if ship.is_some() && cam.mode == CameraMode::Follow {
-            local_tran.translation = (cam.pixel_align(cam.fake_pos) - parent_pos).extend(0.0);
-            continue;
-        }
-        local_tran.translation = (cam.pixel_align(parent_pos) - parent_pos).extend(0.0);
+        // if ship.is_some() && cam.mode == CameraMode::Follow {
+        //     local_tran.translation = (cam.pixel_align(cam.fake_pos) - parent_pos).extend(0.0);
+        //     continue;
+        // }
+        // local_tran.translation = (cam.pixel_align(parent_pos) - parent_pos).extend(0.0);
     }
 }
 
