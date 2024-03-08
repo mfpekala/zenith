@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use crate::{
     camera::CameraMarker,
     drawing::{BgLightGizmoGroup, BgSpriteGizmoGroup},
-    meta::consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
 };
 
 #[derive(Component)]
@@ -39,8 +39,8 @@ fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
             },
             depth,
             pos: Vec2 {
-                x: rng.gen::<f32>() * WINDOW_WIDTH as f32,
-                y: rng.gen::<f32>() * WINDOW_HEIGHT as f32,
+                x: rng.gen::<f32>() * SCREEN_WIDTH as f32,
+                y: rng.gen::<f32>() * SCREEN_HEIGHT as f32,
             },
             size: 1.0 + rng.gen::<f32>(),
             twinkling: false,
@@ -98,17 +98,17 @@ fn update_stars(
         let Ok(mut star) = stars.get_mut(*star_id) else {
             continue;
         };
-        let window_size = Vec2 {
-            x: WINDOW_WIDTH as f32,
-            y: WINDOW_HEIGHT as f32,
+        let screen_size = Vec2 {
+            x: SCREEN_WIDTH as f32,
+            y: SCREEN_HEIGHT as f32,
         };
-        let ref_window_size = window_size * star.depth as f32;
+        let ref_screen_size = screen_size * star.depth as f32;
         let frac = (cam.fake_pos * (0.0 - 1.0) + star.pos * star.depth as f32)
-            .rem_euclid(ref_window_size)
-            / ref_window_size;
+            .rem_euclid(ref_screen_size)
+            / ref_screen_size;
         let buff_frac = 0.33;
-        let offset = window_size * (1.0 + 2.0 * buff_frac) * frac - window_size * (1.0 + buff_frac);
-        let final_pos = offset + window_size / 2.0;
+        let offset = screen_size * (1.0 + 2.0 * buff_frac) * frac - screen_size * (1.0 + buff_frac);
+        let final_pos = offset + screen_size / 2.0;
         draw_star(&star, final_pos, &mut bg_sprite_gz, &mut bg_light_gz);
         if star.twinkling {
             star.brightness = (star.brightness + 0.001).min(0.7);

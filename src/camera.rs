@@ -5,7 +5,7 @@ use crate::{
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
-        consts::PIXEL_WIDTH,
+        consts::PIXEL_SIZE,
         game_state::{in_editor, in_level},
     },
     physics::{move_dynos, Dyno},
@@ -48,19 +48,12 @@ impl CameraMarker {
         self.vel = Vec2::ZERO;
     }
 
+    /// Rounds down to nearest pixel
     pub fn pixel_align(&self, pos: Vec2) -> Vec2 {
-        let modulo = PIXEL_WIDTH as f32 * self.zoom;
-        let mut initial = Vec2 {
-            x: pos.x - pos.x.rem_euclid(PIXEL_WIDTH as f32 * self.zoom),
-            y: pos.y - pos.y.rem_euclid(PIXEL_WIDTH as f32 * self.zoom),
-        };
-        if initial.x < 0.0 - modulo / 2.0 {
-            initial.x += modulo;
+        Vec2 {
+            x: pos.x - pos.x.rem_euclid(PIXEL_SIZE as f32 * self.zoom),
+            y: pos.y - pos.y.rem_euclid(PIXEL_SIZE as f32 * self.zoom),
         }
-        if initial.y < 0.0 - modulo / 2.0 {
-            initial.y += modulo;
-        }
-        initial
     }
 }
 
@@ -135,8 +128,7 @@ pub fn update_camera(
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        // tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
-        tran.translation = marker.fake_pos.extend(0.0);
+        tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.zoom;

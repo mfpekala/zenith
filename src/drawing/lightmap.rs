@@ -1,6 +1,11 @@
 //! Original Code + Inspiration: https://github.com/goto64/bevy_2d_screen_space_lightmaps/blob/master/src/lightmap_plugin/lightmap_plugin.rs
 //! Tweaked it to be my own for more control + understanding
 
+use super::post_pixel::PostPixelSettings;
+use crate::camera::CameraMarker;
+use crate::meta::consts::SCREEN_HEIGHT;
+use crate::meta::consts::SCREEN_WIDTH;
+use crate::meta::consts::WINDOW_WIDTH;
 use bevy::core_pipeline::bloom::BloomCompositeMode;
 use bevy::core_pipeline::bloom::BloomPrefilterSettings;
 use bevy::core_pipeline::bloom::BloomSettings;
@@ -18,16 +23,12 @@ use bevy::render::view::RenderLayers;
 use bevy::sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle};
 use bevy::window::PrimaryWindow;
 
-use crate::camera::CameraMarker;
-use crate::meta::consts::NUM_PIXELS;
-
-use super::post_pixel::PostPixelSettings;
-
 pub struct LightmapPlugin;
 
 impl Plugin for LightmapPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(Material2dPlugin::<BlendTexturesMaterial>::default());
+        app.add_plugins(Material2dPlugin::<DummyMaterial>::default());
         app.add_systems(
             Startup,
             (setup_post_processing_camera, setup_sprite_camera).chain(),
@@ -100,6 +101,9 @@ pub const CAMERA_LAYER_SPRITE: &[u8] = &[3];
 /// All light sprites must be added to this camera layer
 pub const CAMERA_LAYER_LIGHT: &[u8] = &[4];
 
+/// Reduced layer
+const CAMERA_LAYER_REDUCED: &[u8] = &[5];
+
 #[derive(Component)]
 struct PostProcessingQuad;
 const BLEND_ADD: BlendState = BlendState {
@@ -145,12 +149,40 @@ impl Material2d for BlendTexturesMaterial {
     }
 }
 
+#[derive(AsBindGroup, TypePath, Asset, Debug, Clone)]
+struct DummyMaterial {
+    #[texture(1)]
+    #[sampler(2)]
+    pub texture: Handle<Image>,
+}
+
+impl Material2d for DummyMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/dummy.wgsl".into()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayout,
+        _key: Material2dKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        if let Some(fragment) = &mut descriptor.fragment {
+            if let Some(target_state) = &mut fragment.targets[0] {
+                target_state.blend = Some(BLEND_ADD);
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Resource, Default)]
 struct CameraTargets {
     pub bg_sprite_target: Handle<Image>,
     pub bg_light_target: Handle<Image>,
     pub sprite_target: Handle<Image>,
     pub light_target: Handle<Image>,
+    pub reduced_target: Handle<Image>,
 }
 
 impl CameraTargets {
@@ -222,28 +254,47 @@ impl CameraTargets {
             },
             ..default()
         };
+        let mut reduced_image = Image {
+            texture_descriptor: TextureDescriptor {
+                label: Some("target_reduced"),
+                size: target_size,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::bevy_default(),
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: TextureUsages::TEXTURE_BINDING
+                    | TextureUsages::COPY_DST
+                    | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            },
+            ..default()
+        };
 
         // Fill images data with zeroes.
         bg_sprite_image.resize(target_size);
         bg_light_image.resize(target_size);
         sprite_image.resize(target_size);
         light_image.resize(target_size);
+        reduced_image.resize(target_size);
 
         let bg_sprite_image_handle: Handle<Image> = Handle::weak_from_u128(84562364042238462870);
         let bg_light_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991276);
         let sprite_image_handle: Handle<Image> = Handle::weak_from_u128(84562364042238462871);
         let light_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991277);
+        let reduced_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991278);
 
         images.insert(bg_sprite_image_handle.clone(), bg_sprite_image);
         images.insert(bg_light_image_handle.clone(), bg_light_image);
         images.insert(sprite_image_handle.clone(), sprite_image);
         images.insert(light_image_handle.clone(), light_image);
+        images.insert(reduced_image_handle.clone(), reduced_image);
 
         Self {
             bg_sprite_target: bg_sprite_image_handle,
             bg_light_target: bg_light_image_handle,
             sprite_target: sprite_image_handle,
             light_target: light_image_handle,
+            reduced_target: reduced_image_handle,
         }
     }
 }
@@ -331,6 +382,21 @@ fn setup_sprite_camera(
             LightCameraMarker,
         ))
         .insert(RenderLayers::from_layers(CAMERA_LAYER_LIGHT));
+
+    commands
+        .spawn((
+            Camera2dBundle {
+                camera: Camera {
+                    hdr: true,
+                    target: RenderTarget::Image(camera_targets.reduced_target.clone()),
+                    clear_color: ClearColorConfig::Default,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            Name::new("reduced_camera"),
+        ))
+        .insert(RenderLayers::from_layers(CAMERA_LAYER_REDUCED));
 }
 
 const BG_PP_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860343677);
@@ -339,26 +405,24 @@ const BG_PP_MATERIAL: Handle<BlendTexturesMaterial> = Handle::weak_from_u128(523
 const PP_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860343678);
 const PP_MATERIAL: Handle<BlendTexturesMaterial> = Handle::weak_from_u128(52374148673736462871);
 
+const REDUCED_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860383170);
+const REDUCED_MATERIAL: Handle<DummyMaterial> = Handle::weak_from_u128(52374148673136432070);
+
 fn setup_post_processing_camera(
     mut commands: Commands,
-    window: Query<&Window, With<PrimaryWindow>>,
     lightmap_plugin_settings: Res<LightmapPluginSettings>,
     mut camera_targets: ResMut<CameraTargets>,
     mut images: ResMut<Assets<Image>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BlendTexturesMaterial>>,
+    mut dum_materials: ResMut<Assets<DummyMaterial>>,
 ) {
-    let Ok(window) = window.get_single() else {
-        panic!("No window")
-    };
-    let primary_size = Vec2::new(
-        (window.physical_width() as f32 / window.scale_factor()) as f32,
-        (window.physical_height() as f32 / window.scale_factor()) as f32,
-    );
+    let primary_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
 
     let quad = Mesh::from(Rectangle::new(primary_size.x, primary_size.y));
     meshes.insert(BG_PP_QUAD.clone(), quad.clone());
     meshes.insert(PP_QUAD.clone(), quad.clone());
+    meshes.insert(REDUCED_QUAD.clone(), quad.clone());
 
     *camera_targets = CameraTargets::create(&mut images, &primary_size);
 
@@ -372,10 +436,16 @@ fn setup_post_processing_camera(
         texture2: camera_targets.light_target.clone(),
     };
 
+    let reduced_material = DummyMaterial {
+        texture: camera_targets.reduced_target.clone(),
+    };
+
     materials.insert(BG_PP_MATERIAL.clone(), bg_material);
     materials.insert(PP_MATERIAL.clone(), material);
+    dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);
 
-    let layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
+    let reduced_layer = RenderLayers::from_layers(CAMERA_LAYER_REDUCED);
+    let output_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
 
     commands.spawn((
         PostProcessingQuad,
@@ -388,7 +458,7 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
-        layer,
+        reduced_layer,
     ));
 
     commands.spawn((
@@ -402,7 +472,22 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
-        layer,
+        reduced_layer,
+    ));
+
+    commands.spawn((
+        PostProcessingQuad,
+        MaterialMesh2dBundle {
+            mesh: REDUCED_QUAD.clone().into(),
+            material: REDUCED_MATERIAL.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                scale: Vec3::ONE * (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32),
+                ..default()
+            },
+            ..default()
+        },
+        output_layer,
     ));
 
     // Camera that renders the final image for the screen
@@ -411,17 +496,15 @@ fn setup_post_processing_camera(
             Name::new("post_processing_camera"),
             Camera2dBundle {
                 camera: Camera {
-                    order: 1,
+                    order: 2,
                     hdr: true,
                     ..default()
                 },
                 ..Camera2dBundle::default()
             },
             CameraMarker::new(),
-            PostPixelSettings {
-                num_pixels: NUM_PIXELS as f32,
-            },
-            layer,
+            // PostPixelSettings { num_pixels: 20.0 },
+            output_layer,
         ))
         .id();
 

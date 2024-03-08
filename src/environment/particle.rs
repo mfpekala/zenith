@@ -114,9 +114,9 @@ impl ParticleLightingBundle {
 
 #[derive(Default, Clone)]
 pub struct ParticleOptions {
-    sizing: Option<ParticleSizing>,
-    coloring: Option<ParticleColoring>,
-    lighting: Option<ParticleLighting>,
+    pub sizing: Option<ParticleSizing>,
+    pub coloring: Option<ParticleColoring>,
+    pub lighting: Option<ParticleLighting>,
 }
 
 #[derive(Bundle)]
@@ -199,7 +199,7 @@ fn update_particles(
         }
         let vel = body.vel;
         body.pos += vel;
-        tran.translation = cam.pixel_align(body.pos).extend(0.0);
+        tran.translation = body.pos.extend(0.0);
     }
 }
 
@@ -356,39 +356,6 @@ fn update_spawners(
     }
 }
 
-fn test_particles(
-    mut commands: Commands,
-    ship: Query<(&GlobalTransform, &Ship)>,
-    mut mats: ResMut<Assets<ColorMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-) {
-    let Ok(ship) = ship.get_single() else {
-        return;
-    };
-    ParticleBundle::spawn_options(
-        &mut commands,
-        ParticleBody {
-            pos: ship.0.translation().truncate(),
-            vel: Vec2::ZERO,
-            size: 15.0,
-            color: Color::YELLOW,
-        },
-        0.5,
-        ParticleOptions {
-            sizing: Some(ParticleSizing {
-                spleen: Spleen::EaseInQuad,
-            }),
-            coloring: Some(ParticleColoring {
-                end_color: Color::BLUE,
-                spleen: Spleen::EaseInQuad,
-            }),
-            ..default()
-        },
-        &mut mats,
-        &mut meshes,
-    );
-}
-
 fn setup_spawner(mut commands: Commands) {
     commands.spawn(ParticleSpawnerBundle {
         spatial: SpatialBundle::default(),
@@ -398,7 +365,6 @@ fn setup_spawner(mut commands: Commands) {
 
 pub fn register_particles(app: &mut App) {
     app.add_systems(Startup, setup_spawner);
-    app.add_systems(Update, test_particles);
     app.add_systems(
         Update,
         (

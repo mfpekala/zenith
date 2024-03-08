@@ -33,7 +33,9 @@ fn main() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             // present_mode: (),
+            // resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
             resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
+            resizable: false,
             title: "Zenith".to_string(),
             ..default()
         }),
@@ -41,6 +43,7 @@ fn main() {
     }))
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
+    app.insert_resource(Time::<Fixed>::from_hz(24.0));
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else

@@ -102,6 +102,7 @@ pub fn move_dyno_helper(
     time_delta: f32,
 ) -> MoveDynoResult {
     let mut left_to_move = dyno.vel.length() * time_delta;
+    println!("left_to_move: {}", left_to_move);
     let mut result = MoveDynoResult::new();
     while left_to_move > 0.0 {
         if dyno.vel.length() <= 0.000001 {
@@ -199,7 +200,7 @@ pub fn update_avg_delta_time(mut adt: ResMut<AvgDeltaTime>, time: Res<Time>) {
 pub fn register_physics(app: &mut App) {
     app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
-        Update,
+        FixedUpdate,
         move_dynos.after(apply_gravity).run_if(should_apply_physics),
     );
     app.add_systems(Update, update_avg_delta_time);

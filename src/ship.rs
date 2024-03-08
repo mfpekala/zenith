@@ -1,12 +1,15 @@
 use crate::drawing::light::RegularLightBundle;
 use crate::drawing::lightmap::sprite_layer;
 use crate::drawing::mesh::generate_new_mesh;
-use crate::drawing::pixel_mesh::PixelMeshBundle;
+use crate::drawing::pixel_mesh::{PixelMesh, PixelMeshBundle};
 use crate::environment::goal::Goal;
+use crate::environment::particle::{
+    ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
+};
 use crate::environment::rock::RockKind;
 use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
-use crate::math::regular_polygon;
+use crate::math::{regular_polygon, Spleen};
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::physics::{gravity_helper, move_dyno_helper, should_apply_physics, AvgDeltaTime};
 use crate::{input::LaunchEvent, physics::Dyno};
@@ -43,7 +46,7 @@ pub fn spawn_ship(
         lightness: 1.0,
         alpha: 1.0,
     }));
-    let points = regular_polygon(12, 0.0, radius);
+    let points = regular_polygon(6, 45.0, radius);
     let mesh = generate_new_mesh(&points, &mat, &mut meshes);
     commands
         .spawn(ShipBundle {
@@ -230,6 +233,50 @@ fn replenish_shot(
     }
 }
 
+pub fn spawn_trail(
+    mut commands: Commands,
+    ship: Query<&Children, With<Ship>>,
+    pms: Query<&GlobalTransform, With<PixelMesh>>,
+    mut mats: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let Ok(children) = ship.get_single() else {
+        return;
+    };
+    let mut pos = None;
+    for child in children {
+        if let Ok(pm) = pms.get(*child) {
+            pos = Some(pm.translation().truncate());
+            break;
+        }
+    }
+    let Some(pos) = pos else {
+        return;
+    };
+    ParticleBundle::spawn_options(
+        &mut commands,
+        ParticleBody {
+            pos,
+            vel: Vec2::ZERO,
+            size: 15.0,
+            color: Color::YELLOW,
+        },
+        0.5,
+        ParticleOptions {
+            sizing: Some(ParticleSizing {
+                spleen: Spleen::EaseInQuad,
+            }),
+            coloring: Some(ParticleColoring {
+                end_color: Color::BLUE,
+                spleen: Spleen::EaseInQuad,
+            }),
+            ..default()
+        },
+        &mut mats,
+        &mut meshes,
+    );
+}
+
 pub fn register_ship(app: &mut App) {
     let spawn_id = app.world.register_system(spawn_ship);
     app.insert_resource(SpawnShipId(spawn_id));
@@ -241,6 +288,7 @@ pub fn register_ship(app: &mut App) {
             watch_for_respawn,
             replenish_shot,
             watch_for_death,
+            spawn_trail,
         )
             .run_if(should_apply_physics),
     );
