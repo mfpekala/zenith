@@ -84,7 +84,7 @@ impl Field {
             Self {
                 particle_manager: ForceParticleManager::new(&clean_points),
                 points: clean_points,
-                strength: sfield.strength,
+                strength: 10.0,
                 dir: sfield.dir,
                 drag: sfield.drag,
             },

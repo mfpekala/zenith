@@ -41,6 +41,7 @@ fn main() {
     }))
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
+    app.insert_resource(Time::<Fixed>::from_hz(30.0));
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else

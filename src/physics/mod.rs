@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::{
-    drawing::hollow::HollowDrawable,
     environment::{
         field::Field,
         goal::Goal,
@@ -41,18 +40,14 @@ impl AvgDeltaTime {
 #[derive(Component, Clone, Debug)]
 pub struct Dyno {
     pub vel: Vec2,
+    pub pos: IVec2,
     pub radius: f32,
     pub touching_rock: Option<RockKind>,
-}
-impl HollowDrawable for Dyno {
-    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        gz.circle_2d(base_pos, self.radius, Color::rgb(0.9, 0.7, 0.7));
-    }
 }
 
 pub fn resolve_dyno_rock_collisions(
     dyno: &mut Dyno,
-    point: &mut Vec2,
+    point: &mut IVec2,
     rocks: &Query<(&Rock, &Transform), Without<Dyno>>,
 ) -> Option<RockKind> {
     let radius = dyno.radius;
@@ -60,8 +55,8 @@ pub fn resolve_dyno_rock_collisions(
     let mut min_point: Option<Vec2> = None;
     let mut min_rock: Option<&Rock> = None;
     for (rock, trans) in rocks.iter() {
-        let closest_point = rock.closest_point(&point, &trans.translation.truncate());
-        let dist = point.distance(closest_point);
+        let closest_point = rock.closest_point(&point.as_vec2(), &trans.translation.truncate());
+        let dist = point.as_vec2().distance(closest_point);
         if min_dist.is_none() || dist < min_dist.unwrap() {
             min_dist = Some(dist);
             min_point = Some(closest_point);
@@ -74,8 +69,10 @@ pub fn resolve_dyno_rock_collisions(
     }
     // First move the dyno out of the rock
     let min_point = min_point.unwrap();
-    let diff = *point - min_point;
-    *point += diff.normalize() * (radius - diff.length());
+    let diff = point.as_vec2() - min_point;
+    *point += (diff.normalize() * (radius - diff.length()))
+        .round()
+        .as_ivec2();
     // Then reflect the velocity
     let min_rock = min_rock.unwrap();
     let normal = diff.normalize();
@@ -97,7 +94,7 @@ impl MoveDynoResult {
 
 pub fn move_dyno_helper(
     dyno: &mut Dyno,
-    point: &mut Vec2,
+    point: &mut IVec2,
     rocks: &Query<(&Rock, &Transform), Without<Dyno>>,
     time_delta: f32,
 ) -> MoveDynoResult {
@@ -110,7 +107,7 @@ pub fn move_dyno_helper(
             break;
         }
         let moving_this_step = left_to_move.min(2.0);
-        *point += dyno.vel.normalize() * moving_this_step;
+        *point += (dyno.vel.normalize() * moving_this_step).round().as_ivec2();
         let this_step = resolve_dyno_rock_collisions(dyno, point, &rocks);
         if result.touched_rock.is_none() {
             result.touched_rock = this_step;
@@ -126,23 +123,27 @@ pub fn move_dynos(
     time: Res<Time>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
-        let mut point = tran.translation.truncate();
+        let mut point = dyno.pos;
         let result = move_dyno_helper(dyno.as_mut(), &mut point, &rocks, time.delta_seconds());
         dyno.touching_rock = result.touched_rock;
         let z = tran.translation.z;
-        tran.translation = point.extend(z);
+        tran.translation = point.as_vec2().extend(z);
     }
 }
 
 pub fn gravity_helper(
     dyno: &mut Dyno,
-    point: &Vec2,
+    point: &IVec2,
     fields: &Query<(&Field, &GlobalTransform), Without<Dyno>>,
     goal: &Query<(&Goal, &Transform)>,
     time_delta: f32,
 ) {
     let mut handle_field = |field: &Field, field_tran: &GlobalTransform| {
-        let mult = field.effective_mult(point, &field_tran.translation().truncate(), dyno.radius);
+        let mult = field.effective_mult(
+            &point.as_vec2(),
+            &field_tran.translation().truncate(),
+            dyno.radius,
+        );
         if mult > 0.00001 {
             dyno.vel *= 1.0 - field.drag;
             dyno.vel += field.dir * 400.0 * field.strength * mult * time_delta;
@@ -152,10 +153,13 @@ pub fn gravity_helper(
         handle_field(field, field_tran);
     }
     let (goal, tran) = goal.single();
-    if tran.translation.truncate().distance_squared(*point)
+    if tran
+        .translation
+        .truncate()
+        .distance_squared(point.as_vec2())
         < (dyno.radius + goal.radius) * (dyno.radius + goal.radius)
     {
-        let diff = tran.translation.truncate() - *point;
+        let diff = tran.translation.truncate() - point.as_vec2();
         if diff.length_squared() > 0.001 {
             dyno.vel += diff.normalize() * goal.strength * 100.0;
         }
@@ -171,13 +175,8 @@ pub fn apply_gravity(
     time: Res<Time>,
 ) {
     for (mut dyno, dyno_tran) in dynos.iter_mut() {
-        gravity_helper(
-            dyno.as_mut(),
-            &dyno_tran.translation.truncate(),
-            &fields,
-            &goal,
-            time.delta_seconds(),
-        );
+        let pos = dyno.pos.clone();
+        gravity_helper(dyno.as_mut(), &pos, &fields, &goal, time.delta_seconds());
     }
 }
 
@@ -199,7 +198,7 @@ pub fn update_avg_delta_time(mut adt: ResMut<AvgDeltaTime>, time: Res<Time>) {
 pub fn register_physics(app: &mut App) {
     app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
-        Update,
+        FixedUpdate,
         move_dynos.after(apply_gravity).run_if(should_apply_physics),
     );
     app.add_systems(Update, update_avg_delta_time);

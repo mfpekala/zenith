@@ -51,6 +51,7 @@ pub fn spawn_ship(
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
             dyno: Dyno {
                 vel: Vec2::ZERO,
+                pos: IVec2::ZERO,
                 radius,
                 touching_rock: None,
             },
@@ -101,7 +102,7 @@ fn draw_launch_previews(
         }
         let mut scratch_dyno = dyno.clone();
         scratch_dyno.vel = launch_vel;
-        let mut scratch_point = tran.translation.truncate();
+        let mut scratch_point = dyno.pos;
         // Offset
         let prev_applied = prev.tick / prev.speed;
         for _tick in 0..prev_applied {
@@ -125,7 +126,11 @@ fn draw_launch_previews(
             let alpha = 1.0
                 - (prev_applied as f32 + skin as f32 * prev.ticks_between_skins as f32)
                     / (prev.num_skins as f32 * prev.ticks_between_skins as f32);
-            gz.circle_2d(scratch_point, 5.0, Color::rgba(0.7, 0.7, 0.7, alpha));
+            gz.circle_2d(
+                scratch_point.as_vec2(),
+                5.0,
+                Color::rgba(0.7, 0.7, 0.7, alpha),
+            );
             for _ in 0..prev.ticks_between_skins {
                 gravity_helper(
                     &mut scratch_dyno,
