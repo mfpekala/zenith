@@ -54,7 +54,7 @@ fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
 }
 
 fn depth_to_size_mult(depth: u8) -> f32 {
-    5.0 + 10.0 * (0.75 as f32).powi(depth as i32 - 12)
+    1.0 + 4.0 * (0.75 as f32).powi(depth as i32 - 12)
 }
 
 fn draw_star(
@@ -103,8 +103,8 @@ fn update_stars(
             y: SCREEN_HEIGHT as f32,
         };
         let ref_screen_size = screen_size * star.depth as f32;
-        let frac = (cam.pos.as_vec2() * (0.0 - 1.0) + star.pos * star.depth as f32)
-            .rem_euclid(ref_screen_size)
+        let sdf = star.depth as f32;
+        let frac = (cam.pos.as_vec2() * (0.0 - 1.0) + star.pos * sdf).rem_euclid(ref_screen_size)
             / ref_screen_size;
         let buff_frac = 0.33;
         let offset = screen_size * (1.0 + 2.0 * buff_frac) * frac - screen_size * (1.0 + buff_frac);

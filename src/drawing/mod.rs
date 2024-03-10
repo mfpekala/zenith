@@ -4,7 +4,6 @@ use self::{
     hollow::register_hollow_drawing,
     light::register_light,
     lightmap::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
-    pixel_mesh::register_pixel_meshes,
 };
 use bevy::prelude::*;
 
@@ -12,7 +11,6 @@ pub mod hollow;
 pub mod light;
 pub mod lightmap;
 pub mod mesh;
-pub mod pixel_mesh;
 pub mod post_pixel;
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -50,5 +48,4 @@ pub fn register_drawing(app: &mut App) {
     register_background(app);
     register_hollow_drawing(app);
     register_light(app);
-    register_pixel_meshes(app);
 }

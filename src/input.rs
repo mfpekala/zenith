@@ -67,7 +67,7 @@ pub fn watch_mouse(
     }
     if buttons.pressed(MouseButton::Left) {
         if let Some(start_pos) = mouse_state.pending_launch_start {
-            let mut almost_vel = (mouse_pos - start_pos) * 2.0;
+            let mut almost_vel = (mouse_pos - start_pos) * 1.0;
             almost_vel.x *= -1.0;
             mouse_state.pending_launch_vel = Some(almost_vel);
         }

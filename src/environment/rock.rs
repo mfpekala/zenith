@@ -1,6 +1,7 @@
 use crate::{
     drawing::{lightmap::sprite_layer, mesh::generate_new_mesh},
     math::{regular_polygon, MathLine},
+    physics::collider::{ColliderStatic, ColliderStaticBundle},
 };
 use bevy::{prelude::*, render::view::RenderLayers, sprite::MaterialMesh2dBundle, utils::HashMap};
 
@@ -134,9 +135,30 @@ impl RockBundle {
         rock: Rock,
         meshes: &mut ResMut<Assets<Mesh>>,
     ) {
-        let mut bundle = Self::from_rock(rock, meshes);
+        let mut bundle = Self::from_rock(rock.clone(), meshes);
         bundle.mesh.transform.translation = base_pos.extend(0.0);
-        commands.spawn(bundle);
+        commands.spawn(bundle).with_children(|parent| {
+            let points = rock
+                .points
+                .iter()
+                .map(|p| {
+                    let r = (base_pos + *p).round();
+                    IVec2 {
+                        x: r.x as i32,
+                        y: r.y as i32,
+                    }
+                })
+                .collect();
+            let cs = ColliderStaticBundle::new(
+                ColliderStatic {
+                    bounciness: 0.8,
+                    friction: 0.3,
+                },
+                points,
+                true,
+            );
+            parent.spawn(cs);
+        });
     }
 }
 

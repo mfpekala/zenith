@@ -10,6 +10,7 @@ use crate::{
         game_state::{in_editor, in_level},
         level_data::SaveableField,
     },
+    physics::collider::ColliderTriggerBundle,
 };
 use bevy::{prelude::*, render::view::RenderLayers};
 
@@ -102,13 +103,29 @@ pub struct FieldBundle {
 }
 impl FieldBundle {
     pub fn spawn(commands: &mut Commands, base_pos: Vec2, field: Field) {
-        commands.spawn(Self {
-            field,
-            spatial: SpatialBundle::from_transform(Transform::from_translation(
-                base_pos.extend(0.0),
-            )),
-            render_layers: sprite_layer(),
-        });
+        commands
+            .spawn(Self {
+                field: field.clone(),
+                spatial: SpatialBundle::from_transform(Transform::from_translation(
+                    base_pos.extend(0.0),
+                )),
+                render_layers: sprite_layer(),
+            })
+            .with_children(|parent| {
+                let points = field
+                    .points
+                    .iter()
+                    .map(|p| {
+                        let r = (base_pos + *p).round();
+                        IVec2 {
+                            x: r.x as i32,
+                            y: r.y as i32,
+                        }
+                    })
+                    .collect();
+                let cs = ColliderTriggerBundle::new(points, true);
+                parent.spawn(cs);
+            });
     }
 }
 

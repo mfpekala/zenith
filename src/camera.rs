@@ -5,7 +5,7 @@ use crate::{
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::game_state::{in_editor, in_level},
-    physics::{dyno::IntDyno, move_dynos, Dyno},
+    physics::{dyno::IntDyno, move_dynos},
 };
 use bevy::prelude::*;
 

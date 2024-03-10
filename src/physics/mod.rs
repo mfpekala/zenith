@@ -12,7 +12,7 @@ use crate::{
     meta::game_state::{EditorState, GameState, MetaState},
 };
 
-use self::dyno::register_int_dynos;
+use self::{collider::register_colliders, dyno::register_int_dynos};
 
 #[derive(Resource)]
 pub struct AvgDeltaTime {
@@ -196,7 +196,9 @@ pub fn update_avg_delta_time(mut adt: ResMut<AvgDeltaTime>, time: Res<Time>) {
 }
 
 pub fn register_physics(app: &mut App) {
+    register_colliders(app);
     register_int_dynos(app);
+
     app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
         FixedUpdate,

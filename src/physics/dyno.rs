@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 
-use super::collider::{resolve_static_collisions, ColliderBoundary, ColliderStatic};
+use crate::{environment::field::Field, ship::launch_ship};
+
+use super::collider::{
+    resolve_static_collisions, update_triggers, ColliderActive, ColliderBoundary, ColliderStatic,
+    ColliderTrigger,
+};
 
 #[derive(Component, Debug)]
 pub struct IntDyno {
@@ -14,7 +19,12 @@ pub struct IntDyno {
 
 pub fn move_int_dyno_helper(
     dyno: &mut IntDyno,
-    statics: &Query<(Entity, &ColliderBoundary, &ColliderStatic)>,
+    statics: &Query<(
+        Entity,
+        &ColliderBoundary,
+        &ColliderStatic,
+        Option<&ColliderActive>,
+    )>,
 ) {
     // We'll be "inching" and checking for collisions in both directions (like Celeste),
     // so best to keep that logic in a helper function
@@ -33,12 +43,9 @@ pub fn move_int_dyno_helper(
     let move_x = would_move.x.round() as i32;
     let move_y = would_move.y.round() as i32;
 
-    // As a limitation, we only handle one collision per frame
-    let mut had_collision = false;
-
     if move_x != 0 {
         // There's horizontal motion to resolve
-        had_collision = resolve_inching(
+        resolve_inching(
             dyno,
             IVec2 {
                 x: move_x.signum(),
@@ -54,16 +61,14 @@ pub fn move_int_dyno_helper(
 
     if move_y != 0 {
         // There's vertical motion to resolve
-        if !had_collision {
-            resolve_inching(
-                dyno,
-                IVec2 {
-                    x: 0,
-                    y: move_y.signum(),
-                },
-                move_y.abs() as u32,
-            );
-        }
+        resolve_inching(
+            dyno,
+            IVec2 {
+                x: 0,
+                y: move_y.signum(),
+            },
+            move_y.abs() as u32,
+        );
         dyno.rem.y = would_move.y - move_y as f32;
     } else {
         // No vertical motion, but remember our "progress" in the remainder for next frame
@@ -71,9 +76,14 @@ pub fn move_int_dyno_helper(
     }
 }
 
-fn move_int_dynos(
+pub fn move_int_dynos(
     mut dynos: Query<(&mut IntDyno, &mut Transform)>,
-    statics: Query<(Entity, &ColliderBoundary, &ColliderStatic)>,
+    statics: Query<(
+        Entity,
+        &ColliderBoundary,
+        &ColliderStatic,
+        Option<&ColliderActive>,
+    )>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         move_int_dyno_helper(dyno.as_mut(), &statics);
@@ -82,6 +92,34 @@ fn move_int_dynos(
     }
 }
 
+fn resolve_dynos(
+    mut dynos: Query<&mut IntDyno>,
+    _statics: Query<(Entity, &ColliderStatic, Option<&ColliderActive>)>,
+    triggers: Query<(&Parent, &ColliderTrigger, Option<&ColliderActive>)>,
+    fields: Query<&Field>,
+) {
+    for mut dyno in dynos.iter_mut() {
+        let mut diff = Vec2::ZERO;
+        let mut slowdown = 1.0;
+        for (trigger_id, mult) in dyno.triggers.iter() {
+            let Ok((parent, _, active)) = triggers.get(*trigger_id) else {
+                continue;
+            };
+            if active.is_some() && !active.unwrap().0 {
+                continue;
+            }
+            if let Ok(field) = fields.get(parent.get()) {
+                diff += field.dir * field.strength * *mult;
+                slowdown *= (1.0 - field.drag).powf(*mult);
+            }
+        }
+        dyno.vel += diff;
+        dyno.vel *= slowdown;
+        dyno.triggers = vec![];
+    }
+}
+
 pub fn register_int_dynos(app: &mut App) {
-    app.add_systems(FixedUpdate, move_int_dynos);
+    app.add_systems(FixedUpdate, move_int_dynos.after(launch_ship));
+    app.add_systems(FixedUpdate, resolve_dynos.after(update_triggers));
 }

@@ -157,7 +157,7 @@ fn draw_launch_previews(
     }
 }
 
-fn launch_ship(
+pub fn launch_ship(
     mut ship_q: Query<(&mut IntDyno, &mut Ship)>,
     mut launch_events: EventReader<LaunchEvent>,
     gs: Res<GameState>,
