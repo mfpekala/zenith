@@ -1,7 +1,6 @@
 use crate::drawing::light::RegularLightBundle;
 use crate::drawing::lightmap::sprite_layer;
 use crate::drawing::mesh::generate_new_mesh;
-use crate::drawing::pixel_mesh::{PixelMesh, PixelMeshBundle};
 use crate::environment::goal::Goal;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
@@ -11,24 +10,31 @@ use crate::environment::{field::Field, rock::Rock};
 use crate::input::{LongKeyPress, MouseState};
 use crate::math::{regular_polygon, Spleen};
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
+use crate::physics::dyno::IntDyno;
 use crate::physics::{gravity_helper, move_dyno_helper, should_apply_physics, AvgDeltaTime};
 use crate::{input::LaunchEvent, physics::Dyno};
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
+use bevy::sprite::MaterialMesh2dBundle;
 
 #[derive(Component)]
 pub struct Ship {
     pub can_shoot: bool,
+}
+impl Ship {
+    pub const fn radius() -> f32 {
+        4.0
+    }
 }
 
 #[derive(Bundle)]
 pub struct ShipBundle {
     pub ship: Ship,
     pub respawn_watcher: LongKeyPress,
-    pub dyno: Dyno,
+    pub dyno: IntDyno,
     pub launch_preview: LaunchPreview,
-    pub spatial: SpatialBundle,
+    pub mesh: MaterialMesh2dBundle<ColorMaterial>,
     pub render_layers: RenderLayers,
 }
 
@@ -47,23 +53,26 @@ pub fn spawn_ship(
         alpha: 1.0,
     }));
     let points = regular_polygon(6, 45.0, radius);
-    let mesh = generate_new_mesh(&points, &mat, &mut meshes);
+    let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
+    mesh.transform.translation = pos.extend(1.0);
     commands
         .spawn(ShipBundle {
             ship: Ship { can_shoot: false },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
-            dyno: Dyno {
+            dyno: IntDyno {
                 vel: Vec2::ZERO,
-                radius,
-                touching_rock: None,
+                pos: IVec2::ZERO,
+                rem: Vec2::ZERO,
+                radius: 4.0,
+                statics: vec![],
+                triggers: vec![],
             },
             launch_preview: LaunchPreview::new(),
-            spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(1.0))),
+            mesh,
             render_layers: sprite_layer(),
         })
         .with_children(|parent| {
             parent.spawn(RegularLightBundle::new(12, 60.0, &mut mats, &mut meshes));
-            parent.spawn(PixelMeshBundle::new(mesh));
         });
 }
 
@@ -149,7 +158,7 @@ fn draw_launch_previews(
 }
 
 fn launch_ship(
-    mut ship_q: Query<(&mut Dyno, &mut Ship)>,
+    mut ship_q: Query<(&mut IntDyno, &mut Ship)>,
     mut launch_events: EventReader<LaunchEvent>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
@@ -157,9 +166,9 @@ fn launch_ship(
     let level_state = gs.get_level_state();
     for launch in launch_events.read() {
         for (mut dyno, mut ship) in ship_q.iter_mut() {
-            if !ship.can_shoot && level_state.is_some() {
-                continue;
-            }
+            // if !ship.can_shoot && level_state.is_some() {
+            //     continue;
+            // }
             dyno.vel = launch.vel;
             ship.can_shoot = false;
             if let Some(mut ls) = level_state.clone() {
@@ -184,7 +193,10 @@ fn watch_for_respawn(
     for (id, mut lp) in entity_n_lp.iter_mut() {
         if lp.was_activated() {
             commands.entity(id).despawn_recursive();
-            commands.run_system_with_input(spawn_ship_id.0, (level_state.last_safe_location, 16.0));
+            commands.run_system_with_input(
+                spawn_ship_id.0,
+                (level_state.last_safe_location, Ship::radius()),
+            );
         }
     }
 }
@@ -201,7 +213,10 @@ fn watch_for_death(
     for (id, dyno) in entity_n_lp.iter() {
         if dyno.touching_rock == Some(RockKind::SimpleKill) {
             commands.entity(id).despawn_recursive();
-            commands.run_system_with_input(spawn_ship_id.0, (level_state.last_safe_location, 16.0));
+            commands.run_system_with_input(
+                spawn_ship_id.0,
+                (level_state.last_safe_location, Ship::radius()),
+            );
         }
     }
 }
@@ -235,30 +250,19 @@ fn replenish_shot(
 
 pub fn spawn_trail(
     mut commands: Commands,
-    ship: Query<&Children, With<Ship>>,
-    pms: Query<&GlobalTransform, With<PixelMesh>>,
+    ship: Query<&GlobalTransform, With<Ship>>,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let Ok(children) = ship.get_single() else {
-        return;
-    };
-    let mut pos = None;
-    for child in children {
-        if let Ok(pm) = pms.get(*child) {
-            pos = Some(pm.translation().truncate());
-            break;
-        }
-    }
-    let Some(pos) = pos else {
+    let Ok(tran) = ship.get_single() else {
         return;
     };
     ParticleBundle::spawn_options(
         &mut commands,
         ParticleBody {
-            pos,
+            pos: tran.translation().truncate(),
             vel: Vec2::ZERO,
-            size: 15.0,
+            size: Ship::radius(),
             color: Color::YELLOW,
         },
         0.5,

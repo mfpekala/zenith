@@ -4,7 +4,7 @@ use bevy::window::PrimaryWindow;
 use crate::{
     camera::{CameraMarker, CameraMode},
     meta::{
-        consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
     physics::should_apply_physics,
@@ -43,7 +43,7 @@ pub fn watch_mouse(
     camera_n_tran: Query<(&Transform, &CameraMarker)>,
     gs: Res<GameState>,
 ) {
-    let Some(mouse_pos) = q_windows.single().cursor_position() else {
+    let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
         // Mouse is not in the window, don't do anything
         return;
     };
@@ -51,11 +51,13 @@ pub fn watch_mouse(
         // Camera not found, don't do anything
         return;
     };
+    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32);
+    mouse_pos *= scale_down_to_screen;
     mouse_state.pos = mouse_pos;
     mouse_state.world_pos = camera_tran.translation.truncate()
         - Vec2 {
-            x: camera_marker.zoom * (WINDOW_WIDTH as f32 / 2.0 - mouse_pos.x),
-            y: -camera_marker.zoom * (WINDOW_HEIGHT as f32 / 2.0 - mouse_pos.y),
+            x: camera_marker.zoom * (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
+            y: -camera_marker.zoom * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
         };
 
     mouse_state.left_pressed = buttons.pressed(MouseButton::Left);

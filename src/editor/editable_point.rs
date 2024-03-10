@@ -1,5 +1,5 @@
 use super::{draggable::Draggable, editable_rock::EditableRock, is_editing};
-use crate::{drawing::hollow::CircleMarker, input::MouseState};
+use crate::{drawing::hollow::CircleMarker, input::MouseState, meta::consts::PIXEL_SIZE};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -16,7 +16,7 @@ pub struct EditablePointBundle {
 }
 impl EditablePointBundle {
     pub fn new(pos: Vec2) -> Self {
-        let knob_size = 10.0;
+        let knob_size = 3.0 * PIXEL_SIZE as f32;
         Self {
             editable_point: EditablePoint { is_focused: true },
             draggable: Draggable::new(knob_size),

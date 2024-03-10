@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
+pub mod collider;
+pub mod dyno;
+
 use crate::{
-    drawing::hollow::HollowDrawable,
     environment::{
         field::Field,
         goal::Goal,
@@ -9,6 +11,8 @@ use crate::{
     },
     meta::game_state::{EditorState, GameState, MetaState},
 };
+
+use self::dyno::register_int_dynos;
 
 #[derive(Resource)]
 pub struct AvgDeltaTime {
@@ -43,11 +47,6 @@ pub struct Dyno {
     pub vel: Vec2,
     pub radius: f32,
     pub touching_rock: Option<RockKind>,
-}
-impl HollowDrawable for Dyno {
-    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        gz.circle_2d(base_pos, self.radius, Color::rgb(0.9, 0.7, 0.7));
-    }
 }
 
 pub fn resolve_dyno_rock_collisions(
@@ -102,7 +101,6 @@ pub fn move_dyno_helper(
     time_delta: f32,
 ) -> MoveDynoResult {
     let mut left_to_move = dyno.vel.length() * time_delta;
-    println!("left_to_move: {}", left_to_move);
     let mut result = MoveDynoResult::new();
     while left_to_move > 0.0 {
         if dyno.vel.length() <= 0.000001 {
@@ -198,6 +196,7 @@ pub fn update_avg_delta_time(mut adt: ResMut<AvgDeltaTime>, time: Res<Time>) {
 }
 
 pub fn register_physics(app: &mut App) {
+    register_int_dynos(app);
     app.add_systems(Update, apply_gravity.run_if(should_apply_physics));
     app.add_systems(
         FixedUpdate,

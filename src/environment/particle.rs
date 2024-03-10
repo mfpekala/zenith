@@ -10,7 +10,6 @@ use crate::{
         mesh::generate_new_mesh,
     },
     math::{lerp, lerp_color, regular_polygon, Spleen},
-    ship::Ship,
 };
 
 #[derive(Component)]
@@ -190,7 +189,7 @@ fn update_particles(
     time: Res<Time>,
     cam: Query<&CameraMarker>,
 ) {
-    let cam = cam.single();
+    let _cam = cam.single();
     for (id, mut tran, mut body, mut lifespan) in particles.iter_mut() {
         lifespan.tick(time.delta());
         if lifespan.is_dead() {

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+#[derive(Debug)]
 pub struct MathLine {
     pub p1: Vec2,
     pub p2: Vec2,
@@ -31,10 +32,10 @@ impl MathLine {
             x: -along_line.y,
             y: along_line.x,
         };
-        return MathLine {
+        MathLine {
             p1: self.p1 + offset * space,
             p2: self.p2 + offset * space,
-        };
+        }
     }
 
     pub fn intersect(&self, other: &MathLine) -> Option<Vec2> {

@@ -26,19 +26,19 @@ pub struct LightGizmoGroup;
 
 pub fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
     let config = config_store.config_mut::<DefaultGizmoConfigGroup>().0;
-    config.line_width = 6.0;
+    config.line_width = 2.0;
     config.render_layers = sprite_layer();
 
     let config = config_store.config_mut::<LightGizmoGroup>().0;
-    config.line_width = 6.0;
+    config.line_width = 2.0;
     config.render_layers = light_layer();
 
     let config = config_store.config_mut::<BgSpriteGizmoGroup>().0;
-    config.line_width = 5.0;
+    config.line_width = 2.0;
     config.render_layers = bg_sprite_layer();
 
     let config = config_store.config_mut::<BgLightGizmoGroup>().0;
-    config.line_width = 5.0;
+    config.line_width = 2.0;
     config.render_layers = bg_light_layer();
 }
 

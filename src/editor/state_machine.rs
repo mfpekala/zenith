@@ -20,7 +20,7 @@ use crate::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
     physics::Dyno,
-    ship::SpawnShipId,
+    ship::{Ship, SpawnShipId},
 };
 use bevy::prelude::*;
 
@@ -217,7 +217,7 @@ fn start_testing(
     });
     commands.run_system_with_input(
         spawn_ship_id.0,
-        (estart.single().translation.truncate(), 16.0),
+        (estart.single().translation.truncate(), Ship::radius()),
     );
     GoalBundle::spawn(egoal.single().translation.truncate(), &mut commands);
     for (erock, tran) in erocks.iter() {
@@ -226,7 +226,7 @@ fn start_testing(
         let base_pos = tran.translation.truncate();
         match reach {
             Some(reach) => {
-                spawn_planet(&mut commands, base_pos, rock, reach, 0.06, &mut meshes);
+                spawn_planet(&mut commands, base_pos, rock, reach, 1.0, &mut meshes);
             }
             None => {
                 RockBundle::spawn(&mut commands, base_pos, rock, &mut meshes);

@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use crate::{
     camera::CameraMarker,
     drawing::{BgLightGizmoGroup, BgSpriteGizmoGroup},
-    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
+    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
 };
 
 #[derive(Component)]
@@ -103,7 +103,7 @@ fn update_stars(
             y: SCREEN_HEIGHT as f32,
         };
         let ref_screen_size = screen_size * star.depth as f32;
-        let frac = (cam.fake_pos * (0.0 - 1.0) + star.pos * star.depth as f32)
+        let frac = (cam.pos.as_vec2() * (0.0 - 1.0) + star.pos * star.depth as f32)
             .rem_euclid(ref_screen_size)
             / ref_screen_size;
         let buff_frac = 0.33;

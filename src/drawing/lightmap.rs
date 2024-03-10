@@ -1,7 +1,6 @@
 //! Original Code + Inspiration: https://github.com/goto64/bevy_2d_screen_space_lightmaps/blob/master/src/lightmap_plugin/lightmap_plugin.rs
 //! Tweaked it to be my own for more control + understanding
 
-use super::post_pixel::PostPixelSettings;
 use crate::camera::CameraMarker;
 use crate::meta::consts::SCREEN_HEIGHT;
 use crate::meta::consts::SCREEN_WIDTH;
@@ -21,7 +20,6 @@ use bevy::render::render_resource::{
 use bevy::render::texture::BevyDefault;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle};
-use bevy::window::PrimaryWindow;
 
 pub struct LightmapPlugin;
 

@@ -11,7 +11,10 @@ use crate::{
     },
     input::MouseState,
     math::MathLine,
-    meta::game_state::{EditingMode, EditorState, GameState, MetaState},
+    meta::{
+        consts::PIXEL_SIZE,
+        game_state::{EditingMode, EditorState, GameState, MetaState},
+    },
 };
 use bevy::prelude::*;
 
@@ -97,6 +100,10 @@ pub struct EditableRockBundle {
     pub spatial: SpatialBundle,
 }
 impl EditableRockBundle {
+    fn anchor_radius() -> f32 {
+        4.0 * PIXEL_SIZE as f32
+    }
+
     pub fn from_single_point(id: Entity, pos: Vec2) -> Self {
         Self {
             erock: EditableRock {
@@ -107,8 +114,8 @@ impl EditableRockBundle {
                 points: vec![id],
             },
             editable_point: EditablePoint { is_focused: true },
-            draggable: Draggable::new(10.0),
-            circle: CircleMarker::new(10.0, Color::SEA_GREEN),
+            draggable: Draggable::new(Self::anchor_radius()),
+            circle: CircleMarker::new(Self::anchor_radius(), Color::SEA_GREEN),
             spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
         }
     }
@@ -129,8 +136,8 @@ impl EditableRockBundle {
                 points,
             },
             editable_point: EditablePoint { is_focused: false },
-            draggable: Draggable::new(10.0),
-            circle: CircleMarker::new(10.0, Color::SEA_GREEN),
+            draggable: Draggable::new(Self::anchor_radius()),
+            circle: CircleMarker::new(Self::anchor_radius(), Color::SEA_GREEN),
             spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
         }
     }

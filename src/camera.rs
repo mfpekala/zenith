@@ -4,11 +4,8 @@ use crate::{
         post_pixel::PostPixelPlugin,
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
-    meta::{
-        consts::PIXEL_SIZE,
-        game_state::{in_editor, in_level},
-    },
-    physics::{move_dynos, Dyno},
+    meta::game_state::{in_editor, in_level},
+    physics::{dyno::IntDyno, move_dynos, Dyno},
 };
 use bevy::prelude::*;
 
@@ -29,8 +26,8 @@ impl CameraMode {
 #[derive(Component)]
 pub struct CameraMarker {
     pub mode: CameraMode,
-    pub fake_pos: Vec2,
-    vel: Vec2,
+    pub vel: Vec2,
+    pub pos: IVec2,
     pub zoom: f32,
 }
 impl CameraMarker {
@@ -38,7 +35,7 @@ impl CameraMarker {
         Self {
             mode: CameraMode::Follow,
             vel: Vec2::ZERO,
-            fake_pos: Vec2::ZERO,
+            pos: IVec2::ZERO,
             zoom: 1.0,
         }
     }
@@ -47,39 +44,21 @@ impl CameraMarker {
         self.mode = self.mode.rotate();
         self.vel = Vec2::ZERO;
     }
-
-    /// Rounds down to nearest pixel
-    pub fn pixel_align(&self, pos: Vec2) -> Vec2 {
-        Vec2 {
-            x: pos.x - pos.x.rem_euclid(PIXEL_SIZE as f32 * self.zoom),
-            y: pos.y - pos.y.rem_euclid(PIXEL_SIZE as f32 * self.zoom),
-        }
-    }
 }
 
 pub fn update_camera(
-    dynos: Query<(&Dyno, &Transform), Without<CameraMarker>>,
-    mut marker: Query<&mut CameraMarker, Without<Dyno>>,
+    dynos: Query<&IntDyno, Without<CameraMarker>>,
+    mut marker: Query<&mut CameraMarker>,
     control_state: Res<CameraControlState>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
     mut set_event: EventReader<SetCameraModeEvent>,
     mut light_camera: Query<
         (&mut Transform, &mut OrthographicProjection),
-        (
-            With<LightCameraMarker>,
-            Without<SpriteCameraMarker>,
-            Without<CameraMarker>,
-            Without<Dyno>,
-        ),
+        (With<LightCameraMarker>, Without<SpriteCameraMarker>),
     >,
     mut sprite_camera: Query<
         (&mut Transform, &mut OrthographicProjection),
-        (
-            With<SpriteCameraMarker>,
-            Without<LightCameraMarker>,
-            Without<CameraMarker>,
-            Without<Dyno>,
-        ),
+        (With<SpriteCameraMarker>, Without<LightCameraMarker>),
     >,
 ) {
     // Get the camera (do nothing if we can't find one)
@@ -98,10 +77,10 @@ pub fn update_camera(
     // Handle movement
     match marker.mode {
         CameraMode::Follow => {
-            let Ok((_, dyno_tran)) = dynos.get_single() else {
+            let Ok(dyno) = dynos.get_single() else {
                 return;
             };
-            marker.fake_pos = dyno_tran.translation.truncate();
+            marker.pos = dyno.pos;
         }
         CameraMode::Free => {
             if control_state.wasd_dir.length_squared() < 0.1 {
@@ -116,7 +95,10 @@ pub fn update_camera(
                 }
             }
             let vec = marker.vel;
-            marker.fake_pos += vec;
+            marker.pos = IVec2 {
+                x: (marker.pos.x as f32 + vec.x) as i32,
+                y: (marker.pos.y as f32 + vec.y) as i32,
+            };
         }
     }
     // Handle zooming
@@ -128,7 +110,7 @@ pub fn update_camera(
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = marker.pixel_align(marker.fake_pos).extend(0.0);
+        tran.translation = marker.pos.as_vec2().extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.zoom;
