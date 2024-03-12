@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::drawing::text::TextBox;
+use crate::drawing::{lightmap::sprite_layer, text::TextBox};
 
 #[derive(
     serde::Deserialize,
@@ -8,17 +8,20 @@ use crate::drawing::text::TextBox;
     bevy::reflect::TypePath,
     Debug,
     PartialEq,
-    Eq,
     PartialOrd,
-    Ord,
     Clone,
 )]
 pub struct MenuAsset {
     texts: Vec<TextBox>,
 }
 impl MenuAsset {
-    pub fn spawn(&self, commands: &mut Commands) {
-        println!("WOULD HAVE SPAWNED: {:?}", self);
+    pub fn spawn(&self, commands: &mut Commands, asset_server: &Res<AssetServer>) -> Vec<Entity> {
+        let mut cursed = vec![];
+        for tb in self.texts.iter() {
+            let id = tb.spawn(commands, asset_server);
+            cursed.push(id);
+        }
+        cursed
     }
 }
 
@@ -26,6 +29,7 @@ impl MenuAsset {
 pub struct MenuAssetComponent {
     pub handle: Handle<MenuAsset>,
     pub last_version: Option<MenuAsset>,
+    pub cursed_children: Vec<Entity>,
 }
 impl MenuAssetComponent {
     pub fn spawn(asset_server: Res<AssetServer>, commands: &mut Commands, path: String) {
@@ -33,16 +37,18 @@ impl MenuAssetComponent {
         commands.spawn(Self {
             handle,
             last_version: None,
+            cursed_children: vec![],
         });
     }
 }
 
 fn render_menu_asset(
     mut commands: Commands,
-    mut comp_q: Query<(Entity, &mut MenuAssetComponent, Option<&Children>)>,
+    mut comp_q: Query<(Entity, &mut MenuAssetComponent)>,
     menu_assets: Res<Assets<MenuAsset>>,
+    asset_server: Res<AssetServer>,
 ) {
-    let Ok((id, mut comp, children)) = comp_q.get_single_mut() else {
+    let Ok((id, mut comp)) = comp_q.get_single_mut() else {
         return;
     };
     let Some(res) = menu_assets.get(comp.handle.id()) else {
@@ -54,13 +60,10 @@ fn render_menu_asset(
         return;
     }
     // We're clearing and remaking all the children
-    if let Some(children) = children {
-        for child in children {
-            commands.entity(id).remove_children(&[*child]);
-            commands.entity(*child).despawn_recursive();
-        }
+    for child in comp.cursed_children.iter() {
+        commands.entity(*child).despawn_recursive();
     }
-    res.spawn(&mut commands);
+    comp.cursed_children = res.spawn(&mut commands, &asset_server);
     comp.last_version = Some(res.clone());
 }
 

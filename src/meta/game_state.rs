@@ -1,7 +1,11 @@
 use bevy::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
-pub struct MenuState;
+pub enum MenuState {
+    Title,
+    SaveFile,
+    GalaxySelect,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum EditingMode {
@@ -128,7 +132,7 @@ fn translate_events(mut state_change: EventReader<SetGameState>, mut gs: ResMut<
 
 fn set_initial_game_state(mut gs_writer: EventWriter<SetGameState>) {
     gs_writer.send(SetGameState(GameState {
-        meta: MetaState::Menu(MenuState),
+        meta: MetaState::Menu(MenuState::Title),
     }));
 }
 

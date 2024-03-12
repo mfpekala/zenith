@@ -34,7 +34,7 @@ fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
             color: Color::Hsla {
                 hue: 20.0 + rng.gen::<f32>() * 180.0,
                 saturation: 0.3 + rng.gen::<f32>() * 0.3,
-                lightness: 0.2 + rng.gen::<f32>() * 0.6,
+                lightness: 0.3 + rng.gen::<f32>() * 0.6,
                 alpha: 1.0,
             },
             depth,

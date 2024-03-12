@@ -8,6 +8,10 @@ pub const SCREEN_WIDTH: usize = 160;
 /// Number of pixels to show in screen height (should divide WINDOW_HEIGHT)
 pub const SCREEN_HEIGHT: usize = 160;
 
+pub fn window_to_screen_ratio() -> f32 {
+    (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32)
+}
+
 /// Kinda cursed if it's not this
 pub const PIXEL_SIZE: usize = 1;
 

@@ -21,6 +21,8 @@ use bevy::render::texture::BevyDefault;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle};
 
+use super::sprite_mat::SpriteMaterial;
+
 pub struct LightmapPlugin;
 
 impl Plugin for LightmapPlugin {
@@ -61,6 +63,15 @@ pub fn light_layer() -> RenderLayers {
     RenderLayers::from_layers(CAMERA_LAYER_LIGHT)
 }
 
+#[derive(Component)]
+struct ReducedCameraMarker;
+
+#[derive(Component)]
+pub struct MenuCameraMarker;
+pub fn menu_layer() -> RenderLayers {
+    RenderLayers::from_layers(CAMERA_LAYER_MENU)
+}
+
 #[derive(Resource)]
 pub struct LightmapPluginSettings {
     bg_clear_color: ClearColorConfig,
@@ -79,7 +90,7 @@ impl Default for LightmapPluginSettings {
                 red: 0.1,
                 green: 0.1,
                 blue: 0.1,
-                alpha: 0.01,
+                alpha: 0.05,
             }),
             ambient_light: Color::rgb(0.5, 0.5, 0.5),
             bloom: None,
@@ -101,6 +112,9 @@ pub const CAMERA_LAYER_LIGHT: &[u8] = &[4];
 
 /// Reduced layer
 const CAMERA_LAYER_REDUCED: &[u8] = &[5];
+
+/// All menu components (non-rounding pixelated, rendered last) must be added to this layer
+pub const CAMERA_LAYER_MENU: &[u8] = &[6];
 
 #[derive(Component)]
 struct PostProcessingQuad;
@@ -181,6 +195,7 @@ struct CameraTargets {
     pub sprite_target: Handle<Image>,
     pub light_target: Handle<Image>,
     pub reduced_target: Handle<Image>,
+    pub menu_target: Handle<Image>,
 }
 
 impl CameraTargets {
@@ -267,6 +282,21 @@ impl CameraTargets {
             },
             ..default()
         };
+        let mut menu_image = Image {
+            texture_descriptor: TextureDescriptor {
+                label: Some("target_menu"),
+                size: target_size,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::bevy_default(),
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: TextureUsages::TEXTURE_BINDING
+                    | TextureUsages::COPY_DST
+                    | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            },
+            ..default()
+        };
 
         // Fill images data with zeroes.
         bg_sprite_image.resize(target_size);
@@ -274,18 +304,21 @@ impl CameraTargets {
         sprite_image.resize(target_size);
         light_image.resize(target_size);
         reduced_image.resize(target_size);
+        menu_image.resize(target_size);
 
         let bg_sprite_image_handle: Handle<Image> = Handle::weak_from_u128(84562364042238462870);
         let bg_light_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991276);
         let sprite_image_handle: Handle<Image> = Handle::weak_from_u128(84562364042238462871);
         let light_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991277);
         let reduced_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991278);
+        let menu_image_handle: Handle<Image> = Handle::weak_from_u128(51267563632952991278);
 
         images.insert(bg_sprite_image_handle.clone(), bg_sprite_image);
         images.insert(bg_light_image_handle.clone(), bg_light_image);
         images.insert(sprite_image_handle.clone(), sprite_image);
         images.insert(light_image_handle.clone(), light_image);
         images.insert(reduced_image_handle.clone(), reduced_image);
+        images.insert(menu_image_handle.clone(), menu_image);
 
         Self {
             bg_sprite_target: bg_sprite_image_handle,
@@ -293,6 +326,7 @@ impl CameraTargets {
             sprite_target: sprite_image_handle,
             light_target: light_image_handle,
             reduced_target: reduced_image_handle,
+            menu_target: menu_image_handle,
         }
     }
 }
@@ -303,7 +337,7 @@ fn setup_sprite_camera(
     lightmap_plugin_settings: Res<LightmapPluginSettings>,
 ) {
     let bg_bloom = BloomSettings {
-        intensity: 0.46,
+        intensity: 0.56,
         low_frequency_boost: 0.7,
         low_frequency_boost_curvature: 0.95,
         high_pass_frequency: 1.0,
@@ -318,6 +352,7 @@ fn setup_sprite_camera(
             Camera2dBundle {
                 camera: Camera {
                     hdr: true,
+                    order: 0,
                     target: RenderTarget::Image(camera_targets.bg_sprite_target.clone()),
                     clear_color: lightmap_plugin_settings.bg_clear_color.clone(),
                     ..Default::default()
@@ -335,6 +370,7 @@ fn setup_sprite_camera(
             Camera2dBundle {
                 camera: Camera {
                     hdr: true,
+                    order: 1,
                     target: RenderTarget::Image(camera_targets.bg_light_target.clone()),
                     clear_color: ClearColorConfig::Custom(
                         lightmap_plugin_settings.bg_ambient_light,
@@ -354,6 +390,7 @@ fn setup_sprite_camera(
             Camera2dBundle {
                 camera: Camera {
                     hdr: true,
+                    order: 2,
                     target: RenderTarget::Image(camera_targets.sprite_target.clone()),
                     clear_color: lightmap_plugin_settings.clear_color.clone(),
                     ..Default::default()
@@ -370,6 +407,7 @@ fn setup_sprite_camera(
             Camera2dBundle {
                 camera: Camera {
                     hdr: true,
+                    order: 3,
                     target: RenderTarget::Image(camera_targets.light_target.clone()),
                     clear_color: ClearColorConfig::Custom(lightmap_plugin_settings.ambient_light),
                     ..Default::default()
@@ -386,15 +424,39 @@ fn setup_sprite_camera(
             Camera2dBundle {
                 camera: Camera {
                     hdr: true,
+                    order: 4,
                     target: RenderTarget::Image(camera_targets.reduced_target.clone()),
                     clear_color: ClearColorConfig::Default,
                     ..Default::default()
                 },
                 ..Default::default()
             },
+            ReducedCameraMarker,
             Name::new("reduced_camera"),
         ))
         .insert(RenderLayers::from_layers(CAMERA_LAYER_REDUCED));
+
+    commands
+        .spawn((
+            Camera2dBundle {
+                camera: Camera {
+                    hdr: true,
+                    order: 5,
+                    target: RenderTarget::Image(camera_targets.menu_target.clone()),
+                    clear_color: ClearColorConfig::from(Color::Hsla {
+                        hue: 0.0,
+                        saturation: 0.0,
+                        lightness: 0.0,
+                        alpha: 0.0,
+                    }),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            MenuCameraMarker,
+            Name::new("menu_camera"),
+        ))
+        .insert(RenderLayers::from_layers(CAMERA_LAYER_MENU));
 }
 
 const BG_PP_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860343677);
@@ -406,6 +468,9 @@ const PP_MATERIAL: Handle<BlendTexturesMaterial> = Handle::weak_from_u128(523741
 const REDUCED_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860383170);
 const REDUCED_MATERIAL: Handle<DummyMaterial> = Handle::weak_from_u128(52374148673136432070);
 
+const MENU_QUAD: Handle<Mesh> = Handle::weak_from_u128(36467206864860383170);
+const MENU_MATERIAL: Handle<SpriteMaterial> = Handle::weak_from_u128(29374148673136432070);
+
 fn setup_post_processing_camera(
     mut commands: Commands,
     lightmap_plugin_settings: Res<LightmapPluginSettings>,
@@ -414,6 +479,7 @@ fn setup_post_processing_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BlendTexturesMaterial>>,
     mut dum_materials: ResMut<Assets<DummyMaterial>>,
+    mut sprite_materials: ResMut<Assets<SpriteMaterial>>,
 ) {
     let primary_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
 
@@ -421,6 +487,7 @@ fn setup_post_processing_camera(
     meshes.insert(BG_PP_QUAD.clone(), quad.clone());
     meshes.insert(PP_QUAD.clone(), quad.clone());
     meshes.insert(REDUCED_QUAD.clone(), quad.clone());
+    meshes.insert(MENU_QUAD.clone(), quad.clone());
 
     *camera_targets = CameraTargets::create(&mut images, &primary_size);
 
@@ -438,9 +505,14 @@ fn setup_post_processing_camera(
         texture: camera_targets.reduced_target.clone(),
     };
 
+    let menu_material = SpriteMaterial {
+        sprite_texture: camera_targets.menu_target.clone(),
+    };
+
     materials.insert(BG_PP_MATERIAL.clone(), bg_material);
     materials.insert(PP_MATERIAL.clone(), material);
     dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);
+    sprite_materials.insert(MENU_MATERIAL.clone(), menu_material);
 
     let reduced_layer = RenderLayers::from_layers(CAMERA_LAYER_REDUCED);
     let output_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
@@ -451,7 +523,7 @@ fn setup_post_processing_camera(
             mesh: BG_PP_QUAD.clone().into(),
             material: BG_PP_MATERIAL.clone(),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                translation: Vec3::new(0.0, 0.0, -1.0),
                 ..default()
             },
             ..default()
@@ -488,20 +560,34 @@ fn setup_post_processing_camera(
         output_layer,
     ));
 
+    commands.spawn((
+        PostProcessingQuad,
+        MaterialMesh2dBundle {
+            mesh: MENU_QUAD.clone().into(),
+            material: MENU_MATERIAL.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, -1.0),
+                scale: Vec3::ONE * (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32),
+                ..default()
+            },
+            ..default()
+        },
+        output_layer,
+    ));
+
     // Camera that renders the final image for the screen
     let camera_id = commands
         .spawn((
             Name::new("post_processing_camera"),
             Camera2dBundle {
                 camera: Camera {
-                    order: 2,
+                    order: 6,
                     hdr: true,
                     ..default()
                 },
-                ..Camera2dBundle::default()
+                ..default()
             },
             CameraMarker::new(),
-            // PostPixelSettings { num_pixels: 20.0 },
             output_layer,
         ))
         .id();

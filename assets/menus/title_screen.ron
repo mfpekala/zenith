@@ -1,0 +1,42 @@
+MenuAsset(
+    texts: [
+        // Zenith title + shadow
+        TextBox(
+            content: "ZENITH",
+            weight: Bold,
+            align: Center,
+            size: 133.0,
+            top: 39,
+            left: 43,
+            color: (0.5, 0.5, 0.5, 0.5),
+        ),
+        TextBox(
+            content: "ZENITH",
+            weight: Bold,
+            align: Center,
+            size: 133.0,
+            top: 41,
+            left: 43,
+            color: (0.5, 0.5, 0.5, 0.5),
+        ),
+        TextBox(
+            content: "ZENITH",
+            weight: Bold,
+            align: Center,
+            size: 130.0,
+            top: 40,
+            left: 44,
+            color: (1.0, 1.0, 1.0, 1.0),
+        ),
+        // Flashing text
+        TextBox(
+            content: "* PRESS ANY BUTTON TO PLAY *",
+            weight: Bold,
+            align: Center,
+            size: 40.0,
+            top: 110,
+            left: 28,
+            color: (1.0, 1.0, 1.0, 1.0),
+        ),
+    ]
+)
