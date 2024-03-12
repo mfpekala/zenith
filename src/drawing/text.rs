@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::meta::consts::window_to_screen_ratio;
@@ -49,6 +51,13 @@ impl TextAlign {
     }
 }
 
+#[derive(Component)]
+pub struct FlashingText {
+    pub times: (f32, f32),
+    pub timer: Timer,
+    pub is_on: bool,
+}
+
 #[derive(serde::Deserialize, Debug, Clone, Default, PartialEq, PartialOrd)]
 pub struct TextBox {
     pub content: String,
@@ -63,27 +72,54 @@ pub struct TextBox {
 }
 impl TextBox {
     pub fn spawn(&self, commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
-        commands
-            .spawn((
-                TextBundle::from_section(
-                    self.content.clone(),
-                    TextStyle {
-                        font: self.weight.to_handle(asset_server),
-                        font_size: self.size as f32,
-                        color: Color::rgba(self.color.0, self.color.1, self.color.2, self.color.3),
-                        ..default()
-                    },
-                )
-                .with_text_justify(self.align.to_justify_text())
-                .with_style(Style {
-                    position_type: PositionType::Absolute,
-                    top: Val::Px(self.top as f32 * window_to_screen_ratio()),
-                    left: Val::Px(self.left as f32 * window_to_screen_ratio()),
+        let mut ent = commands.spawn((
+            TextBundle::from_section(
+                self.content.clone(),
+                TextStyle {
+                    font: self.weight.to_handle(asset_server),
+                    font_size: self.size as f32,
+                    color: Color::rgba(self.color.0, self.color.1, self.color.2, self.color.3),
                     ..default()
-                }),
-                menu_layer(),
-            ))
-            .id()
+                },
+            )
+            .with_text_justify(self.align.to_justify_text())
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(self.top as f32 * window_to_screen_ratio()),
+                left: Val::Px(self.left as f32 * window_to_screen_ratio()),
+                ..default()
+            }),
+            menu_layer(),
+        ));
+        if let Some((on, off)) = self.flash {
+            ent.insert(FlashingText {
+                times: (on, off),
+                timer: Timer::new(Duration::from_secs_f32(on), TimerMode::Once),
+                is_on: true,
+            });
+        }
+        ent.id()
+    }
+}
+
+fn update_flashing_text(mut texts: Query<(&mut Text, &mut FlashingText)>, time: Res<Time>) {
+    for (mut text, mut flash) in texts.iter_mut() {
+        flash.timer.tick(time.delta());
+        if flash.timer.finished() {
+            if flash.is_on {
+                flash.is_on = false;
+                flash.timer = Timer::new(Duration::from_secs_f32(flash.times.1), TimerMode::Once);
+                for section in text.sections.iter_mut() {
+                    section.style.color.set_a(0.0);
+                }
+            } else {
+                flash.is_on = true;
+                flash.timer = Timer::new(Duration::from_secs_f32(flash.times.0), TimerMode::Once);
+                for section in text.sections.iter_mut() {
+                    section.style.color.set_a(1.0);
+                }
+            }
+        }
     }
 }
 
@@ -97,5 +133,6 @@ fn setup_zenith_text(asset_server: Res<AssetServer>) {
 impl Plugin for ZenithTextPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_zenith_text);
+        app.add_systems(Update, update_flashing_text);
     }
 }

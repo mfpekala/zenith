@@ -37,6 +37,7 @@ MenuAsset(
             top: 110,
             left: 28,
             color: (1.0, 1.0, 1.0, 1.0),
+            flash: Some((0.80, 0.5)),
         ),
     ]
 )
