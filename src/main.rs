@@ -7,21 +7,24 @@ pub mod leveler;
 pub mod math;
 pub mod menu;
 pub mod meta;
+pub mod music;
 pub mod physics;
 pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
+use bevy_common_assets::ron::RonAssetPlugin;
 use camera::register_camera;
 use drawing::register_drawing;
 use editor::register_editor;
 use environment::register_environment;
 use input::register_input;
 use leveler::register_leveler;
-use menu::register_menus;
+use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
     consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
 };
+use music::register_music;
 use physics::register_physics;
 use ship::register_ship;
 
@@ -32,8 +35,6 @@ fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            // present_mode: (),
-            // resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
             resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
             resizable: false,
             title: "Zenith".to_string(),
@@ -44,6 +45,7 @@ fn main() {
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
     app.insert_resource(Time::<Fixed>::from_hz(24.0));
+    app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else
@@ -54,6 +56,7 @@ fn main() {
     register_input(&mut app);
     register_leveler(&mut app);
     register_menus(&mut app);
+    register_music(&mut app);
     register_physics(&mut app);
     register_ship(&mut app);
     app.run();

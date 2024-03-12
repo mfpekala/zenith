@@ -8,7 +8,7 @@ var splr: sampler;
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // return  textureSample(texture, splr, vo.uv);
-    let num_pixels = 200.0;
+    let num_pixels = 160.0;
     let pixelated_uv = floor(in.uv * vec2<f32>(num_pixels, num_pixels)) / vec2<f32>(num_pixels, num_pixels);
     let original_color = textureSample(texture, splr, pixelated_uv);
     return original_color;

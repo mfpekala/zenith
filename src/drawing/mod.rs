@@ -4,6 +4,8 @@ use self::{
     hollow::register_hollow_drawing,
     light::register_light,
     lightmap::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
+    sprite_mat::SpriteMaterialPlugin,
+    text::ZenithTextPlugin,
 };
 use bevy::prelude::*;
 
@@ -12,6 +14,8 @@ pub mod light;
 pub mod lightmap;
 pub mod mesh;
 pub mod post_pixel;
+pub mod sprite_mat;
+pub mod text;
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct BgSpriteGizmoGroup;
@@ -41,10 +45,15 @@ pub fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
 }
 
 pub fn register_drawing(app: &mut App) {
+    app.add_plugins(SpriteMaterialPlugin);
+    app.add_plugins(ZenithTextPlugin);
+
     app.add_systems(Startup, setup_gizmos);
+
     app.init_gizmo_group::<LightGizmoGroup>();
     app.init_gizmo_group::<BgSpriteGizmoGroup>();
     app.init_gizmo_group::<BgLightGizmoGroup>();
+
     register_background(app);
     register_hollow_drawing(app);
     register_light(app);

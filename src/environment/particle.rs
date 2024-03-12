@@ -7,7 +7,7 @@ use crate::{
     camera::CameraMarker,
     drawing::{
         lightmap::{light_layer, sprite_layer},
-        mesh::generate_new_mesh,
+        mesh::generate_new_color_mesh,
     },
     math::{lerp, lerp_color, regular_polygon, Spleen},
 };
@@ -98,7 +98,7 @@ impl ParticleLightingBundle {
             alpha: color.a(),
         }));
         let points = regular_polygon(num_sides, 0.0, radius);
-        let mesh = generate_new_mesh(&points, &mat, meshes);
+        let mesh = generate_new_color_mesh(&points, &mat, meshes);
         Self {
             light: ParticleLighting {
                 radius,
@@ -355,15 +355,15 @@ fn update_spawners(
     }
 }
 
-fn setup_spawner(mut commands: Commands) {
-    commands.spawn(ParticleSpawnerBundle {
-        spatial: SpatialBundle::default(),
-        spawner: ParticleSpawner::rainbow(),
-    });
+fn test_spawner(mut _commands: Commands) {
+    // commands.spawn(ParticleSpawnerBundle {
+    //     spatial: SpatialBundle::default(),
+    //     spawner: ParticleSpawner::rainbow(),
+    // });
 }
 
 pub fn register_particles(app: &mut App) {
-    app.add_systems(Startup, setup_spawner);
+    app.add_systems(Startup, test_spawner);
     app.add_systems(
         Update,
         (

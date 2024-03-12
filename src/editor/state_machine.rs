@@ -19,7 +19,7 @@ use crate::{
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
-    physics::Dyno,
+    physics::dyno::IntDyno,
     ship::{Ship, SpawnShipId},
 };
 use bevy::prelude::*;
@@ -236,7 +236,7 @@ fn start_testing(
 }
 
 fn stop_testing(
-    dyno_ids: Query<Entity, With<Dyno>>,
+    dyno_ids: Query<Entity, With<IntDyno>>,
     goal_ids: Query<Entity, With<Goal>>,
     rock_ids: Query<Entity, With<Rock>>,
     field_ids: Query<Entity, With<Field>>,

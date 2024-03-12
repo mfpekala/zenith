@@ -4,8 +4,11 @@ use crate::{
         post_pixel::PostPixelPlugin,
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
-    meta::game_state::{in_editor, in_level},
-    physics::{dyno::IntDyno, move_dynos},
+    meta::{
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+        game_state::{in_editor, in_level},
+    },
+    physics::dyno::{move_int_dynos, IntDyno},
 };
 use bevy::prelude::*;
 
@@ -80,12 +83,21 @@ pub fn update_camera(
             let Ok(dyno) = dynos.get_single() else {
                 return;
             };
-            marker.pos = dyno.pos;
+            let diff = dyno.pos - marker.pos;
+            let hor_wiggle = 8;
+            if diff.x.abs() > SCREEN_WIDTH as i32 / hor_wiggle {
+                marker.pos.x += (diff.x.abs() - SCREEN_WIDTH as i32 / hor_wiggle) * diff.x.signum();
+            }
+            let ver_wiggle = 8;
+            if diff.y.abs() > SCREEN_HEIGHT as i32 / ver_wiggle {
+                marker.pos.y +=
+                    (diff.y.abs() - SCREEN_HEIGHT as i32 / ver_wiggle) * diff.y.signum();
+            }
         }
         CameraMode::Free => {
             if control_state.wasd_dir.length_squared() < 0.1 {
                 // Slow to a stop
-                marker.vel *= 0.89;
+                marker.vel *= 0.7;
             } else {
                 // Move around
                 let max_speed = 10.0;
@@ -124,6 +136,6 @@ pub fn register_camera(app: &mut App) {
         Update,
         update_camera
             .run_if(in_editor.or_else(in_level))
-            .after(move_dynos),
+            .after(move_int_dynos),
     );
 }

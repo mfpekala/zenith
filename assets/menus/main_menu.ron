@@ -1,0 +1,13 @@
+MenuAsset(
+    texts: [
+        TextBox(
+            content: "Shmontent",
+            weight: Bold,
+            align: Left,
+            top: 10,
+            left: 10,
+            width: 100,
+            height: 20,
+        )
+    ]
+)

@@ -116,6 +116,10 @@ fn resolve_dynos(
         dyno.vel += diff;
         dyno.vel *= slowdown;
         dyno.triggers = vec![];
+        let quantize = 12.0;
+        dyno.vel *= quantize;
+        dyno.vel = dyno.vel.round();
+        dyno.vel /= quantize;
     }
 }
 

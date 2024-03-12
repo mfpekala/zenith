@@ -2,7 +2,7 @@ use bevy::{prelude::*, render::view::RenderLayers, sprite::MaterialMesh2dBundle}
 
 use crate::math::regular_polygon;
 
-use super::{lightmap::light_layer, mesh::generate_new_mesh, LightGizmoGroup};
+use super::{lightmap::light_layer, mesh::generate_new_color_mesh, LightGizmoGroup};
 
 #[derive(Component)]
 pub struct RegularLight {
@@ -29,7 +29,7 @@ impl RegularLightBundle {
             alpha: 1.0,
         }));
         let points = regular_polygon(num_sides, 0.0, radius);
-        let mesh = generate_new_mesh(&points, &mat, meshes);
+        let mesh = generate_new_color_mesh(&points, &mat, meshes);
         Self {
             regular_light: RegularLight { radius },
             mesh,

@@ -1,7 +1,7 @@
 use crate::{
     drawing::hollow::{CircleMarker, ShrinkingCircleBundle},
     meta::game_state::in_level,
-    physics::Dyno,
+    physics::dyno::IntDyno,
     ship::Ship,
 };
 use bevy::prelude::*;
@@ -48,7 +48,7 @@ impl GoalBundle {
 
 fn watch_for_goal_get(
     mut goals: Query<(&mut Goal, &GlobalTransform)>,
-    ship: Query<(&GlobalTransform, &Dyno), With<Ship>>,
+    ship: Query<(&GlobalTransform, &IntDyno), With<Ship>>,
     mut send_get: EventWriter<GoalGet>,
 ) {
     let Ok((stran, dyno)) = ship.get_single() else {

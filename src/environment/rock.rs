@@ -1,5 +1,5 @@
 use crate::{
-    drawing::{lightmap::sprite_layer, mesh::generate_new_mesh},
+    drawing::{lightmap::sprite_layer, mesh::generate_new_color_mesh},
     math::{regular_polygon, MathLine},
     physics::collider::{ColliderStatic, ColliderStaticBundle},
 };
@@ -121,7 +121,7 @@ pub struct RockBundle {
 }
 impl RockBundle {
     pub fn from_rock(rock: Rock, meshes: &mut ResMut<Assets<Mesh>>) -> Self {
-        let mesh = generate_new_mesh(&rock.points, &rock.features.mat, meshes);
+        let mesh = generate_new_color_mesh(&rock.points, &rock.features.mat, meshes);
         Self {
             rock,
             mesh,

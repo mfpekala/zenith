@@ -1,18 +1,15 @@
 use crate::drawing::light::RegularLightBundle;
 use crate::drawing::lightmap::sprite_layer;
-use crate::drawing::mesh::generate_new_mesh;
-use crate::environment::goal::Goal;
+use crate::drawing::mesh::generate_new_color_mesh;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
-use crate::environment::rock::RockKind;
-use crate::environment::{field::Field, rock::Rock};
-use crate::input::{LongKeyPress, MouseState};
+use crate::input::LaunchEvent;
+use crate::input::LongKeyPress;
 use crate::math::{regular_polygon, Spleen};
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::physics::dyno::IntDyno;
-use crate::physics::{gravity_helper, move_dyno_helper, should_apply_physics, AvgDeltaTime};
-use crate::{input::LaunchEvent, physics::Dyno};
+use crate::physics::should_apply_physics;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
@@ -53,7 +50,7 @@ pub fn spawn_ship(
         alpha: 1.0,
     }));
     let points = regular_polygon(6, 45.0, radius);
-    let mut mesh = generate_new_mesh(&points, &mat, &mut meshes);
+    let mut mesh = generate_new_color_mesh(&points, &mat, &mut meshes);
     mesh.transform.translation = pos.extend(1.0);
     commands
         .spawn(ShipBundle {
@@ -90,69 +87,6 @@ impl LaunchPreview {
             speed: 3,
             num_skins: 12,
             ticks_between_skins: 12,
-        }
-    }
-}
-
-fn draw_launch_previews(
-    mut ship_q: Query<(&mut LaunchPreview, &Ship, &Dyno, &Transform)>,
-    mouse_state: Res<MouseState>,
-    mut gz: Gizmos,
-    rocks: Query<(&Rock, &Transform), Without<Dyno>>,
-    fields: Query<(&Field, &GlobalTransform), Without<Dyno>>,
-    goal: Query<(&Goal, &Transform)>,
-    gs: Res<GameState>,
-    avg_time: Res<AvgDeltaTime>,
-) {
-    let Some(launch_vel) = mouse_state.pending_launch_vel else {
-        return;
-    };
-    for (mut prev, ship, dyno, tran) in ship_q.iter_mut() {
-        if !ship.can_shoot && !gs.is_in_editor() {
-            continue;
-        }
-        let mut scratch_dyno = dyno.clone();
-        scratch_dyno.vel = launch_vel;
-        let mut scratch_point = tran.translation.truncate();
-        // Offset
-        let prev_applied = prev.tick / prev.speed;
-        for _tick in 0..prev_applied {
-            gravity_helper(
-                &mut scratch_dyno,
-                &scratch_point,
-                &fields,
-                &goal,
-                avg_time.get_avg(),
-            );
-            move_dyno_helper(
-                &mut scratch_dyno,
-                &mut scratch_point,
-                &rocks,
-                avg_time.get_avg(),
-            );
-        }
-        prev.tick = (prev.tick + 1) % (prev.ticks_between_skins * prev.speed);
-        // Draw the damn things
-        for skin in 0..prev.num_skins {
-            let alpha = 1.0
-                - (prev_applied as f32 + skin as f32 * prev.ticks_between_skins as f32)
-                    / (prev.num_skins as f32 * prev.ticks_between_skins as f32);
-            gz.circle_2d(scratch_point, 5.0, Color::rgba(0.7, 0.7, 0.7, alpha));
-            for _ in 0..prev.ticks_between_skins {
-                gravity_helper(
-                    &mut scratch_dyno,
-                    &scratch_point,
-                    &fields,
-                    &goal,
-                    avg_time.get_avg(),
-                );
-                move_dyno_helper(
-                    &mut scratch_dyno,
-                    &mut scratch_point,
-                    &rocks,
-                    avg_time.get_avg(),
-                );
-            }
         }
     }
 }
@@ -204,25 +138,25 @@ fn watch_for_respawn(
 fn watch_for_death(
     mut commands: Commands,
     gs: Res<GameState>,
-    entity_n_lp: Query<(Entity, &Dyno), With<Ship>>,
+    entity_n_lp: Query<(Entity, &IntDyno), With<Ship>>,
     spawn_ship_id: Res<SpawnShipId>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
         return;
     };
     for (id, dyno) in entity_n_lp.iter() {
-        if dyno.touching_rock == Some(RockKind::SimpleKill) {
-            commands.entity(id).despawn_recursive();
-            commands.run_system_with_input(
-                spawn_ship_id.0,
-                (level_state.last_safe_location, Ship::radius()),
-            );
-        }
+        // if dyno.touching_rock == Some(RockKind::SimpleKill) {
+        //     commands.entity(id).despawn_recursive();
+        //     commands.run_system_with_input(
+        //         spawn_ship_id.0,
+        //         (level_state.last_safe_location, Ship::radius()),
+        //     );
+        // }
     }
 }
 
 fn replenish_shot(
-    mut ship_q: Query<(&mut Ship, &mut Dyno, &GlobalTransform)>,
+    mut ship_q: Query<(&mut Ship, &mut IntDyno, &GlobalTransform)>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
 ) {
@@ -233,18 +167,18 @@ fn replenish_shot(
         if ship.can_shoot {
             continue;
         }
-        if dyno.vel.length() < 3.0
-            && dyno.touching_rock.is_some()
-            && dyno.touching_rock != Some(RockKind::SimpleKill)
-        {
-            ship.can_shoot = true;
-            dyno.vel = Vec2::ZERO;
-            let mut ls = level_state.clone();
-            ls.last_safe_location = tran.translation().truncate();
-            gs_writer.send(SetGameState(GameState {
-                meta: MetaState::Level(ls),
-            }));
-        }
+        // if dyno.vel.length() < 3.0
+        //     && dyno.touching_rock.is_some()
+        //     && dyno.touching_rock != Some(RockKind::SimpleKill)
+        // {
+        //     ship.can_shoot = true;
+        //     dyno.vel = Vec2::ZERO;
+        //     let mut ls = level_state.clone();
+        //     ls.last_safe_location = tran.translation().truncate();
+        //     gs_writer.send(SetGameState(GameState {
+        //         meta: MetaState::Level(ls),
+        //     }));
+        // }
     }
 }
 
@@ -288,7 +222,6 @@ pub fn register_ship(app: &mut App) {
     app.add_systems(
         Update,
         (
-            draw_launch_previews,
             watch_for_respawn,
             replenish_shot,
             watch_for_death,
