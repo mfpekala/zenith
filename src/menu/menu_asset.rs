@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::drawing::{lightmap::sprite_layer, text::TextBox};
+use crate::drawing::text::TextBox;
 
 #[derive(
     serde::Deserialize,
@@ -27,14 +27,16 @@ impl MenuAsset {
 
 #[derive(Component)]
 pub struct MenuAssetComponent {
+    pub path: String,
     pub handle: Handle<MenuAsset>,
     pub last_version: Option<MenuAsset>,
     pub cursed_children: Vec<Entity>,
 }
 impl MenuAssetComponent {
     pub fn spawn(asset_server: Res<AssetServer>, commands: &mut Commands, path: String) {
-        let handle = asset_server.load::<MenuAsset>(path);
+        let handle = asset_server.load::<MenuAsset>(path.clone());
         commands.spawn(Self {
+            path,
             handle,
             last_version: None,
             cursed_children: vec![],

@@ -1,3 +1,4 @@
+pub mod constellation_screen;
 pub mod menu_asset;
 pub mod title_screen;
 
@@ -8,4 +9,5 @@ pub fn register_menus(app: &mut App) {
     app.add_plugins(MenuAssetPlugin);
 
     title_screen::register_title_screen(app);
+    constellation_screen::register_constellation_screen(app);
 }

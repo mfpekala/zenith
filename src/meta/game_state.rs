@@ -4,7 +4,7 @@ use bevy::prelude::*;
 pub enum MenuState {
     Title,
     SaveFile,
-    GalaxySelect,
+    ConstellationSelect,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -4,8 +4,11 @@ use rand::{thread_rng, Rng};
 use crate::{
     camera::CameraMarker,
     drawing::{BgLightGizmoGroup, BgSpriteGizmoGroup},
-    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+    math::Spleen,
+    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
 };
+
+pub const MAX_HYPERSPACE_SPEED: i32 = 20_000;
 
 #[derive(Component)]
 pub struct Star {
@@ -16,6 +19,23 @@ pub struct Star {
     pub twinkling: bool,
     pub brightness: f32,
 }
+impl Star {
+    pub const fn min_depth() -> u8 {
+        12
+    }
+
+    pub const fn max_depth() -> u8 {
+        24
+    }
+
+    pub fn dmult(&self) -> f32 {
+        (self.depth as f32) * (1.3 as f32).powi(self.depth as i32)
+    }
+
+    pub fn max_dmult() -> f32 {
+        (Self::max_depth() as f32) * (1.3 as f32).powi(Self::max_depth() as i32)
+    }
+}
 
 #[derive(Bundle)]
 pub struct StarBundle {
@@ -25,11 +45,33 @@ pub struct StarBundle {
 #[derive(Resource)]
 pub struct StarOrder(pub Vec<Entity>);
 
+#[derive(Resource, Debug)]
+pub struct HyperSpace {
+    pub offset: IVec2,
+    pub old_speed: IVec2,
+    pub cur_speed: IVec2,
+    pub goal_speed: IVec2,
+    pub spleen: Spleen,
+    pub timer: Timer,
+}
+impl HyperSpace {
+    pub fn approach_speed(&mut self, goal: IVec2, time: f32, spleen: Spleen) {
+        self.old_speed = self.cur_speed;
+        self.goal_speed = goal;
+        self.timer = Timer::from_seconds(time, TimerMode::Once);
+        self.spleen = spleen;
+    }
+
+    pub fn interp(&self) -> f32 {
+        self.spleen.interp(self.timer.fraction())
+    }
+}
+
 fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
     let mut rng = thread_rng();
     let mut dni = vec![];
-    for _ in 0..100 {
-        let depth = rng.gen_range(12..=24);
+    for _ in 0..200 {
+        let depth = rng.gen_range(Star::min_depth()..=Star::max_depth());
         let star = Star {
             color: Color::Hsla {
                 hue: 20.0 + rng.gen::<f32>() * 180.0,
@@ -54,7 +96,7 @@ fn spawn_test_stars(mut commands: Commands, mut star_order: ResMut<StarOrder>) {
 }
 
 fn depth_to_size_mult(depth: u8) -> f32 {
-    1.0 + 4.0 * (0.75 as f32).powi(depth as i32 - 12)
+    0.2 + 3.6 * (0.75 as f32).powi(depth as i32 - 12)
 }
 
 fn draw_star(
@@ -62,6 +104,7 @@ fn draw_star(
     final_pos: Vec2,
     bg_sprite_gz: &mut Gizmos<BgSpriteGizmoGroup>,
     bg_light_gz: &mut Gizmos<BgLightGizmoGroup>,
+    lightness_boost: f32,
 ) {
     let up = Vec2 {
         x: 0.0,
@@ -74,7 +117,7 @@ fn draw_star(
     let white = Color::Hsla {
         hue: star.color.h(),
         saturation: 1.0,
-        lightness: star.brightness,
+        lightness: star.brightness + lightness_boost,
         alpha: 1.0,
     };
     for diff in [up, right, up * 0.6 + right * 0.6, up * 0.6 - right * 0.6].iter() {
@@ -83,17 +126,42 @@ fn draw_star(
     }
 }
 
+fn update_hyper_space(mut hyperspace: ResMut<HyperSpace>, time: Res<Time>) {
+    let cur_speed = hyperspace.cur_speed;
+    hyperspace.offset += cur_speed;
+    let max_dmult_i32: i32 = Star::max_dmult().ceil() as i32;
+    hyperspace.offset.x = hyperspace
+        .offset
+        .x
+        .rem_euclid(WINDOW_WIDTH as i32 * max_dmult_i32);
+    hyperspace.offset.y = hyperspace
+        .offset
+        .y
+        .rem_euclid(WINDOW_HEIGHT as i32 * max_dmult_i32);
+    let x = hyperspace.interp();
+    let tmp_speed = hyperspace.old_speed.as_vec2()
+        + x * (hyperspace.goal_speed.as_vec2() - hyperspace.old_speed.as_vec2());
+    hyperspace.cur_speed = IVec2::new(tmp_speed.x.round() as i32, tmp_speed.y.round() as i32);
+    hyperspace.timer.tick(time.delta());
+}
+
 fn update_stars(
     mut stars: Query<&mut Star>,
     mut bg_sprite_gz: Gizmos<BgSpriteGizmoGroup>,
     mut bg_light_gz: Gizmos<BgLightGizmoGroup>,
     cam_q: Query<&CameraMarker>,
     star_order: Res<StarOrder>,
+    hyperspace: Res<HyperSpace>,
 ) {
     let Ok(cam) = cam_q.get_single() else {
         return;
     };
+
+    // Draw in the stars
     let mut rng = thread_rng();
+    let lightness_boost = ((hyperspace.cur_speed / MAX_HYPERSPACE_SPEED).length_squared() as f32)
+        .sqrt()
+        .min(0.6);
     for star_id in star_order.0.iter() {
         let Ok(mut star) = stars.get_mut(*star_id) else {
             continue;
@@ -102,14 +170,20 @@ fn update_stars(
             x: SCREEN_WIDTH as f32,
             y: SCREEN_HEIGHT as f32,
         };
-        let ref_screen_size = screen_size * star.depth as f32;
-        let sdf = star.depth as f32;
-        let frac = (cam.pos.as_vec2() * (0.0 - 1.0) + star.pos * sdf).rem_euclid(ref_screen_size)
+        let ref_screen_size = screen_size * star.dmult();
+        let frac = (-cam.pos.as_vec2() + hyperspace.offset.as_vec2() + star.pos * star.dmult())
+            .rem_euclid(ref_screen_size)
             / ref_screen_size;
         let buff_frac = 0.33;
         let offset = screen_size * (1.0 + 2.0 * buff_frac) * frac - screen_size * (1.0 + buff_frac);
-        let final_pos = offset + screen_size / 2.0;
-        draw_star(&star, final_pos, &mut bg_sprite_gz, &mut bg_light_gz);
+        let final_pos = (offset + screen_size / 2.0).round();
+        draw_star(
+            &star,
+            final_pos,
+            &mut bg_sprite_gz,
+            &mut bg_light_gz,
+            lightness_boost,
+        );
         if star.twinkling {
             star.brightness = (star.brightness + 0.001).min(0.7);
             if rng.gen_bool(0.01) {
@@ -124,8 +198,19 @@ fn update_stars(
     }
 }
 
+pub const BASE_TITLE_HYPERSPACE_SPEED: IVec2 = IVec2 { x: 6, y: 1 };
+
 pub fn register_background(app: &mut App) {
     app.insert_resource(StarOrder(vec![]));
+    app.insert_resource(HyperSpace {
+        offset: IVec2::ZERO,
+        old_speed: BASE_TITLE_HYPERSPACE_SPEED,
+        cur_speed: BASE_TITLE_HYPERSPACE_SPEED,
+        goal_speed: BASE_TITLE_HYPERSPACE_SPEED,
+        spleen: Spleen::EaseInOutQuintic,
+        timer: Timer::from_seconds(0.0, TimerMode::Once),
+    });
     app.add_systems(Startup, spawn_test_stars);
     app.add_systems(Update, update_stars);
+    app.add_systems(Update, update_hyper_space);
 }

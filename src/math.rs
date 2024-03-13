@@ -139,16 +139,6 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     points
 }
 
-#[derive(Debug, Clone)]
-pub enum Spleen {
-    EaseInCubic,
-    EaseOutCubic,
-    EaseInOutCubic,
-    EaseInQuad,
-    EaseOutQuad,
-    EaseInOutQuad,
-}
-
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
 }
@@ -162,6 +152,22 @@ pub fn lerp_color(x: f32, c1: Color, c2: Color) -> Color {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Spleen {
+    EaseInCubic,
+    EaseOutCubic,
+    EaseInOutCubic,
+    EaseInQuad,
+    EaseOutQuad,
+    EaseInOutQuad,
+    EaseInQuartic,
+    EaseOutQuartic,
+    EaseInOutQuartic,
+    EaseInQuintic,
+    EaseOutQuintic,
+    EaseInOutQuintic,
+}
+
 impl Spleen {
     pub fn interp(&self, x: f32) -> f32 {
         match *self {
@@ -171,6 +177,12 @@ impl Spleen {
             Self::EaseInQuad => ease_in_quad(x),
             Self::EaseOutQuad => ease_out_quad(x),
             Self::EaseInOutQuad => ease_in_out_quad(x),
+            Self::EaseInQuartic => ease_in_quartic(x),
+            Self::EaseOutQuartic => ease_out_quartic(x),
+            Self::EaseInOutQuartic => ease_in_out_quartic(x),
+            Self::EaseInQuintic => ease_in_quintic(x),
+            Self::EaseOutQuintic => ease_out_quintic(x),
+            Self::EaseInOutQuintic => ease_in_out_quintic(x),
         }
     }
 }
@@ -204,5 +216,37 @@ fn ease_in_out_quad(x: f32) -> f32 {
         2.0 * x * x
     } else {
         1.0 - ((0.0 - 2.0) * x + 2.0).powf(2.0) / 2.0
+    }
+}
+
+fn ease_in_quartic(x: f32) -> f32 {
+    x * x * x * x
+}
+
+fn ease_out_quartic(x: f32) -> f32 {
+    1.0 - ease_in_quartic(1.0 - x)
+}
+
+fn ease_in_out_quartic(x: f32) -> f32 {
+    if x < 0.5 {
+        8.0 * x.powi(4)
+    } else {
+        1.0 - ((-2.0 * x + 2.0).powi(4)) / 2.0
+    }
+}
+
+fn ease_in_quintic(x: f32) -> f32 {
+    x * x * x * x * x
+}
+
+fn ease_out_quintic(x: f32) -> f32 {
+    1.0 - ease_in_quintic(1.0 - x)
+}
+
+fn ease_in_out_quintic(x: f32) -> f32 {
+    if x < 0.5 {
+        16.0 * x.powi(5)
+    } else {
+        1.0 - ((-2.0 * x + 2.0).powi(5)) / 2.0
     }
 }
