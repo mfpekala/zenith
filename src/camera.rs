@@ -17,12 +17,17 @@ use bevy::prelude::*;
 pub enum CameraMode {
     Follow,
     Free,
+    Controlled,
 }
 impl CameraMode {
     pub fn rotate(&self) -> Self {
         match *self {
             CameraMode::Follow => CameraMode::Free,
             CameraMode::Free => CameraMode::Follow,
+            CameraMode::Controlled => {
+                warn!("Tried to rotate controlled camera. This shouldn't happen.");
+                CameraMode::Controlled
+            }
         }
     }
 }
@@ -113,6 +118,9 @@ pub fn update_camera(
                 y: (marker.pos.y as f32 + vec.y) as i32,
             };
         }
+        CameraMode::Controlled => {
+            // Do nothing, something else is driving us
+        }
     }
     // Handle zooming
     if control_state.zoom < 0.0 {
@@ -137,7 +145,7 @@ pub fn register_camera(app: &mut App) {
         Update,
         update_camera
             .run_if(in_editor.or_else(in_level))
-            .run_if(is_not_in_cutscene)
+            // .run_if(is_not_in_cutscene)
             .after(move_int_dynos),
     );
 }
