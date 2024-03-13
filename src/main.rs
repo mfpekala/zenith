@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod cutscenes;
 pub mod drawing;
 pub mod editor;
 pub mod environment;
@@ -14,6 +15,7 @@ pub mod ship;
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_common_assets::ron::RonAssetPlugin;
 use camera::register_camera;
+use cutscenes::CutscenesPlugin;
 use drawing::register_drawing;
 use editor::register_editor;
 use environment::register_environment;
@@ -46,6 +48,7 @@ fn main() {
     .add_systems(Startup, main_setup);
     app.insert_resource(Time::<Fixed>::from_hz(24.0));
     app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
+    app.add_plugins(CutscenesPlugin);
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{environment::field::Field, ship::launch_ship};
+use crate::{cutscenes::is_not_in_cutscene, environment::field::Field, ship::launch_ship};
 
 use super::collider::{
     resolve_static_collisions, update_triggers, ColliderActive, ColliderBoundary, ColliderStatic,
@@ -86,13 +86,15 @@ pub fn move_int_dynos(
     )>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
+        // Clear the old static collisions
+        dyno.statics = vec![];
         move_int_dyno_helper(dyno.as_mut(), &statics);
         tran.translation.x = dyno.pos.x as f32;
         tran.translation.y = dyno.pos.y as f32;
     }
 }
 
-fn resolve_dynos(
+pub fn resolve_dynos(
     mut dynos: Query<&mut IntDyno>,
     _statics: Query<(Entity, &ColliderStatic, Option<&ColliderActive>)>,
     triggers: Query<(&Parent, &ColliderTrigger, Option<&ColliderActive>)>,
@@ -124,6 +126,20 @@ fn resolve_dynos(
 }
 
 pub fn register_int_dynos(app: &mut App) {
-    app.add_systems(FixedUpdate, move_int_dynos.after(launch_ship));
-    app.add_systems(FixedUpdate, resolve_dynos.after(update_triggers));
+    app.add_systems(
+        FixedUpdate,
+        move_int_dynos.after(launch_ship).run_if(is_not_in_cutscene),
+    );
+    app.add_systems(
+        FixedUpdate,
+        update_triggers
+            .after(move_int_dynos)
+            .run_if(is_not_in_cutscene),
+    );
+    app.add_systems(
+        FixedUpdate,
+        resolve_dynos
+            .after(update_triggers)
+            .run_if(is_not_in_cutscene),
+    );
 }

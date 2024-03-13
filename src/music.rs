@@ -9,7 +9,8 @@ fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
             source: asset_server.load("music/Eye of the Storm.ogg"),
             settings: PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Loop,
-                paused: false,
+                paused: true,
+                // paused: false,
                 ..default()
             },
         },

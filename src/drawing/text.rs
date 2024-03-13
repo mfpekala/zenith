@@ -1,10 +1,8 @@
+use crate::meta::consts::{window_to_screen_ratio, SCREEN_HEIGHT, SCREEN_WIDTH};
+
+use super::{effects::Sizeable, layering::menu_layer};
+use bevy::{prelude::*, sprite::Anchor};
 use std::time::Duration;
-
-use bevy::prelude::*;
-
-use crate::meta::consts::window_to_screen_ratio;
-
-use super::lightmap::{menu_layer, sprite_layer};
 
 pub struct ZenithTextPlugin;
 
@@ -42,11 +40,11 @@ pub enum TextAlign {
     Center,
 }
 impl TextAlign {
-    pub fn to_justify_text(&self) -> JustifyText {
+    pub fn to_anchor(&self) -> Anchor {
         match *self {
-            Self::Left => JustifyText::Left,
-            Self::Right => JustifyText::Right,
-            Self::Center => JustifyText::Center,
+            Self::Left => Anchor::CenterLeft,
+            Self::Right => Anchor::CenterRight,
+            Self::Center => Anchor::Center,
         }
     }
 }
@@ -71,9 +69,14 @@ pub struct TextBox {
     pub flash: Option<(f32, f32)>,
 }
 impl TextBox {
-    pub fn spawn(&self, commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
-        let mut ent = commands.spawn((
-            TextBundle::from_section(
+    pub fn spawn(
+        &self,
+        commands: &mut Commands,
+        asset_server: &Res<AssetServer>,
+        z: f32,
+    ) -> Entity {
+        let bund = Text2dBundle {
+            text: Text::from_section(
                 self.content.clone(),
                 TextStyle {
                     font: self.weight.to_handle(asset_server),
@@ -81,16 +84,16 @@ impl TextBox {
                     color: Color::rgba(self.color.0, self.color.1, self.color.2, self.color.3),
                     ..default()
                 },
-            )
-            .with_text_justify(self.align.to_justify_text())
-            .with_style(Style {
-                position_type: PositionType::Absolute,
-                top: Val::Px(self.top as f32 * window_to_screen_ratio()),
-                left: Val::Px(self.left as f32 * window_to_screen_ratio()),
-                ..default()
+            ),
+            text_anchor: self.align.to_anchor(),
+            transform: Transform::from_translation(Vec3 {
+                x: (-(SCREEN_WIDTH as f32) / 2.0 + self.left as f32) * window_to_screen_ratio(),
+                y: ((SCREEN_HEIGHT as f32) / 2.0 - self.top as f32) * window_to_screen_ratio(),
+                z,
             }),
-            menu_layer(),
-        ));
+            ..default()
+        };
+        let mut ent = commands.spawn((bund, menu_layer()));
         if let Some((on, off)) = self.flash {
             ent.insert(FlashingText {
                 times: (on, off),
@@ -98,6 +101,7 @@ impl TextBox {
                 is_on: true,
             });
         }
+        ent.insert(Sizeable::new());
         ent.id()
     }
 }

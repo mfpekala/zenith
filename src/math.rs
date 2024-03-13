@@ -152,7 +152,7 @@ pub fn lerp_color(x: f32, c1: Color, c2: Color) -> Color {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Spleen {
     EaseInCubic,
     EaseOutCubic,

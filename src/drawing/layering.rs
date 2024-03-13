@@ -1,9 +1,11 @@
 //! Original Code + Inspiration: https://github.com/goto64/bevy_2d_screen_space_lightmaps/blob/master/src/lightmap_plugin/lightmap_plugin.rs
 //! Tweaked it to be my own for more control + understanding
 
+use super::sprite_mat::SpriteMaterial;
 use crate::camera::CameraMarker;
 use crate::meta::consts::SCREEN_HEIGHT;
 use crate::meta::consts::SCREEN_WIDTH;
+use crate::meta::consts::WINDOW_HEIGHT;
 use crate::meta::consts::WINDOW_WIDTH;
 use bevy::core_pipeline::bloom::BloomCompositeMode;
 use bevy::core_pipeline::bloom::BloomPrefilterSettings;
@@ -21,20 +23,17 @@ use bevy::render::texture::BevyDefault;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle};
 
-use super::sprite_mat::SpriteMaterial;
+pub struct LayeringPlugin;
 
-pub struct LightmapPlugin;
-
-impl Plugin for LightmapPlugin {
+impl Plugin for LayeringPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(Material2dPlugin::<BlendTexturesMaterial>::default());
-        app.add_plugins(Material2dPlugin::<DummyMaterial>::default());
+        app.add_plugins(Material2dPlugin::<ReducedMaterial>::default());
         app.add_systems(
             Startup,
             (setup_post_processing_camera, setup_sprite_camera).chain(),
         );
-        app.add_systems(Update, on_resize_window);
-        app.init_resource::<LightmapPluginSettings>();
+        app.init_resource::<LayeringPluginSettings>();
         app.init_resource::<CameraTargets>();
     }
 }
@@ -73,15 +72,14 @@ pub fn menu_layer() -> RenderLayers {
 }
 
 #[derive(Resource)]
-pub struct LightmapPluginSettings {
+pub struct LayeringPluginSettings {
     bg_clear_color: ClearColorConfig,
     bg_ambient_light: Color,
     clear_color: ClearColorConfig,
     ambient_light: Color,
-    bloom: Option<BloomSettings>,
 }
 
-impl Default for LightmapPluginSettings {
+impl Default for LayeringPluginSettings {
     fn default() -> Self {
         Self {
             bg_clear_color: ClearColorConfig::Default,
@@ -93,7 +91,6 @@ impl Default for LightmapPluginSettings {
                 alpha: 0.05,
             }),
             ambient_light: Color::rgb(0.5, 0.5, 0.5),
-            bloom: None,
         }
     }
 }
@@ -162,15 +159,19 @@ impl Material2d for BlendTexturesMaterial {
 }
 
 #[derive(AsBindGroup, TypePath, Asset, Debug, Clone)]
-struct DummyMaterial {
+struct ReducedMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub texture: Handle<Image>,
+    #[uniform(3)]
+    pub num_pixels_w: f32,
+    #[uniform(4)]
+    pub num_pixels_h: f32,
 }
 
-impl Material2d for DummyMaterial {
+impl Material2d for ReducedMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/dummy.wgsl".into()
+        "shaders/reduce.wgsl".into()
     }
 
     fn specialize(
@@ -203,6 +204,11 @@ impl CameraTargets {
         let target_size = Extent3d {
             width: sizes.x as u32,
             height: sizes.y as u32,
+            ..default()
+        };
+        let menu_size = Extent3d {
+            width: WINDOW_WIDTH as u32,
+            height: WINDOW_HEIGHT as u32,
             ..default()
         };
 
@@ -285,7 +291,7 @@ impl CameraTargets {
         let mut menu_image = Image {
             texture_descriptor: TextureDescriptor {
                 label: Some("target_menu"),
-                size: target_size,
+                size: menu_size,
                 dimension: TextureDimension::D2,
                 format: TextureFormat::bevy_default(),
                 mip_level_count: 1,
@@ -304,7 +310,7 @@ impl CameraTargets {
         sprite_image.resize(target_size);
         light_image.resize(target_size);
         reduced_image.resize(target_size);
-        menu_image.resize(target_size);
+        menu_image.resize(menu_size);
 
         let bg_sprite_image_handle: Handle<Image> = Handle::weak_from_u128(84562364042238462870);
         let bg_light_image_handle: Handle<Image> = Handle::weak_from_u128(81297563682952991276);
@@ -334,7 +340,7 @@ impl CameraTargets {
 fn setup_sprite_camera(
     mut commands: Commands,
     camera_targets: Res<CameraTargets>,
-    lightmap_plugin_settings: Res<LightmapPluginSettings>,
+    lightmap_plugin_settings: Res<LayeringPluginSettings>,
 ) {
     let bg_bloom = BloomSettings {
         intensity: 0.56,
@@ -466,19 +472,18 @@ const PP_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860343678);
 const PP_MATERIAL: Handle<BlendTexturesMaterial> = Handle::weak_from_u128(52374148673736462871);
 
 const REDUCED_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860383170);
-const REDUCED_MATERIAL: Handle<DummyMaterial> = Handle::weak_from_u128(52374148673136432070);
+const REDUCED_MATERIAL: Handle<ReducedMaterial> = Handle::weak_from_u128(52374148673136432070);
 
 const MENU_QUAD: Handle<Mesh> = Handle::weak_from_u128(36467206864860383170);
 const MENU_MATERIAL: Handle<SpriteMaterial> = Handle::weak_from_u128(29374148673136432070);
 
 fn setup_post_processing_camera(
     mut commands: Commands,
-    lightmap_plugin_settings: Res<LightmapPluginSettings>,
     mut camera_targets: ResMut<CameraTargets>,
     mut images: ResMut<Assets<Image>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BlendTexturesMaterial>>,
-    mut dum_materials: ResMut<Assets<DummyMaterial>>,
+    mut dum_materials: ResMut<Assets<ReducedMaterial>>,
     mut sprite_materials: ResMut<Assets<SpriteMaterial>>,
 ) {
     let primary_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
@@ -487,7 +492,8 @@ fn setup_post_processing_camera(
     meshes.insert(BG_PP_QUAD.clone(), quad.clone());
     meshes.insert(PP_QUAD.clone(), quad.clone());
     meshes.insert(REDUCED_QUAD.clone(), quad.clone());
-    meshes.insert(MENU_QUAD.clone(), quad.clone());
+    let menu_quad = Mesh::from(Rectangle::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32));
+    meshes.insert(MENU_QUAD.clone(), menu_quad.clone());
 
     *camera_targets = CameraTargets::create(&mut images, &primary_size);
 
@@ -501,8 +507,10 @@ fn setup_post_processing_camera(
         texture2: camera_targets.light_target.clone(),
     };
 
-    let reduced_material = DummyMaterial {
+    let reduced_material = ReducedMaterial {
         texture: camera_targets.reduced_target.clone(),
+        num_pixels_w: SCREEN_WIDTH as f32,
+        num_pixels_h: SCREEN_HEIGHT as f32,
     };
 
     let menu_material = SpriteMaterial {
@@ -523,7 +531,7 @@ fn setup_post_processing_camera(
             mesh: BG_PP_QUAD.clone().into(),
             material: BG_PP_MATERIAL.clone(),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, -1.0),
+                translation: Vec3::new(0.0, 0.0, 0.0),
                 ..default()
             },
             ..default()
@@ -537,7 +545,7 @@ fn setup_post_processing_camera(
             mesh: PP_QUAD.clone().into(),
             material: PP_MATERIAL.clone(),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                translation: Vec3::new(0.0, 0.0, 1.0),
                 ..default()
             },
             ..default()
@@ -566,8 +574,7 @@ fn setup_post_processing_camera(
             mesh: MENU_QUAD.clone().into(),
             material: MENU_MATERIAL.clone(),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, -1.0),
-                scale: Vec3::ONE * (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32),
+                translation: Vec3::new(0.0, 0.0, 1.0),
                 ..default()
             },
             ..default()
@@ -576,56 +583,17 @@ fn setup_post_processing_camera(
     ));
 
     // Camera that renders the final image for the screen
-    let camera_id = commands
-        .spawn((
-            Name::new("post_processing_camera"),
-            Camera2dBundle {
-                camera: Camera {
-                    order: 6,
-                    hdr: true,
-                    ..default()
-                },
+    commands.spawn((
+        Name::new("post_processing_camera"),
+        Camera2dBundle {
+            camera: Camera {
+                order: 6,
+                hdr: true,
                 ..default()
             },
-            CameraMarker::new(),
-            output_layer,
-        ))
-        .id();
-
-    if lightmap_plugin_settings.bloom.is_some() {
-        commands
-            .entity(camera_id)
-            .insert(lightmap_plugin_settings.bloom.clone().unwrap());
-    }
-}
-
-fn on_resize_window(// mut resize_reader: EventReader<WindowResized>,
-    // window: Query<&Window, With<PrimaryWindow>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // mut camera_targets: ResMut<CameraTargets>,
-    // mut images: ResMut<Assets<Image>>,
-    // mut materials: ResMut<Assets<BlendTexturesMaterial>>,
-) {
-    // TODO: Re-enable this, or disable changing size
-    // for ev in resize_reader.read() {
-    //     let Ok(window) = window.get_single() else {
-    //         panic!("No window")
-    //     };
-    //     let primary_size = Vec2::new(
-    //         (ev.width / window.scale_factor()) as f32,
-    //         (ev.height / window.scale_factor()) as f32,
-    //     );
-
-    //     let quad = Mesh::from(Rectangle::new(primary_size.x, primary_size.y));
-    //     meshes.insert(POST_PROCESSING_QUAD.clone(), quad);
-
-    //     *camera_targets = CameraTargets::create(&mut images, &primary_size);
-
-    //     let material = BlendTexturesMaterial {
-    //         texture1: camera_targets.sprite_target.clone(),
-    //         texture2: camera_targets.light_target.clone(),
-    //     };
-
-    //     materials.insert(POST_PROCESSING_MATERIAL.clone(), material);
-    // }
+            ..default()
+        },
+        CameraMarker::new(),
+        output_layer,
+    ));
 }

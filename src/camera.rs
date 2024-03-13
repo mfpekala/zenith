@@ -1,6 +1,7 @@
 use crate::{
+    cutscenes::is_not_in_cutscene,
     drawing::{
-        lightmap::{LightCameraMarker, LightmapPlugin, SpriteCameraMarker},
+        layering::{LayeringPlugin, LightCameraMarker, SpriteCameraMarker},
         post_pixel::PostPixelPlugin,
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
@@ -130,12 +131,13 @@ pub fn update_camera(
 }
 
 pub fn register_camera(app: &mut App) {
-    app.add_plugins(LightmapPlugin);
+    app.add_plugins(LayeringPlugin);
     app.add_plugins(PostPixelPlugin);
     app.add_systems(
         Update,
         update_camera
             .run_if(in_editor.or_else(in_level))
+            .run_if(is_not_in_cutscene)
             .after(move_int_dynos),
     );
 }

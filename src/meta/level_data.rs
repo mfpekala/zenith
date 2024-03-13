@@ -6,12 +6,12 @@ use crate::{
     environment::{
         field::{Field, FieldBundle},
         goal::GoalBundle,
-        rock::{Rock, RockBundle, RockFeatures, RockKind},
+        rock::{Rock, RockBundle, RockKind, RockResources},
         starting_point::StartingPointBundle,
     },
     ship::Ship,
 };
-use bevy::{ecs::system::SystemId, prelude::*, utils::HashMap};
+use bevy::{ecs::system::SystemId, prelude::*};
 use std::{
     fs::File,
     io::Read,
@@ -66,8 +66,8 @@ impl SaveableRock {
     pub fn spawn_rock(
         &self,
         commands: &mut Commands,
-        feature_map: &HashMap<RockKind, RockFeatures>,
         meshes: &mut ResMut<Assets<Mesh>>,
+        rock_res: &Res<RockResources>,
     ) {
         if self.points.len() <= 0 {
             return;
@@ -85,10 +85,9 @@ impl SaveableRock {
                 .map(|p| p - center)
                 .collect(),
             kind: self.kind.clone(),
-            features: feature_map.get(&self.kind).unwrap().clone(),
         };
         // TODO: Fix the editor so it doesn't tie rocks to fields as much
-        RockBundle::spawn(commands, center, rock, meshes);
+        RockBundle::spawn(commands, center, rock, meshes, &rock_res);
     }
 }
 
@@ -152,18 +151,22 @@ impl LevelData {
     pub fn load_level(
         &self,
         commands: &mut Commands,
-        feature_map: &HashMap<RockKind, RockFeatures>,
         meshes: &mut ResMut<Assets<Mesh>>,
-        spawn_ship_id: SystemId<(Vec2, f32)>,
+        rock_res: &Res<RockResources>,
+        spawn_ship_id: SystemId<(IVec2, f32)>,
     ) {
         for srock in self.rocks.iter() {
-            srock.spawn_rock(commands, feature_map, meshes);
+            srock.spawn_rock(commands, meshes, rock_res);
         }
         for field in self.fields.iter() {
             field.spawn_field(commands);
         }
         commands.spawn(StartingPointBundle::new(self.starting_point));
         GoalBundle::spawn(self.goal_point, commands);
-        commands.run_system_with_input(spawn_ship_id, (self.starting_point, Ship::radius()));
+        let ipos = IVec2 {
+            x: self.starting_point.x as i32,
+            y: self.starting_point.y as i32,
+        };
+        commands.run_system_with_input(spawn_ship_id, (ipos, Ship::radius()));
     }
 }

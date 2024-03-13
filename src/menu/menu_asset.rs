@@ -17,8 +17,8 @@ pub struct MenuAsset {
 impl MenuAsset {
     pub fn spawn(&self, commands: &mut Commands, asset_server: &Res<AssetServer>) -> Vec<Entity> {
         let mut cursed = vec![];
-        for tb in self.texts.iter() {
-            let id = tb.spawn(commands, asset_server);
+        for (ix, tb) in self.texts.iter().enumerate() {
+            let id = tb.spawn(commands, asset_server, ix as f32);
             cursed.push(id);
         }
         cursed

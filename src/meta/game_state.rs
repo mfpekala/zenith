@@ -3,8 +3,8 @@ use bevy::prelude::*;
 #[derive(Clone, Copy, Debug)]
 pub enum MenuState {
     Title,
-    SaveFile,
     ConstellationSelect,
+    GalaxyOverworld,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -39,7 +39,7 @@ pub struct LevelState {
     pub next_id: Option<String>,
     pub is_settled: bool,
     pub is_won: bool,
-    pub last_safe_location: Vec2,
+    pub last_safe_location: IVec2,
     pub num_shots: i32,
 }
 impl LevelState {
@@ -49,7 +49,7 @@ impl LevelState {
             next_id: None,
             is_settled: false,
             is_won: false,
-            last_safe_location: Vec2::ZERO,
+            last_safe_location: IVec2::ZERO,
             num_shots: 0,
         }
     }
@@ -95,16 +95,16 @@ impl GameState {
         }
     }
 
-    pub fn into_next(self) -> NextGameState {
-        NextGameState { meta: self.meta }
+    pub fn into_prev(self) -> PrevGameState {
+        PrevGameState { meta: self.meta }
     }
 }
 
 #[derive(Resource, Clone, Debug)]
-pub struct NextGameState {
+pub struct PrevGameState {
     pub meta: MetaState,
 }
-impl NextGameState {
+impl PrevGameState {
     pub fn into_game_state(self) -> GameState {
         GameState { meta: self.meta }
     }
@@ -113,17 +113,12 @@ impl NextGameState {
 #[derive(Event)]
 pub struct SetGameState(pub GameState);
 
-pub fn pretranslate_events(
+fn translate_events(
     mut state_change: EventReader<SetGameState>,
-    mut next_gs: ResMut<NextGameState>,
+    mut prev_gs: ResMut<PrevGameState>,
+    mut gs: ResMut<GameState>,
 ) {
-    let Some(SetGameState(new_state)) = state_change.read().last() else {
-        return;
-    };
-    *next_gs = new_state.clone().into_next();
-}
-
-fn translate_events(mut state_change: EventReader<SetGameState>, mut gs: ResMut<GameState>) {
+    *prev_gs = gs.clone().into_prev();
     let Some(SetGameState(new_state)) = state_change.read().last() else {
         return;
     };
@@ -142,18 +137,17 @@ pub fn register_game_state(app: &mut App) {
         next_id: None,
         is_settled: false,
         is_won: false,
-        last_safe_location: Vec2::ZERO,
+        last_safe_location: IVec2::ZERO,
         num_shots: 0,
     });
     app.insert_resource(GameState {
         meta: initial_state.clone(),
     });
-    app.insert_resource(NextGameState {
+    app.insert_resource(PrevGameState {
         meta: initial_state,
     });
     app.add_event::<SetGameState>();
     app.add_systems(Startup, set_initial_game_state);
-    app.add_systems(Update, pretranslate_events);
     app.add_systems(PostUpdate, translate_events);
 }
 
@@ -163,19 +157,11 @@ pub fn register_game_state(app: &mut App) {
 macro_rules! when_becomes_true {
     ($ref_fn: ident, $fname: ident) => {
         pub fn $fname(
-            mut state_change: EventReader<crate::meta::game_state::SetGameState>,
-            old_state: Res<GameState>,
+            old_state: Res<crate::meta::game_state::PrevGameState>,
+            new_state: Res<crate::meta::game_state::GameState>,
         ) -> bool {
-            match state_change.read().last() {
-                Some(crate::meta::game_state::SetGameState(state)) => {
-                    if $ref_fn(&old_state) {
-                        // It's already true
-                        return false;
-                    }
-                    $ref_fn(state)
-                }
-                None => false,
-            }
+            let old_as_gs = old_state.clone().into_game_state();
+            !$ref_fn(&old_as_gs) && $ref_fn(&new_state)
         }
     };
 }
@@ -184,19 +170,11 @@ macro_rules! when_becomes_true {
 macro_rules! when_becomes_false {
     ($ref_fn: ident, $fname: ident) => {
         pub fn $fname(
-            mut state_change: EventReader<crate::meta::game_state::SetGameState>,
-            old_state: Res<GameState>,
+            old_state: Res<crate::meta::game_state::PrevGameState>,
+            new_state: Res<crate::meta::game_state::GameState>,
         ) -> bool {
-            match state_change.read().last() {
-                Some(crate::meta::game_state::SetGameState(state)) => {
-                    if !$ref_fn(&old_state) {
-                        // It's already false
-                        return false;
-                    }
-                    !$ref_fn(state)
-                }
-                None => false,
-            }
+            let old_as_gs = old_state.clone().into_game_state();
+            $ref_fn(&old_as_gs) && !$ref_fn(&new_state)
         }
     };
 }

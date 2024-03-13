@@ -7,7 +7,7 @@ use crate::{
     drawing::hollow::{CircleMarker, HollowDrawable},
     environment::{
         field::Field,
-        rock::{Rock, RockKind, RockResources},
+        rock::{Rock, RockKind},
     },
     input::MouseState,
     math::MathLine,
@@ -27,32 +27,22 @@ pub struct EditableRock {
     pub points: Vec<Entity>,
 }
 impl EditableRock {
-    fn to_rock(
-        &self,
-        epoints: &Query<&Transform, With<EditablePoint>>,
-        offset: Vec2,
-        rock_resources: &Res<RockResources>,
-    ) -> Rock {
+    fn to_rock(&self, epoints: &Query<&Transform, With<EditablePoint>>, offset: Vec2) -> Rock {
         let mut points = vec![];
         for pid in self.points.iter() {
             let tran = epoints.get(pid.clone()).unwrap();
             points.push(tran.translation.truncate() - offset);
         }
-        Rock::new(
-            points,
-            self.kind.clone(),
-            rock_resources.feature_map.get(&self.kind).unwrap().clone(),
-        )
+        Rock::new(points, self.kind.clone())
     }
 
     pub fn to_rock_n_reach(
         &self,
         epoints: &Query<&Transform, With<EditablePoint>>,
         offset: Vec2,
-        rock_resources: &Res<RockResources>,
     ) -> (Rock, Option<f32>) {
         let first_point = epoints.get(self.points[0]).unwrap();
-        let as_rock = self.to_rock(&epoints, offset, rock_resources);
+        let as_rock = self.to_rock(&epoints, offset);
         let Some(rp) = self.gravity_reach_point else {
             return (as_rock, None);
         };
@@ -297,7 +287,6 @@ fn draw_editable_rocks(
     erocks: Query<(&EditableRock, &Transform)>,
     epoints: Query<&Transform, With<EditablePoint>>,
     mut gz: Gizmos,
-    rock_resources: Res<RockResources>,
 ) {
     for (rock, tran) in erocks.iter() {
         if rock.points.len() < 3 {
@@ -339,7 +328,7 @@ fn draw_editable_rocks(
                 .translation
                 .truncate()
                 .distance(rp_point.translation.truncate());
-            let as_rock = rock.to_rock(&epoints, tran.translation.truncate(), &rock_resources);
+            let as_rock = rock.to_rock(&epoints, tran.translation.truncate());
             let show_fields = Field::uniform_around_rock(&as_rock, dist, 1.0);
             for field in show_fields {
                 field.draw_hollow(tran.translation.truncate(), &mut gz);

@@ -3,8 +3,12 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     camera::CameraMarker,
-    drawing::{BgLightGizmoGroup, BgSpriteGizmoGroup},
+    drawing::{
+        effects::{EffectVal, Sizeable},
+        BgLightGizmoGroup, BgSpriteGizmoGroup,
+    },
     math::Spleen,
+    menu::constellation_screen::ConstellationScreenData,
     meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
 };
 
@@ -121,8 +125,9 @@ fn draw_star(
         alpha: 1.0,
     };
     for diff in [up, right, up * 0.6 + right * 0.6, up * 0.6 - right * 0.6].iter() {
-        bg_sprite_gz.line_2d(final_pos - *diff, final_pos + *diff, star.color);
-        bg_light_gz.line_2d(final_pos - *diff, final_pos + *diff, white);
+        let calc_diff = *diff * (1.0 + 1.5 * lightness_boost);
+        bg_sprite_gz.line_2d(final_pos - calc_diff, final_pos + calc_diff, star.color);
+        bg_light_gz.line_2d(final_pos - calc_diff, final_pos + calc_diff, white);
     }
 }
 
@@ -152,6 +157,8 @@ fn update_stars(
     cam_q: Query<&CameraMarker>,
     star_order: Res<StarOrder>,
     hyperspace: Res<HyperSpace>,
+    constel_data: Query<&ConstellationScreenData>,
+    texts: Query<(&Text, &EffectVal<{ Sizeable::id() }>)>,
 ) {
     let Ok(cam) = cam_q.get_single() else {
         return;
@@ -162,6 +169,17 @@ fn update_stars(
     let lightness_boost = ((hyperspace.cur_speed / MAX_HYPERSPACE_SPEED).length_squared() as f32)
         .sqrt()
         .min(0.6);
+    let mut left_val = 0.0;
+    let mut right_val = 0.0;
+    for (text, eval) in texts.iter() {
+        // Subtract one because the scaling animations go from 1 -> 1.3 (ish)
+        if text.sections[0].value == "A" {
+            left_val = eval.interp() - 1.0;
+        }
+        if text.sections[0].value == "B" {
+            right_val = eval.interp() - 1.0;
+        }
+    }
     for star_id in star_order.0.iter() {
         let Ok(mut star) = stars.get_mut(*star_id) else {
             continue;
@@ -176,13 +194,21 @@ fn update_stars(
             / ref_screen_size;
         let buff_frac = 0.33;
         let offset = screen_size * (1.0 + 2.0 * buff_frac) * frac - screen_size * (1.0 + buff_frac);
-        let final_pos = (offset + screen_size / 2.0).round();
+        // Maybe this looks better rounded? idk
+        let final_pos = offset + screen_size / 2.0;
+
+        // Hack in our cool save file picking strategy
+        let mut additional_lightness = 0.0;
+        if constel_data.iter().len() > 0 {
+            additional_lightness += if frac.x < 0.5 { left_val } else { right_val };
+        }
+
         draw_star(
             &star,
             final_pos,
             &mut bg_sprite_gz,
             &mut bg_light_gz,
-            lightness_boost,
+            lightness_boost + additional_lightness,
         );
         if star.twinkling {
             star.brightness = (star.brightness + 0.001).min(0.7);
@@ -198,7 +224,7 @@ fn update_stars(
     }
 }
 
-pub const BASE_TITLE_HYPERSPACE_SPEED: IVec2 = IVec2 { x: 6, y: 1 };
+pub const BASE_TITLE_HYPERSPACE_SPEED: IVec2 = IVec2 { x: 20, y: 1 };
 
 pub fn register_background(app: &mut App) {
     app.insert_resource(StarOrder(vec![]));

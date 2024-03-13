@@ -1,13 +1,11 @@
-use bevy::prelude::*;
-
+use super::menu_asset::MenuAssetComponent;
 use crate::{
     environment::background::{HyperSpace, BASE_TITLE_HYPERSPACE_SPEED, MAX_HYPERSPACE_SPEED},
     math::Spleen,
-    meta::game_state::{pretranslate_events, GameState, MenuState, MetaState, SetGameState},
+    meta::game_state::{GameState, MenuState, MetaState, SetGameState},
     when_becomes_false, when_becomes_true,
 };
-
-use super::menu_asset::MenuAssetComponent;
+use bevy::prelude::*;
 
 const TITLE_SCREEN_RON_PATH: &'static str = "menus/title_screen.ron";
 
@@ -48,11 +46,7 @@ fn update_title_screen(
     };
     death.timer.tick(time.delta());
     if death.timer.finished() {
-        hyperspace.approach_speed(
-            BASE_TITLE_HYPERSPACE_SPEED,
-            transition_time,
-            Spleen::EaseOutQuintic,
-        );
+        hyperspace.approach_speed(IVec2::ZERO, transition_time * 1.5, Spleen::EaseOutQuintic);
         commands.entity(id).despawn_recursive();
         gs_writer.send(SetGameState(GameState {
             meta: MetaState::Menu(MenuState::ConstellationSelect),
@@ -88,17 +82,7 @@ when_becomes_true!(is_in_title_screen_helper, entered_title_screen);
 when_becomes_false!(is_in_title_screen_helper, left_title_screen);
 
 pub fn register_title_screen(app: &mut App) {
-    app.add_systems(
-        Update,
-        setup_title_screen
-            .run_if(entered_title_screen)
-            .after(pretranslate_events),
-    );
-    app.add_systems(
-        Update,
-        destroy_title_screen
-            .run_if(left_title_screen)
-            .after(pretranslate_events),
-    );
+    app.add_systems(Update, setup_title_screen.run_if(entered_title_screen));
+    app.add_systems(Update, destroy_title_screen.run_if(left_title_screen));
     app.add_systems(Update, update_title_screen.run_if(is_in_title_screen));
 }

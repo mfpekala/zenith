@@ -1,14 +1,16 @@
+use crate::cutscenes::is_not_in_cutscene;
+use crate::drawing::layering::sprite_layer;
 use crate::drawing::light::RegularLightBundle;
-use crate::drawing::lightmap::sprite_layer;
 use crate::drawing::mesh::generate_new_color_mesh;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
+use crate::environment::rock::{Rock, RockKind};
 use crate::input::LaunchEvent;
 use crate::input::LongKeyPress;
 use crate::math::{regular_polygon, Spleen};
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
-use crate::physics::dyno::IntDyno;
+use crate::physics::dyno::{resolve_dynos, IntDyno};
 use crate::physics::should_apply_physics;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
@@ -36,9 +38,9 @@ pub struct ShipBundle {
 }
 
 #[derive(Resource)]
-pub struct SpawnShipId(pub SystemId<(bevy::prelude::Vec2, f32)>);
+pub struct SpawnShipId(pub SystemId<(bevy::prelude::IVec2, f32)>);
 pub fn spawn_ship(
-    In((pos, radius)): In<(Vec2, f32)>,
+    In((pos, radius)): In<(IVec2, f32)>,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
@@ -51,14 +53,14 @@ pub fn spawn_ship(
     }));
     let points = regular_polygon(6, 45.0, radius);
     let mut mesh = generate_new_color_mesh(&points, &mat, &mut meshes);
-    mesh.transform.translation = pos.extend(1.0);
+    mesh.transform.translation = pos.as_vec2().extend(1.0);
     commands
         .spawn(ShipBundle {
             ship: Ship { can_shoot: false },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
             dyno: IntDyno {
                 vel: Vec2::ZERO,
-                pos: IVec2::ZERO,
+                pos,
                 rem: Vec2::ZERO,
                 radius: 4.0,
                 statics: vec![],
@@ -100,9 +102,9 @@ pub fn launch_ship(
     let level_state = gs.get_level_state();
     for launch in launch_events.read() {
         for (mut dyno, mut ship) in ship_q.iter_mut() {
-            // if !ship.can_shoot && level_state.is_some() {
-            //     continue;
-            // }
+            if !ship.can_shoot && level_state.is_some() {
+                continue;
+            }
             dyno.vel = launch.vel;
             ship.can_shoot = false;
             if let Some(mut ls) = level_state.clone() {
@@ -140,18 +142,25 @@ fn watch_for_death(
     gs: Res<GameState>,
     entity_n_lp: Query<(Entity, &IntDyno), With<Ship>>,
     spawn_ship_id: Res<SpawnShipId>,
+    rock_info: Query<&Rock>,
 ) {
     let MetaState::Level(level_state) = &gs.meta else {
         return;
     };
     for (id, dyno) in entity_n_lp.iter() {
-        // if dyno.touching_rock == Some(RockKind::SimpleKill) {
-        //     commands.entity(id).despawn_recursive();
-        //     commands.run_system_with_input(
-        //         spawn_ship_id.0,
-        //         (level_state.last_safe_location, Ship::radius()),
-        //     );
-        // }
+        for rock_id in dyno.statics.iter() {
+            let Ok(rock) = rock_info.get(*rock_id) else {
+                continue;
+            };
+            if rock.kind == RockKind::SimpleKill {
+                commands.entity(id).despawn_recursive();
+                commands.run_system_with_input(
+                    spawn_ship_id.0,
+                    (level_state.last_safe_location, Ship::radius()),
+                );
+                break;
+            }
+        }
     }
 }
 
@@ -167,18 +176,19 @@ fn replenish_shot(
         if ship.can_shoot {
             continue;
         }
-        // if dyno.vel.length() < 3.0
-        //     && dyno.touching_rock.is_some()
-        //     && dyno.touching_rock != Some(RockKind::SimpleKill)
-        // {
-        //     ship.can_shoot = true;
-        //     dyno.vel = Vec2::ZERO;
-        //     let mut ls = level_state.clone();
-        //     ls.last_safe_location = tran.translation().truncate();
-        //     gs_writer.send(SetGameState(GameState {
-        //         meta: MetaState::Level(ls),
-        //     }));
-        // }
+        let ipos = IVec2 {
+            x: tran.translation().x as i32,
+            y: tran.translation().y as i32,
+        };
+        if dyno.vel.length() < 3.0 && dyno.statics.len() > 0 {
+            ship.can_shoot = true;
+            dyno.vel = Vec2::ZERO;
+            let mut ls = level_state.clone();
+            ls.last_safe_location = ipos;
+            gs_writer.send(SetGameState(GameState {
+                meta: MetaState::Level(ls),
+            }));
+        }
     }
 }
 
@@ -218,7 +228,12 @@ pub fn spawn_trail(
 pub fn register_ship(app: &mut App) {
     let spawn_id = app.world.register_system(spawn_ship);
     app.insert_resource(SpawnShipId(spawn_id));
-    app.add_systems(Update, launch_ship.run_if(should_apply_physics));
+    app.add_systems(
+        Update,
+        launch_ship
+            .run_if(should_apply_physics)
+            .run_if(is_not_in_cutscene),
+    );
     app.add_systems(
         Update,
         (
@@ -227,6 +242,8 @@ pub fn register_ship(app: &mut App) {
             watch_for_death,
             spawn_trail,
         )
-            .run_if(should_apply_physics),
+            .run_if(should_apply_physics)
+            .run_if(is_not_in_cutscene)
+            .after(resolve_dynos),
     );
 }

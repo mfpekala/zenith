@@ -1,17 +1,19 @@
 use crate::environment::background::register_background;
 
 use self::{
+    effects::EffectsPlugin,
     hollow::register_hollow_drawing,
+    layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
-    lightmap::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
 };
 use bevy::prelude::*;
 
+pub mod effects;
 pub mod hollow;
+pub mod layering;
 pub mod light;
-pub mod lightmap;
 pub mod mesh;
 pub mod post_pixel;
 pub mod sprite_mat;
@@ -45,6 +47,7 @@ pub fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
 }
 
 pub fn register_drawing(app: &mut App) {
+    app.add_plugins(EffectsPlugin);
     app.add_plugins(SpriteMaterialPlugin);
     app.add_plugins(ZenithTextPlugin);
 

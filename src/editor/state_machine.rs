@@ -215,21 +215,29 @@ fn start_testing(
     camera_switch_writer.send(SetCameraModeEvent {
         mode: CameraMode::Follow,
     });
-    commands.run_system_with_input(
-        spawn_ship_id.0,
-        (estart.single().translation.truncate(), Ship::radius()),
-    );
+    let ipos = IVec2 {
+        x: estart.single().translation.x.round() as i32,
+        y: estart.single().translation.y.round() as i32,
+    };
+    commands.run_system_with_input(spawn_ship_id.0, (ipos, Ship::radius()));
     GoalBundle::spawn(egoal.single().translation.truncate(), &mut commands);
     for (erock, tran) in erocks.iter() {
-        let (rock, reach) =
-            erock.to_rock_n_reach(&epoints, tran.translation.truncate(), &rock_resources);
+        let (rock, reach) = erock.to_rock_n_reach(&epoints, tran.translation.truncate());
         let base_pos = tran.translation.truncate();
         match reach {
             Some(reach) => {
-                spawn_planet(&mut commands, base_pos, rock, reach, 1.0, &mut meshes);
+                spawn_planet(
+                    &mut commands,
+                    base_pos,
+                    rock,
+                    reach,
+                    1.0,
+                    &mut meshes,
+                    &rock_resources,
+                );
             }
             None => {
-                RockBundle::spawn(&mut commands, base_pos, rock, &mut meshes);
+                RockBundle::spawn(&mut commands, base_pos, rock, &mut meshes, &rock_resources);
             }
         }
     }

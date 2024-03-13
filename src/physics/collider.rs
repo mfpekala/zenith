@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{math::MathLine, meta::consts::MAX_COLLISIONS_PER_FRAME};
 
-use super::dyno::{move_int_dynos, IntDyno};
+use super::dyno::IntDyno;
 
 #[derive(Component, Debug)]
 pub struct ColliderBoundary {
@@ -225,6 +225,4 @@ pub fn update_triggers(
     }
 }
 
-pub fn register_colliders(app: &mut App) {
-    app.add_systems(FixedUpdate, update_triggers.after(move_int_dynos));
-}
+pub fn register_colliders(_app: &mut App) {}

@@ -1,5 +1,5 @@
 use crate::{
-    drawing::{lightmap::sprite_layer, mesh::generate_new_color_mesh},
+    drawing::{layering::sprite_layer, mesh::generate_new_color_mesh},
     math::{regular_polygon, MathLine},
     physics::collider::{ColliderStatic, ColliderStaticBundle},
 };
@@ -68,15 +68,10 @@ fn init_rock_materials(
 pub struct Rock {
     pub points: Vec<Vec2>,
     pub kind: RockKind,
-    pub features: RockFeatures,
 }
 impl Rock {
-    pub fn new(points: Vec<Vec2>, kind: RockKind, features: RockFeatures) -> Self {
-        Rock {
-            points,
-            kind,
-            features,
-        }
+    pub fn new(points: Vec<Vec2>, kind: RockKind) -> Self {
+        Rock { points, kind }
     }
 
     pub fn closest_point(&self, point: &Vec2, base_point: &Vec2) -> Vec2 {
@@ -98,17 +93,11 @@ impl Rock {
         min_point + *base_point
     }
 
-    pub fn from_regular_polygon(
-        num_sides: u32,
-        radius: f32,
-        angle: f32,
-        features: RockFeatures,
-    ) -> Self {
+    pub fn from_regular_polygon(num_sides: u32, radius: f32, angle: f32) -> Self {
         let points = regular_polygon(num_sides, angle, radius);
         Self {
             points,
             kind: RockKind::Normal,
-            features,
         }
     }
 }
@@ -120,8 +109,16 @@ pub struct RockBundle {
     pub render_layers: RenderLayers,
 }
 impl RockBundle {
-    pub fn from_rock(rock: Rock, meshes: &mut ResMut<Assets<Mesh>>) -> Self {
-        let mesh = generate_new_color_mesh(&rock.points, &rock.features.mat, meshes);
+    pub fn from_rock(
+        rock: Rock,
+        meshes: &mut ResMut<Assets<Mesh>>,
+        rock_res: &Res<RockResources>,
+    ) -> Self {
+        let mesh = generate_new_color_mesh(
+            &rock.points,
+            &rock_res.feature_map.get(&rock.kind).unwrap().mat,
+            meshes,
+        );
         Self {
             rock,
             mesh,
@@ -134,8 +131,9 @@ impl RockBundle {
         base_pos: Vec2,
         rock: Rock,
         meshes: &mut ResMut<Assets<Mesh>>,
+        rock_res: &Res<RockResources>,
     ) {
-        let mut bundle = Self::from_rock(rock.clone(), meshes);
+        let mut bundle = Self::from_rock(rock.clone(), meshes, rock_res);
         bundle.mesh.transform.translation = base_pos.extend(0.0);
         commands.spawn(bundle).with_children(|parent| {
             let points = rock

@@ -3,6 +3,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::{
     camera::{CameraMarker, CameraMode},
+    cutscenes::{is_not_in_cutscene, Cutscene},
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_WIDTH},
         game_state::{in_editor, in_level, GameState},
@@ -42,6 +43,7 @@ pub fn watch_mouse(
     mut launch_event: EventWriter<LaunchEvent>,
     camera_n_tran: Query<(&Transform, &CameraMarker)>,
     gs: Res<GameState>,
+    cutscene: Res<Cutscene>,
 ) {
     let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
         // Mouse is not in the window, don't do anything
@@ -74,7 +76,7 @@ pub fn watch_mouse(
     } else {
         match mouse_state.pending_launch_vel {
             Some(vel) => {
-                if should_apply_physics(gs) {
+                if should_apply_physics(gs) && *cutscene == Cutscene::None {
                     launch_event.send(LaunchEvent { vel });
                 }
                 mouse_state.pending_launch_start = None;
@@ -188,13 +190,15 @@ fn update_long_presses(mut lps: Query<&mut LongKeyPress>, keys: Res<ButtonInput<
 pub fn register_input(app: &mut App) {
     app.insert_resource(MouseState::empty());
     app.add_event::<LaunchEvent>();
-    app.add_systems(Update, watch_mouse);
     app.insert_resource(CameraControlState::new());
     app.add_event::<SwitchCameraModeEvent>();
     app.add_event::<SetCameraModeEvent>();
+    app.add_systems(Update, watch_mouse);
     app.add_systems(
         Update,
-        watch_camera_input.run_if(in_editor.or_else(in_level)),
+        watch_camera_input
+            .run_if(in_editor.or_else(in_level))
+            .run_if(is_not_in_cutscene),
     );
-    app.add_systems(Update, update_long_presses);
+    app.add_systems(Update, update_long_presses.run_if(is_not_in_cutscene));
 }

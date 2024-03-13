@@ -3,7 +3,7 @@ use super::{
     editable_starting_point::EditableStartingPoint,
 };
 use crate::{
-    environment::{field::Field, rock::RockResources},
+    environment::field::Field,
     meta::{
         game_state::in_editor,
         level_data::{get_level_folder, LevelData, SaveableField, SaveableRock},
@@ -18,7 +18,6 @@ fn watch_for_save(
     erocks: Query<(&EditableRock, &Transform)>,
     estart: Query<&Transform, With<EditableStartingPoint>>,
     egoal: Query<&Transform, With<EditableGoal>>,
-    rock_resources: Res<RockResources>,
 ) {
     if !keys.pressed(KeyCode::SuperLeft) || !keys.pressed(KeyCode::KeyS) {
         // Don't save
@@ -31,8 +30,7 @@ fn watch_for_save(
         if !erock.closed {
             continue;
         }
-        let (rock, reach) =
-            erock.to_rock_n_reach(&epoints, tran.translation.truncate(), &rock_resources);
+        let (rock, reach) = erock.to_rock_n_reach(&epoints, tran.translation.truncate());
         srocks.push(SaveableRock {
             points: rock
                 .points

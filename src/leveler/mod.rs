@@ -6,10 +6,7 @@ use crate::{
         starting_point::StartingPoint,
     },
     meta::{
-        game_state::{
-            entered_level, pretranslate_events, GameState, LevelState, MetaState, NextGameState,
-            SetGameState,
-        },
+        game_state::{entered_level, GameState, LevelState, MetaState, SetGameState},
         level_data::{get_level_folder, LevelData},
     },
     ship::{Ship, SpawnShipId},
@@ -38,17 +35,21 @@ fn setup_helper(
     rock_res: &Res<RockResources>,
     meshes: &mut ResMut<Assets<Mesh>>,
     gs_writer: &mut EventWriter<SetGameState>,
-    spawn_ship_id: SystemId<(Vec2, f32)>,
+    spawn_ship_id: SystemId<(IVec2, f32)>,
 ) {
     let level_data =
         LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
-    level_data.load_level(commands, &rock_res.feature_map, meshes, spawn_ship_id);
+    level_data.load_level(commands, meshes, rock_res, spawn_ship_id);
+    let ipos = IVec2 {
+        x: level_data.starting_point.x as i32,
+        y: level_data.starting_point.x as i32,
+    };
     let next_level_state = LevelState {
         id: level_id.clone(),
         next_id: level_data.next_level.clone(),
         is_settled: false,
         is_won: false,
-        last_safe_location: level_data.starting_point,
+        last_safe_location: ipos,
         num_shots: 0,
     };
     gs_writer.send(SetGameState(GameState {
@@ -58,7 +59,7 @@ fn setup_helper(
 
 pub fn setup_level(
     mut commands: Commands,
-    gs: Res<NextGameState>,
+    gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
     rock_res: Res<RockResources>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -123,9 +124,6 @@ pub fn progress_level(
 }
 
 pub fn register_leveler(app: &mut App) {
-    app.add_systems(
-        Update,
-        setup_level.run_if(entered_level).after(pretranslate_events),
-    );
+    app.add_systems(Update, setup_level.run_if(entered_level));
     app.add_systems(Update, progress_level);
 }

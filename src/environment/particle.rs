@@ -6,7 +6,7 @@ use rand::{thread_rng, Rng};
 use crate::{
     camera::CameraMarker,
     drawing::{
-        lightmap::{light_layer, sprite_layer},
+        layering::{light_layer, sprite_layer},
         mesh::generate_new_color_mesh,
     },
     math::{lerp, lerp_color, regular_polygon, Spleen},
