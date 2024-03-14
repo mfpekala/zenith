@@ -1,5 +1,6 @@
 use crate::{
     drawing::layering::bg_sprite_layer,
+    math::Spleen,
     meta::consts::{TuneableConsts, SCREEN_HEIGHT, SCREEN_WIDTH},
 };
 use bevy::prelude::*;
@@ -43,8 +44,10 @@ impl BgDepth {
 pub struct BgOffset {
     pub vel: Vec2,
     pub pos: IVec2,
+    pub placed: Vec2,
     pub rem: Vec2,
     pub base_scale: f32,
+    pub tweak_scale: Option<f32>,
 }
 impl BgOffset {
     pub fn from_frac_pos(
@@ -67,6 +70,14 @@ impl BgOffset {
             ..default()
         }
     }
+}
+
+#[derive(Component, Clone, Debug)]
+pub struct BgOffsetSpleen {
+    pub vel_start: Vec2,
+    pub vel_goal: Vec2,
+    pub spleen: Spleen,
+    pub timer: Timer,
 }
 
 #[derive(Bundle, Clone)]
@@ -127,11 +138,19 @@ fn test_new_bg_system_startup(mut commands: Commands) {
 }
 
 fn move_bg_entities(
-    mut objects: Query<(&mut Transform, &BgDepth, &mut BgOffset)>,
+    mut commands: Commands,
+    mut objects: Query<(
+        Entity,
+        &mut Transform,
+        &BgDepth,
+        &mut BgOffset,
+        Option<&mut BgOffsetSpleen>,
+    )>,
     tune: Res<TuneableConsts>,
+    time: Res<Time>,
 ) {
     let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
-    for (mut tran, depth, mut offset) in objects.iter_mut() {
+    for (id, mut tran, depth, mut offset, spleen) in objects.iter_mut() {
         // We move the objects in much the same way that we move dynos
         let would_move = offset.vel + offset.rem;
         let move_x = would_move.x.round() as i32;
@@ -153,17 +172,13 @@ fn move_bg_entities(
         let ref_screen_size = og_screen_size * dmult_translation;
         // Wrap if needed
         if let Some(wrap) = depth.wrap {
-            if offset.pos.as_vec2().x > ref_screen_size.x * wrap * 0.5 {
-                offset.pos.x = (-ref_screen_size.x * wrap * 0.5 + 1.0) as i32;
+            if offset.pos.as_vec2().x.abs() > ref_screen_size.x * wrap * 0.5 {
+                let rem = (offset.pos.x as f32).rem_euclid(ref_screen_size.x);
+                offset.pos.x = (-ref_screen_size.x * wrap + rem) as i32;
             }
-            if offset.pos.as_vec2().x < -ref_screen_size.x * wrap * 0.5 {
-                offset.pos.x = (ref_screen_size.x * wrap * 0.5 + 1.0) as i32;
-            }
-            if offset.pos.as_vec2().y > ref_screen_size.y * wrap * 0.5 {
-                offset.pos.y = (-ref_screen_size.y * wrap * 0.5 + 1.0) as i32;
-            }
-            if offset.pos.as_vec2().y < -ref_screen_size.y * wrap * 0.5 {
-                offset.pos.y = (ref_screen_size.y * wrap * 0.5 - 1.0) as i32;
+            if offset.pos.as_vec2().y.abs() > ref_screen_size.y * wrap * 0.5 {
+                let rem = (offset.pos.y as f32).rem_euclid(ref_screen_size.y);
+                offset.pos.y = (-ref_screen_size.y * wrap + rem) as i32;
             }
         }
         // The relative position on the screen. If on the screen, x and y will be in (-0.5, 0.5)
@@ -173,11 +188,23 @@ fn move_bg_entities(
         if depth.snap_to_pixel.unwrap_or(false) {
             pos = pos.round();
         }
-        let z = depth.depth as f32;
+        offset.placed = pos;
+        let z = -(depth.depth as f32);
         tran.translation = pos.extend(z);
         if depth.shrink.unwrap_or(false) {
             let factor = depth.dmult_scale(&tune);
-            tran.scale = (Vec2::ONE * factor * offset.base_scale).extend(z);
+            tran.scale =
+                (Vec2::ONE * factor * offset.base_scale * offset.tweak_scale.unwrap_or(1.0))
+                    .extend(z);
+        }
+        // Finally we apply spleen
+        if let Some(mut spleen) = spleen {
+            spleen.timer.tick(time.delta());
+            if spleen.timer.finished() {
+                commands.entity(id).remove::<BgOffsetSpleen>();
+            }
+            let frac = spleen.spleen.interp(spleen.timer.fraction());
+            offset.vel = spleen.vel_start + (spleen.vel_goal - spleen.vel_start) * frac;
         }
     }
 }

@@ -56,6 +56,7 @@ struct AlarmBgStarBundle {
     placement: PlacedBgBundle,
     sprite: SpriteBundle,
     layers: RenderLayers,
+    cs: CutsceneMarker,
 }
 
 pub(super) fn setup_alarm_cutscene(
@@ -116,11 +117,13 @@ pub(super) fn setup_alarm_cutscene(
             placement: placement.clone(),
             sprite,
             layers: bg_sprite_layer(),
+            cs: CutsceneMarker,
         });
         commands.spawn(AlarmBgStarBundle {
             placement,
             sprite: sprite_l,
             layers: bg_light_layer(),
+            cs: CutsceneMarker,
         });
     }
 
@@ -282,7 +285,6 @@ pub(super) fn stop_alarm_cutscene(
     if *cutscene != THIS_CUTSCENE {
         return;
     }
-    println!("Stopping cutscene");
     clear_background_entities(&mut commands, &bgs);
     clear_cutscene_entities(&mut commands, &css);
     *cutscene = Cutscene::None;

@@ -1,7 +1,8 @@
-use super::menu_asset::MenuAssetComponent;
+use super::{menu_asset::MenuAssetComponent, title_screen::ColorMarker};
 use crate::{
     cutscenes::{ChapterOneCutscenes, Cutscene, StartCutscene},
-    drawing::effects::{Sizeable, TriggerZoomToBlack},
+    drawing::effects::{EffectVal, Sizeable, TriggerZoomToBlack},
+    environment::background::BgOffset,
     math::Spleen,
     meta::game_state::{GameState, LevelState, MenuState, MetaState, SetGameState},
     when_becomes_false, when_becomes_true,
@@ -17,7 +18,7 @@ struct ConstellationScreenDeath {
 
 fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     MenuAssetComponent::spawn(
-        asset_server,
+        &asset_server,
         &mut commands,
         "menus/constellation_screen.ron".to_string(),
     );
@@ -32,15 +33,56 @@ pub struct ConstellationScreenData {
 fn update_constellation_screen(
     mut commands: Commands,
     mut screen_data: Query<&mut ConstellationScreenData>,
-    texts: Query<(Entity, &Text, &Sizeable)>,
+    texts: Query<(
+        Entity,
+        &Text,
+        &Sizeable,
+        Option<&EffectVal<{ Sizeable::id() }>>,
+    )>,
     mut death: Query<(Entity, &mut ConstellationScreenDeath)>,
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
     mut gs_writer: EventWriter<SetGameState>,
     mut ztb_writer: EventWriter<TriggerZoomToBlack>,
     mut cutscene_writer: EventWriter<StartCutscene>,
+    mut bgs: Query<(&mut Sprite, &mut BgOffset, &ColorMarker)>,
 ) {
     let transition_time = 0.75;
+    // Sparkle
+    let (mut left_val, mut right_val) = (1.0, 1.0);
+    for (_, text, _, val) in texts.iter() {
+        if text.sections[0].value == "A".to_string() {
+            left_val = match val {
+                Some(f) => f.interp(),
+                None => 1.0,
+            };
+        }
+        if text.sections[0].value == "B".to_string() {
+            right_val = match val {
+                Some(f) => f.interp(),
+                None => 1.0,
+            };
+        }
+    }
+    for (mut sprite, mut offset, og_color) in bgs.iter_mut() {
+        if offset.placed.x < 0.0 {
+            offset.tweak_scale = Some(left_val);
+            sprite.color = Color::hsla(
+                og_color.0.h(),
+                og_color.0.s(),
+                og_color.0.l() + left_val - 1.0,
+                og_color.0.a(),
+            )
+        } else {
+            offset.tweak_scale = Some(right_val);
+            sprite.color = Color::hsla(
+                og_color.0.h(),
+                og_color.0.s(),
+                og_color.0.l() + right_val - 1.0,
+                og_color.0.a(),
+            )
+        }
+    }
     match death.get_single_mut() {
         Err(_) => {
             // Player has not yet selected a save file
@@ -54,7 +96,7 @@ fn update_constellation_screen(
                 screen_data.selection = 1;
             }
             if start_effect {
-                for (id, text, sizeable) in texts.iter() {
+                for (id, text, sizeable, _) in texts.iter() {
                     let shared_spleen = Spleen::EaseInOutCubic;
                     let shared_duration = 0.5;
                     let shared_big = 1.3;

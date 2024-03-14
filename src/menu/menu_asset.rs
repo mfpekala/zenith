@@ -33,7 +33,7 @@ pub struct MenuAssetComponent {
     pub cursed_children: Vec<Entity>,
 }
 impl MenuAssetComponent {
-    pub fn spawn(asset_server: Res<AssetServer>, commands: &mut Commands, path: String) {
+    pub fn spawn(asset_server: &Res<AssetServer>, commands: &mut Commands, path: String) {
         let handle = asset_server.load::<MenuAsset>(path.clone());
         commands.spawn(Self {
             path,

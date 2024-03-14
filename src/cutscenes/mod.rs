@@ -76,7 +76,6 @@ fn play_update(
     let Ok((id, mut pd)) = play_delay.get_single_mut() else {
         // This code lets us restart the cutscene whenever one of the consts changes
         if tune.is_changed() {
-            println!("sending stop");
             cutscene_stopper.send(StopCutscene);
         }
         if *cutscene_res == Cutscene::None {
@@ -103,8 +102,8 @@ impl Plugin for CutscenesPlugin {
         app.add_event::<StartCutscene>();
         app.add_event::<StopCutscene>();
 
-        app.add_systems(Startup, play_setup);
-        app.add_systems(Update, play_update);
+        // app.add_systems(Startup, play_setup);
+        // app.add_systems(Update, play_update);
         app.add_systems(FixedUpdate, translate_cutscenes);
 
         register_chapter_one(app);
