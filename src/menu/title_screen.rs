@@ -1,9 +1,9 @@
 use super::menu_asset::MenuAssetComponent;
 use crate::{
-    environment::background::{HyperSpace, BASE_TITLE_HYPERSPACE_SPEED, MAX_HYPERSPACE_SPEED},
-    math::Spleen,
+    // environment::background::{HyperSpace, BASE_TITLE_HYPERSPACE_SPEED, MAX_HYPERSPACE_SPEED},
     meta::game_state::{GameState, MenuState, MetaState, SetGameState},
-    when_becomes_false, when_becomes_true,
+    when_becomes_false,
+    when_becomes_true,
 };
 use bevy::prelude::*;
 
@@ -26,17 +26,17 @@ fn update_title_screen(
     mut commands: Commands,
     mut death: Query<(Entity, &mut TitleScreenDeath)>,
     time: Res<Time>,
-    mut hyperspace: ResMut<HyperSpace>,
     keys: Res<ButtonInput<KeyCode>>,
     mut gs_writer: EventWriter<SetGameState>,
+    // mut hyperspace: ResMut<HyperSpace>,
 ) {
     let transition_time = 0.75;
     if keys.is_changed() && !keys.is_added() && death.iter().len() == 0 {
-        hyperspace.approach_speed(
-            BASE_TITLE_HYPERSPACE_SPEED * MAX_HYPERSPACE_SPEED,
-            transition_time,
-            Spleen::EaseInQuintic,
-        );
+        // hyperspace.approach_speed(
+        //     BASE_TITLE_HYPERSPACE_SPEED * MAX_HYPERSPACE_SPEED,
+        //     transition_time,
+        //     Spleen::EaseInQuintic,
+        // );
         commands.spawn(TitleScreenDeath {
             timer: Timer::from_seconds(transition_time + 0.05, TimerMode::Once),
         });
@@ -46,7 +46,7 @@ fn update_title_screen(
     };
     death.timer.tick(time.delta());
     if death.timer.finished() {
-        hyperspace.approach_speed(IVec2::ZERO, transition_time * 1.5, Spleen::EaseOutQuintic);
+        // hyperspace.approach_speed(IVec2::ZERO, transition_time * 1.5, Spleen::EaseOutQuintic);
         commands.entity(id).despawn_recursive();
         gs_writer.send(SetGameState(GameState {
             meta: MetaState::Menu(MenuState::ConstellationSelect),

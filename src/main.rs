@@ -23,7 +23,7 @@ use input::register_input;
 use leveler::register_leveler;
 use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
-    consts::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    consts::{TuneableConsts, TuneableConstsPlugin, WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
 };
 use music::register_music;
@@ -35,19 +35,25 @@ pub fn main_setup() {}
 fn main() {
     env_logger::init();
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
-            resizable: false,
-            title: "Zenith".to_string(),
-            ..default()
-        }),
-        ..default()
-    }))
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
+                    resizable: false,
+                    title: "Zenith".to_string(),
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest()),
+    )
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
     app.insert_resource(Time::<Fixed>::from_hz(24.0));
     app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
+    app.add_plugins(TuneableConstsPlugin);
+    app.add_plugins(RonAssetPlugin::<TuneableConsts>::new(&["consts.ron"]));
     app.add_plugins(CutscenesPlugin);
     // First register the game state
     register_game_state(&mut app);

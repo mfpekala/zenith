@@ -4,6 +4,8 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
+use crate::meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
+
 use super::sprite_mat::SpriteMaterial;
 
 fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHandle {
@@ -68,4 +70,17 @@ pub fn generate_new_sprite_mesh(
         material: mat.clone(),
         ..default()
     }
+}
+
+/// Returns a mesh that covers the screen
+pub fn generate_new_screen_mesh(meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHandle {
+    let x = SCREEN_WIDTH as f32 / 2.0;
+    let y = SCREEN_HEIGHT as f32 / 2.0;
+    let points = vec![
+        Vec2::new(-x, -y),
+        Vec2::new(-x, y),
+        Vec2::new(x, y),
+        Vec2::new(x, -y),
+    ];
+    points_to_mesh(&points, meshes)
 }

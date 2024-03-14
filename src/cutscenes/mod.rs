@@ -1,12 +1,22 @@
 use self::chapter_one::register_chapter_one;
-use crate::{
-    environment::background::HyperSpace,
-    meta::game_state::{GameState, LevelState, MetaState, SetGameState},
+use crate::meta::{
+    consts::TuneableConsts,
+    game_state::{GameState, LevelState, MetaState, SetGameState},
 };
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 mod chapter_one;
+
+#[derive(Component)]
+/// Marks components that should be removed when a cutscene is over
+pub struct CutsceneMarker;
+
+pub fn clear_cutscene_entities(commands: &mut Commands, bgs: &Query<Entity, With<CutsceneMarker>>) {
+    for id in bgs.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum ChapterOneCutscenes {
@@ -23,6 +33,9 @@ pub struct CutsceneCase(pub Cutscene);
 
 #[derive(Event)]
 pub struct StartCutscene(pub Cutscene);
+
+#[derive(Event)]
+pub struct StopCutscene;
 
 fn translate_cutscenes(mut start_reader: EventReader<StartCutscene>, mut res: ResMut<Cutscene>) {
     if let Some(cutscene) = start_reader.read().last() {
@@ -54,19 +67,30 @@ fn play_update(
     mut play_delay: Query<(Entity, &mut PlayDelay)>,
     time: Res<Time>,
     mut gs_writer: EventWriter<SetGameState>,
-    mut cutscene_writer: EventWriter<StartCutscene>,
-    mut hyperspace: ResMut<HyperSpace>,
+    mut cutscene_starter: EventWriter<StartCutscene>,
+    mut cutscene_stopper: EventWriter<StopCutscene>,
+    cutscene_res: Res<Cutscene>,
+    tune: Res<TuneableConsts>,
 ) {
+    let playing = Cutscene::One(ChapterOneCutscenes::Alarm);
     let Ok((id, mut pd)) = play_delay.get_single_mut() else {
+        // This code lets us restart the cutscene whenever one of the consts changes
+        if tune.is_changed() {
+            println!("sending stop");
+            cutscene_stopper.send(StopCutscene);
+        }
+        if *cutscene_res == Cutscene::None {
+            cutscene_starter.send(StartCutscene(playing));
+        }
         return;
     };
+    // This weird timer based code lets us simulate slipping into the cutscene
     pd.0.tick(time.delta());
     if pd.0.finished() {
-        hyperspace.approach_speed(IVec2::ZERO, 0.0, crate::math::Spleen::EaseInCubic);
         gs_writer.send(SetGameState(GameState {
             meta: MetaState::Level(LevelState::fresh_from_id("L1".to_string())),
         }));
-        cutscene_writer.send(StartCutscene(Cutscene::One(ChapterOneCutscenes::Alarm)));
+        cutscene_starter.send(StartCutscene(playing));
         commands.entity(id).despawn();
     }
 }
@@ -77,6 +101,7 @@ impl Plugin for CutscenesPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Cutscene::None);
         app.add_event::<StartCutscene>();
+        app.add_event::<StopCutscene>();
 
         app.add_systems(Startup, play_setup);
         app.add_systems(Update, play_update);

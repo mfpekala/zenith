@@ -1,6 +1,7 @@
-use crate::environment::background::register_background;
+use crate::environment::background::BackgroundPlugin;
 
 use self::{
+    animated::MyAnimationPlugin,
     effects::EffectsPlugin,
     hollow::register_hollow_drawing,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
@@ -10,6 +11,7 @@ use self::{
 };
 use bevy::prelude::*;
 
+pub mod animated;
 pub mod effects;
 pub mod hollow;
 pub mod layering;
@@ -17,6 +19,7 @@ pub mod light;
 pub mod mesh;
 pub mod post_pixel;
 pub mod sprite_mat;
+pub mod sunrise_mat;
 pub mod text;
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -47,7 +50,9 @@ pub fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
 }
 
 pub fn register_drawing(app: &mut App) {
+    app.add_plugins(BackgroundPlugin);
     app.add_plugins(EffectsPlugin);
+    app.add_plugins(MyAnimationPlugin);
     app.add_plugins(SpriteMaterialPlugin);
     app.add_plugins(ZenithTextPlugin);
 
@@ -57,7 +62,6 @@ pub fn register_drawing(app: &mut App) {
     app.init_gizmo_group::<BgSpriteGizmoGroup>();
     app.init_gizmo_group::<BgLightGizmoGroup>();
 
-    register_background(app);
     register_hollow_drawing(app);
     register_light(app);
 }

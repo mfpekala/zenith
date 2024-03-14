@@ -1,5 +1,4 @@
 use crate::{
-    cutscenes::is_not_in_cutscene,
     drawing::{
         layering::{LayeringPlugin, LightCameraMarker, SpriteCameraMarker},
         post_pixel::PostPixelPlugin,
