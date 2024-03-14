@@ -51,12 +51,14 @@ pub(super) struct WindowMarker;
 #[derive(Component)]
 pub(super) struct ClockMarker;
 
+#[derive(Component)]
+pub(super) struct EyeMarker;
+
 #[derive(Bundle)]
 struct AlarmBgStarBundle {
     placement: PlacedBgBundle,
     sprite: SpriteBundle,
     layers: RenderLayers,
-    cs: CutsceneMarker,
 }
 
 pub(super) fn setup_alarm_cutscene(
@@ -117,13 +119,11 @@ pub(super) fn setup_alarm_cutscene(
             placement: placement.clone(),
             sprite,
             layers: bg_sprite_layer(),
-            cs: CutsceneMarker,
         });
         commands.spawn(AlarmBgStarBundle {
             placement,
             sprite: sprite_l,
             layers: bg_light_layer(),
-            cs: CutsceneMarker,
         });
     }
 
@@ -190,6 +190,49 @@ pub(super) fn setup_alarm_cutscene(
             parent.spawn((clock_l_bundle, light_layer()));
         });
 
+    // Add in the eyes
+    let eye_node = AnimatedNode::from_path(
+        &asset_server,
+        &mut atlases,
+        "sprites/cutscenes/alarm/eyes.png",
+        UVec2::new(64, 64),
+        33,
+        None,
+        Some("eyeEnd".to_string()),
+    );
+    let eye_end_node = AnimatedNode::from_path(
+        &asset_server,
+        &mut atlases,
+        "sprites/cutscenes/alarm/eyesEnd.png",
+        UVec2::new(64, 64),
+        1,
+        None,
+        None,
+    );
+    let mut eye_map = HashMap::new();
+    eye_map.insert("eye".to_string(), eye_node);
+    eye_map.insert("eyeEnd".to_string(), eye_end_node);
+    let mut eye_manager = AnimationManager::from_map(eye_map);
+    eye_manager.paused = true;
+    let mut eye_bundle = AnimationBundle::new("eye", eye_manager);
+    eye_bundle.sprite_sheet.visibility = Visibility::Hidden;
+    commands
+        .spawn((
+            EyeMarker,
+            CutsceneMarker,
+            SpatialBundle {
+                transform: Transform {
+                    translation: (ALARM_CAM_HOME.as_vec2().extend(2.0)),
+                    scale: Vec3::ONE * 3.0,
+                    ..default()
+                },
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            parent.spawn((eye_bundle, sprite_layer(), EyeMarker));
+        });
+
     // Add our data component
     commands.spawn((
         AlarmCutsceneData {
@@ -209,7 +252,11 @@ pub(super) fn update_alarm_cutscene(
     tune: Res<TuneableConsts>,
     mut stars: Query<&mut Sprite, With<BgMarker>>,
     mut window: Query<&mut Transform, With<WindowMarker>>,
-    mut clock: Query<&mut Visibility, With<ClockMarker>>,
+    mut clock: Query<(Entity, &mut Visibility), With<ClockMarker>>,
+    mut eyes: Query<
+        (&mut Visibility, &mut AnimationManager),
+        (With<EyeMarker>, Without<ClockMarker>),
+    >,
 ) {
     let Ok(mut data) = cutscene_data.get_single_mut() else {
         return;
@@ -222,6 +269,7 @@ pub(super) fn update_alarm_cutscene(
     let alarm_window_delay = tune.get_or("alarm_window_delay", 0.0);
     let alarm_window_length = tune.get_or("alarm_window_length", 0.0);
     let alarm_alarm_delay = tune.get_or("alarm_alarm_delay", 0.0);
+    let alarm_eye_delay = tune.get_or("alarm_eye_delay", 0.0);
 
     // Lerp the various parts of the cutscene
     let sunrise_mat = mats.get_mut(data.sunrise_handle.id()).unwrap();
@@ -253,7 +301,7 @@ pub(super) fn update_alarm_cutscene(
         window.scale = (Vec2::ONE * window_scale).extend(1.0);
     }
     if alarm_alarm_delay < data.time {
-        if let Ok(mut visibility) = clock.get_single_mut() {
+        if let Ok((_, mut visibility)) = clock.get_single_mut() {
             if *visibility != Visibility::Visible {
                 *visibility = Visibility::Visible;
                 commands.spawn((
@@ -268,6 +316,19 @@ pub(super) fn update_alarm_cutscene(
                     CutsceneMarker,
                 ));
             }
+        }
+    }
+    if alarm_eye_delay < data.time {
+        // Show the eyes
+        if let Ok((mut visibility, mut manager)) = eyes.get_single_mut() {
+            if *visibility != Visibility::Visible {
+                *visibility = Visibility::Visible;
+                manager.paused = false;
+            }
+        }
+        // Hide the clock
+        if let Ok((id, _)) = clock.get_single_mut() {
+            commands.entity(id).despawn_recursive();
         }
     }
 }
@@ -285,7 +346,11 @@ pub(super) fn stop_alarm_cutscene(
     if *cutscene != THIS_CUTSCENE {
         return;
     }
+    println!("this clear has problems1?");
     clear_background_entities(&mut commands, &bgs);
+    println!("nope1");
+    println!("this clear has problems2?");
     clear_cutscene_entities(&mut commands, &css);
+    println!("nope2");
     *cutscene = Cutscene::None;
 }

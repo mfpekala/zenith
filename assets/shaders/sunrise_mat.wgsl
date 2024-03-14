@@ -9,9 +9,9 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let width_blueness = 0.7 + (0.1 + sin(in.uv[0] * 3.1415926)) * 0.3;
 
     return vec4<f32>(
-        0.2 * height_blueness * height_blueness,
-        0.05 * height_blueness * height_blueness * height_blueness,
-        width_blueness * height_blueness, 
-        time_frac * 0.6,
+        0.2 * height_blueness * height_blueness + time_frac * 0.4 * height_blueness,
+        0.05 * height_blueness * height_blueness * height_blueness + time_frac * 0.2 * height_blueness,
+        width_blueness * height_blueness * 0.5 + time_frac * 0.4, 
+        time_frac * 0.8,
     );
 }

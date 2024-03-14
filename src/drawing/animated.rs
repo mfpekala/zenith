@@ -1,5 +1,6 @@
 use bevy::{prelude::*, utils::HashMap};
 
+#[derive(Debug)]
 /// Information about a specific animation state that an object can be in
 pub struct AnimatedNode {
     pub handle: Handle<Image>,
@@ -36,13 +37,14 @@ impl AnimatedNode {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct AnimationManager {
     pub map: HashMap<String, AnimatedNode>,
     pub idx: u8,
     pub offset: u8,
     pub flip_x: bool,
     pub flip_y: bool,
+    pub paused: bool,
 }
 impl AnimationManager {
     pub fn from_map(map: HashMap<String, AnimatedNode>) -> Self {
@@ -52,6 +54,7 @@ impl AnimationManager {
             offset: 0,
             flip_x: false,
             flip_y: false,
+            paused: false,
         }
     }
 }
@@ -92,6 +95,9 @@ pub fn update_animations(
     )>,
 ) {
     for (mut manager, mut key, mut handle, mut atlas) in anim_q.iter_mut() {
+        if manager.paused {
+            continue;
+        }
         let cur_node = manager.map.get(&key.0).unwrap();
         let cur_handle = cur_node.handle.clone();
         let cur_layout = cur_node.layout.clone();
@@ -112,7 +118,8 @@ pub fn update_animations(
                             // We need to switch animations
                             manager.idx = 0;
                             manager.offset = 0;
-                            *handle = cur_handle;
+                            let next_handle = manager.map.get(&new_key).unwrap().handle.clone();
+                            *handle = next_handle;
                             *atlas = TextureAtlas {
                                 layout: cur_layout,
                                 index: 0,

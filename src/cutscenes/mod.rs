@@ -102,8 +102,8 @@ impl Plugin for CutscenesPlugin {
         app.add_event::<StartCutscene>();
         app.add_event::<StopCutscene>();
 
-        // app.add_systems(Startup, play_setup);
-        // app.add_systems(Update, play_update);
+        app.add_systems(Startup, play_setup);
+        app.add_systems(Update, play_update);
         app.add_systems(FixedUpdate, translate_cutscenes);
 
         register_chapter_one(app);
