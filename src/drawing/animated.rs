@@ -106,7 +106,7 @@ pub fn update_animations(
         let cur_next = cur_node.next.clone();
         if handle.id() == cur_node.handle.id() {
             // We're on the correct animation, progress it
-            manager.offset = (manager.offset + 1) % cur_pace.unwrap_or(4);
+            manager.offset = (manager.offset + 1) % cur_pace.unwrap_or(2);
             if manager.offset == 0 {
                 let old_idx = manager.idx;
                 manager.idx = (manager.idx + 1) % cur_length;

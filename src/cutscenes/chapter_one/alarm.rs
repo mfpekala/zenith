@@ -3,7 +3,9 @@ use crate::camera::CameraMode;
 use crate::cutscenes::clear_cutscene_entities;
 use crate::cutscenes::ChapterOneCutscenes;
 use crate::cutscenes::Cutscene;
+use crate::cutscenes::CutsceneFadeKiller;
 use crate::cutscenes::CutsceneMarker;
+use crate::cutscenes::StartCutscene;
 use crate::cutscenes::StopCutscene;
 use crate::drawing::animated::AnimatedNode;
 use crate::drawing::animated::AnimationBundle;
@@ -197,7 +199,7 @@ pub(super) fn setup_alarm_cutscene(
         "sprites/cutscenes/alarm/eyes.png",
         UVec2::new(64, 64),
         33,
-        None,
+        Some(3),
         Some("eyeEnd".to_string()),
     );
     let eye_end_node = AnimatedNode::from_path(
@@ -257,6 +259,7 @@ pub(super) fn update_alarm_cutscene(
         (&mut Visibility, &mut AnimationManager),
         (With<EyeMarker>, Without<ClockMarker>),
     >,
+    killer: Query<&CutsceneFadeKiller>,
 ) {
     let Ok(mut data) = cutscene_data.get_single_mut() else {
         return;
@@ -331,26 +334,30 @@ pub(super) fn update_alarm_cutscene(
             commands.entity(id).despawn_recursive();
         }
     }
+
+    if alarm_eye_delay + 3.0 < data.time && killer.is_empty() {
+        commands.spawn(CutsceneFadeKiller::new(Cutscene::One(
+            ChapterOneCutscenes::WalkToWork,
+        )));
+    }
 }
 
 pub(super) fn stop_alarm_cutscene(
-    mut cutscene: ResMut<Cutscene>,
+    cutscene: Res<Cutscene>,
     mut stop: EventReader<StopCutscene>,
+    mut start: EventWriter<StartCutscene>,
     mut commands: Commands,
     bgs: Query<Entity, With<BgMarker>>,
     css: Query<Entity, With<CutsceneMarker>>,
 ) {
-    let Some(_) = stop.read().last() else {
+    let Some(sdata) = stop.read().last() else {
         return;
     };
     if *cutscene != THIS_CUTSCENE {
         return;
     }
-    println!("this clear has problems1?");
     clear_background_entities(&mut commands, &bgs);
-    println!("nope1");
-    println!("this clear has problems2?");
     clear_cutscene_entities(&mut commands, &css);
-    println!("nope2");
-    *cutscene = Cutscene::None;
+
+    start.send(StartCutscene(sdata.0));
 }

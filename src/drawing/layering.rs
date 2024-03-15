@@ -513,9 +513,7 @@ fn setup_post_processing_camera(
         num_pixels_h: SCREEN_HEIGHT as f32,
     };
 
-    let menu_material = SpriteMaterial {
-        sprite_texture: camera_targets.menu_target.clone(),
-    };
+    let menu_material = SpriteMaterial::from_handle(camera_targets.menu_target.clone(), None, None);
 
     materials.insert(BG_PP_MATERIAL.clone(), bg_material);
     materials.insert(PP_MATERIAL.clone(), material);

@@ -14,6 +14,7 @@ pub mod ship;
 
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_common_assets::ron::RonAssetPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::register_camera;
 use cutscenes::CutscenesPlugin;
 use drawing::register_drawing;
@@ -55,6 +56,7 @@ fn main() {
     app.add_plugins(TuneableConstsPlugin);
     app.add_plugins(RonAssetPlugin::<TuneableConsts>::new(&["consts.ron"]));
     app.add_plugins(CutscenesPlugin);
+    app.add_plugins(WorldInspectorPlugin::new());
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else

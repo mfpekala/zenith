@@ -189,12 +189,103 @@ fn update_zoom_to_black(
 /// Just a thin wrapper around (goal, duration)
 pub struct TriggerZoomToBlack(pub (f32, f32));
 
+#[derive(Component)]
+struct FadeToBlack {
+    cur_val: f32,
+}
+impl FadeToBlack {
+    const fn id() -> i32 {
+        1
+    }
+
+    pub fn new() -> Self {
+        Self { cur_val: 0.0 }
+    }
+
+    pub fn start_default_effect(
+        &self,
+        goal_val: f32,
+        id: Entity,
+        commands: &mut Commands,
+        duration: f32,
+    ) {
+        commands.entity(id).remove::<EffectVal<{ Self::id() }>>();
+        commands.entity(id).insert(EffectVal::<{ Self::id() }>::new(
+            self.cur_val,
+            goal_val,
+            Spleen::EaseInOutCubic,
+            duration,
+        ));
+    }
+}
+
+#[derive(Bundle)]
+struct FadeToBlackBundle {
+    ftb: FadeToBlack,
+    effect_val: EffectVal<{ FadeToBlack::id() }>,
+    sprite: SpriteBundle,
+}
+
+fn setup_fade_to_black(mut commands: Commands) {
+    let mut clear_black = Color::BLACK;
+    clear_black.set_a(0.0);
+    commands
+        .spawn(FadeToBlackBundle {
+            ftb: FadeToBlack::new(),
+            effect_val: EffectVal::blank(0.0),
+            sprite: SpriteBundle {
+                transform: Transform {
+                    scale: Vec3::ONE * WINDOW_WIDTH as f32,
+                    translation: Vec2::ZERO.extend(50.0),
+                    ..default()
+                },
+                sprite: Sprite {
+                    color: clear_black,
+                    ..default()
+                },
+                ..default()
+            },
+        })
+        .insert(menu_layer());
+}
+
+fn update_fade_to_black(
+    mut commands: Commands,
+    mut ftb_q: Query<(
+        Entity,
+        &mut FadeToBlack,
+        &mut EffectVal<{ FadeToBlack::id() }>,
+        &mut Sprite,
+    )>,
+    time: Res<Time>,
+    mut triggers: EventReader<TriggerFadeToBlack>,
+) {
+    let Ok((id, mut ftb, mut effect_val, mut sprite)) = ftb_q.get_single_mut() else {
+        return;
+    };
+    effect_val.timer.tick(time.delta());
+    let val = effect_val.interp();
+    ftb.cur_val = val;
+    sprite.color.set_a(val);
+    if let Some(trigger) = triggers.read().last() {
+        ftb.start_default_effect(trigger.0 .0, id, &mut commands, trigger.0 .1);
+    }
+}
+
+#[derive(Event)]
+/// Just a thin wrapper around (goal, duration)
+pub struct TriggerFadeToBlack(pub (f32, f32));
+
 pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TriggerZoomToBlack>();
-        app.add_systems(Startup, setup_zoom_to_black);
-        app.add_systems(Update, (update_sizeables, update_zoom_to_black));
+        app.add_event::<TriggerFadeToBlack>();
+        app.add_systems(Startup, (setup_zoom_to_black, setup_fade_to_black));
+        app.add_systems(
+            Update,
+            (update_sizeables, update_zoom_to_black, update_fade_to_black),
+        );
     }
 }

@@ -1,7 +1,10 @@
 use self::chapter_one::register_chapter_one;
-use crate::meta::{
-    consts::TuneableConsts,
-    game_state::{GameState, LevelState, MetaState, SetGameState},
+use crate::{
+    drawing::effects::TriggerFadeToBlack,
+    meta::{
+        consts::TuneableConsts,
+        game_state::{GameState, LevelState, MetaState, SetGameState},
+    },
 };
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -18,13 +21,13 @@ pub fn clear_cutscene_entities(commands: &mut Commands, bgs: &Query<Entity, With
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 pub enum ChapterOneCutscenes {
     Alarm,
     WalkToWork,
 }
 
-#[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 pub enum Cutscene {
     None,
     One(ChapterOneCutscenes),
@@ -35,7 +38,58 @@ pub struct CutsceneCase(pub Cutscene);
 pub struct StartCutscene(pub Cutscene);
 
 #[derive(Event)]
-pub struct StopCutscene;
+/// Stops a cutscene, containing the next cutscene to start
+pub struct StopCutscene(pub Cutscene);
+
+#[derive(Component)]
+/// Fades to black, then stops the current cutscene and starts the next cutscene, then unfades
+pub struct CutsceneFadeKiller {
+    pub kill_to: Cutscene,
+    pub timer: Timer,
+    pub fade_started_in: bool,
+    pub padding_timer: Timer,
+    pub fade_started_out: bool,
+}
+impl CutsceneFadeKiller {
+    pub fn duration() -> f32 {
+        0.75
+    }
+
+    pub fn new(cutscene: Cutscene) -> Self {
+        Self {
+            kill_to: cutscene,
+            timer: Timer::from_seconds(Self::duration(), TimerMode::Once),
+            fade_started_in: false,
+            padding_timer: Timer::from_seconds(Self::duration() + 0.25, TimerMode::Once),
+            fade_started_out: false,
+        }
+    }
+}
+
+fn update_fade_killers(
+    mut commands: Commands,
+    mut ftb_writer: EventWriter<TriggerFadeToBlack>,
+    mut stop_writer: EventWriter<StopCutscene>,
+    mut killers: Query<(Entity, &mut CutsceneFadeKiller)>,
+    time: Res<Time>,
+) {
+    for (id, mut killer) in killers.iter_mut() {
+        if !killer.fade_started_in {
+            ftb_writer.send(TriggerFadeToBlack((1.0, CutsceneFadeKiller::duration())));
+            killer.fade_started_in = true;
+        }
+        killer.timer.tick(time.delta());
+        if killer.timer.finished() && !killer.fade_started_out {
+            ftb_writer.send(TriggerFadeToBlack((0.0, CutsceneFadeKiller::duration())));
+            stop_writer.send(StopCutscene(killer.kill_to));
+            killer.fade_started_out = true;
+        }
+        killer.padding_timer.tick(time.delta());
+        if killer.padding_timer.finished() {
+            commands.entity(id).despawn_recursive();
+        }
+    }
+}
 
 fn translate_cutscenes(mut start_reader: EventReader<StartCutscene>, mut res: ResMut<Cutscene>) {
     if let Some(cutscene) = start_reader.read().last() {
@@ -72,11 +126,11 @@ fn play_update(
     cutscene_res: Res<Cutscene>,
     tune: Res<TuneableConsts>,
 ) {
-    let playing = Cutscene::One(ChapterOneCutscenes::Alarm);
+    let playing = Cutscene::One(ChapterOneCutscenes::WalkToWork);
     let Ok((id, mut pd)) = play_delay.get_single_mut() else {
         // This code lets us restart the cutscene whenever one of the consts changes
         if tune.is_changed() {
-            cutscene_stopper.send(StopCutscene);
+            cutscene_stopper.send(StopCutscene(Cutscene::None));
         }
         if *cutscene_res == Cutscene::None {
             cutscene_starter.send(StartCutscene(playing));
@@ -104,7 +158,8 @@ impl Plugin for CutscenesPlugin {
 
         app.add_systems(Startup, play_setup);
         app.add_systems(Update, play_update);
-        app.add_systems(FixedUpdate, translate_cutscenes);
+        app.add_systems(FixedUpdate, update_fade_killers);
+        app.add_systems(FixedUpdate, translate_cutscenes.after(update_fade_killers));
 
         register_chapter_one(app);
     }
