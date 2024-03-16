@@ -12,17 +12,19 @@ use crate::{
     ship::Ship,
 };
 use bevy::{ecs::system::SystemId, prelude::*};
-use std::{
-    fs::File,
-    io::Read,
-    path::{Path, PathBuf},
-};
+use std::{fs::File, io::Read, path::PathBuf};
 
-pub fn get_level_folder() -> PathBuf {
-    Path::new("assets/levels").into()
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::asset::Asset,
+    bevy::reflect::TypePath,
+    Debug,
+    PartialEq,
+    Clone,
+    Resource,
+    Default,
+)]
 pub struct SaveableRock {
     pub kind: RockKind,
     pub points: Vec<Vec2>,
@@ -91,7 +93,17 @@ impl SaveableRock {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::asset::Asset,
+    bevy::reflect::TypePath,
+    Debug,
+    PartialEq,
+    Clone,
+    Resource,
+    Default,
+)]
 pub struct SaveableField {
     pub points: Vec<Vec2>,
     pub strength: f32,
@@ -111,7 +123,17 @@ impl SaveableField {
 
 /// All the data that exists about a level.
 /// Just the data that needs to be used to load/play the level
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::asset::Asset,
+    bevy::reflect::TypePath,
+    Debug,
+    PartialEq,
+    Clone,
+    Resource,
+    Default,
+)]
 pub struct LevelData {
     pub next_level: Option<String>,
     pub starting_point: Vec2,

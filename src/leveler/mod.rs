@@ -7,7 +7,7 @@ use crate::{
     },
     meta::{
         game_state::{entered_level, GameState, LevelState, MetaState, SetGameState},
-        level_data::{get_level_folder, LevelData},
+        level_data::LevelData,
     },
     ship::{Ship, SpawnShipId},
     when_becomes_true,
@@ -37,24 +37,24 @@ fn setup_helper(
     gs_writer: &mut EventWriter<SetGameState>,
     spawn_ship_id: SystemId<(IVec2, f32)>,
 ) {
-    let level_data =
-        LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
-    level_data.load_level(commands, meshes, rock_res, spawn_ship_id);
-    let ipos = IVec2 {
-        x: level_data.starting_point.x as i32,
-        y: level_data.starting_point.x as i32,
-    };
-    let next_level_state = LevelState {
-        id: level_id.clone(),
-        next_id: level_data.next_level.clone(),
-        is_settled: false,
-        is_won: false,
-        last_safe_location: ipos,
-        num_shots: 0,
-    };
-    gs_writer.send(SetGameState(GameState {
-        meta: MetaState::Level(next_level_state),
-    }));
+    // let level_data =
+    //     LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();
+    // level_data.load_level(commands, meshes, rock_res, spawn_ship_id);
+    // let ipos = IVec2 {
+    //     x: level_data.starting_point.x as i32,
+    //     y: level_data.starting_point.x as i32,
+    // };
+    // let next_level_state = LevelState {
+    //     id: level_id.clone(),
+    //     next_id: level_data.next_level.clone(),
+    //     is_settled: false,
+    //     is_won: false,
+    //     last_safe_location: ipos,
+    //     num_shots: 0,
+    // };
+    // gs_writer.send(SetGameState(GameState {
+    //     meta: MetaState::Level(next_level_state),
+    // }));
 }
 
 pub fn setup_level(

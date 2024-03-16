@@ -130,7 +130,6 @@ fn update_title_screen(
 }
 
 fn destroy_title_screen(mut commands: Commands, mac: Query<(Entity, &MenuAssetComponent)>) {
-    println!("destroy reached");
     for (id, mac) in mac.iter() {
         if mac.path != TITLE_SCREEN_RON_PATH.to_string() {
             continue;

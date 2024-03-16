@@ -6,7 +6,7 @@ use crate::{
     environment::field::Field,
     meta::{
         game_state::in_editor,
-        level_data::{get_level_folder, LevelData, SaveableField, SaveableRock},
+        level_data::{LevelData, SaveableField, SaveableRock},
     },
 };
 use bevy::prelude::*;
@@ -65,8 +65,8 @@ fn watch_for_save(
         fields: sfields,
     };
     // Write it to a simple file
-    let mut fout = File::create(get_level_folder().join("editing.zenith")).unwrap();
-    write!(fout, "{}", serde_json::to_string(&level_data).unwrap()).unwrap();
+    // let mut fout = File::create(get_level_folder().join("editing.zenith")).unwrap();
+    // write!(fout, "{}", serde_json::to_string(&level_data).unwrap()).unwrap();
 }
 
 pub fn register_saver(app: &mut App) {

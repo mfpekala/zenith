@@ -1,0 +1,18 @@
+LevelData(
+    next_level: None,
+    starting_point: Vec2(
+        0.0,
+        0.0,
+    ),
+    goal_point: Vec2(
+        1.0,
+        0.0,
+    ),
+    rocks: [],
+    fields: []
+)
+// pub next_level: Option<String>,
+//     pub starting_point: Vec2,
+//     pub goal_point: Vec2,
+//     pub rocks: Vec<SaveableRock>,
+//     pub fields: Vec<SaveableField>,

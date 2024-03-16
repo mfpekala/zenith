@@ -14,11 +14,12 @@ use self::{
 use crate::{
     meta::{
         game_state::{entered_editor, EditorState, GameState, MetaState},
-        level_data::{get_level_folder, LevelData},
+        level_data::LevelData,
     },
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
+use bevy_common_assets::ron::RonAssetPlugin;
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -50,21 +51,54 @@ pub fn is_testing(gs: Res<GameState>) -> bool {
 when_becomes_true!(is_testing_helper, entered_testing);
 when_becomes_false!(is_testing_helper, left_testing);
 
-pub fn setup_editor(mut commands: Commands) {
-    let level_data = LevelData::load(get_level_folder().join("editing.zenith"));
-    if let Some(level_data) = level_data {
-        level_data.load_editor(&mut commands);
-    } else {
-        let blank_level = LevelData::blank();
-        blank_level.load_editor(&mut commands);
-    };
+#[derive(Component)]
+struct LevelEditingHandle(pub Handle<LevelData>);
+
+#[derive(Resource, bevy::asset::Asset, bevy::reflect::TypePath)]
+struct LevelEditingData(pub LevelData);
+
+fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
+    commands.spawn(LevelEditingHandle(handle));
+
+    // let level_data = LevelData::load(get_level_folder().join("editing.zenith"));
+    // if let Some(level_data) = level_data {
+    //     level_data.load_editor(&mut commands);
+    // } else {
+    //     let blank_level = LevelData::blank();
+    //     blank_level.load_editor(&mut commands);
+    // };
 }
 
-pub fn register_editor(app: &mut App) {
-    app.add_systems(Update, setup_editor.run_if(entered_editor));
-    register_draggables(app);
-    register_editable_points(app);
-    register_editable_rocks(app);
-    register_editor_state_machine(app);
-    register_saver(app);
+fn watch_level_editing_asset(
+    handle: Query<&LevelEditingHandle>,
+    asset: Res<Assets<LevelData>>,
+    mut res: ResMut<LevelEditingData>,
+) {
+    let Ok(handle) = handle.get_single() else {
+        return;
+    };
+    if let Some(data) = asset.get(handle.0.id()) {
+        if *data != res.0 {
+            res.0 = data.clone();
+            println!("updated data to: {:?}", data);
+        }
+    }
+}
+
+pub struct EditorPlugin;
+
+impl Plugin for EditorPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(LevelEditingData(LevelData::default()));
+        app.add_plugins(RonAssetPlugin::<LevelData>::new(&["level.ron"]));
+        app.add_systems(Update, setup_editor.run_if(entered_editor));
+        app.add_systems(Update, watch_level_editing_asset);
+
+        register_draggables(app);
+        register_editable_points(app);
+        register_editable_rocks(app);
+        register_editor_state_machine(app);
+        register_saver(app);
+    }
 }

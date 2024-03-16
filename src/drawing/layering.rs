@@ -594,6 +594,7 @@ fn setup_post_processing_camera(
                 },
                 ..default()
             },
+            InheritedVisibility::VISIBLE,
             output_layer,
         ))
         .with_children(|parent| {

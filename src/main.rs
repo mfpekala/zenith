@@ -18,7 +18,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::register_camera;
 use cutscenes::CutscenesPlugin;
 use drawing::register_drawing;
-use editor::register_editor;
+use editor::EditorPlugin;
 use environment::register_environment;
 use input::register_input;
 use leveler::register_leveler;
@@ -58,12 +58,12 @@ fn main() {
     app.add_plugins(CutscenesPlugin);
     app.add_plugins(WorldInspectorPlugin::new());
     app.add_plugins(SoundPlugin);
+    app.add_plugins(EditorPlugin);
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else
     register_camera(&mut app);
     register_drawing(&mut app);
-    register_editor(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
     register_leveler(&mut app);
