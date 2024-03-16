@@ -54,13 +54,9 @@ impl SpriteMaterial {
     pub fn random_sized_bounds(mesh_size: UVec2, image_size: UVec2) -> (Vec2, Vec2) {
         let mut rng = thread_rng();
         let mut helper = |m, i| {
-            if m >= i {
-                (0.0, 1.0)
-            } else {
-                let frac_w = (m as f32) / (i as f32);
-                let x = lerp(rng.gen(), 0.0, 1.0 - frac_w);
-                (x, frac_w)
-            }
+            let frac_w = (m as f32) / (i as f32);
+            let x = lerp(rng.gen(), 0.0, (1.0 - frac_w).max(0.0));
+            (x, frac_w)
         };
         let (pos_x, size_x) = helper(mesh_size.x, image_size.x);
         let (pos_y, size_y) = helper(mesh_size.y, image_size.y);

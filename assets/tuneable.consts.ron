@@ -4,7 +4,7 @@
 TuneableConsts(
     map: {
         // Dummy is for triggering updates
-        "dummy": 1.2,
+        "dummy": 1.6,
         // Background general settings
         "bg_dmult_translation_base": 1.4,
         "bg_dmult_scale_base": 0.8,
@@ -28,11 +28,11 @@ TuneableConsts(
         "alarm_star_scale_max": 5.0,
         "alarm_sunrise_delay": 1.0,
         "alarm_sunrise_length": 8.0,
-        "alarm_window_delay": 4.0,
-        "alarm_window_length": 10.0,
+        "alarm_window_delay": 6.0,
+        "alarm_window_length": 7.0,
         "alarm_initial_window_scale": 180.0,
         "alarm_window_offset_y": 10.0,
-        "alarm_final_window_scale": 20.0,
+        "alarm_final_window_scale": 40.0,
         "alarm_alarm_delay": 15.5,
         "alarm_eye_delay": 18.0,
         // Chapter One: Walk to Work

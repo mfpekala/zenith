@@ -152,6 +152,15 @@ pub fn lerp_color(x: f32, c1: Color, c2: Color) -> Color {
     }
 }
 
+pub fn uvec2mesh_points(v: UVec2) -> Vec<Vec2> {
+    vec![
+        Vec2::new(-(v.x as f32) / 2.0, -(v.y as f32) / 2.0),
+        Vec2::new(-(v.x as f32) / 2.0, (v.y as f32) / 2.0),
+        Vec2::new((v.x as f32) / 2.0, (v.y as f32) / 2.0),
+        Vec2::new((v.x as f32) / 2.0, -(v.y as f32) / 2.0),
+    ]
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Spleen {
     EaseInCubic,

@@ -84,6 +84,13 @@ impl AnimationBundle {
             val: AnimationKey(initial_key.to_string()),
         }
     }
+
+    pub fn from_single_node(key: &str, node: AnimatedNode) -> Self {
+        let mut map = HashMap::new();
+        map.insert(key.to_string(), node);
+        let walk_manager = AnimationManager::from_map(map);
+        Self::new(key, walk_manager)
+    }
 }
 
 pub fn update_animations(

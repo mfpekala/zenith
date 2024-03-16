@@ -6,7 +6,6 @@ use self::{
     hollow::register_hollow_drawing,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
-    mesh::MyMeshPlugin,
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
 };
@@ -54,7 +53,6 @@ pub fn register_drawing(app: &mut App) {
     app.add_plugins(BackgroundPlugin);
     app.add_plugins(EffectsPlugin);
     app.add_plugins(MyAnimationPlugin);
-    app.add_plugins(MyMeshPlugin);
     app.add_plugins(SpriteMaterialPlugin);
     app.add_plugins(ZenithTextPlugin);
 

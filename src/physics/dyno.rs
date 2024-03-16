@@ -7,6 +7,35 @@ use super::collider::{
     ColliderTrigger,
 };
 
+#[derive(Component, Debug, Default)]
+pub struct IntMoveable {
+    pub vel: Vec2,
+    pub pos: IVec3,
+    pub rem: Vec2,
+}
+
+pub fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable)>) {
+    for (mut tran, mut moveable) in moveables.iter_mut() {
+        // We move the objects in much the same way that we move dynos
+        let would_move = moveable.vel + moveable.rem;
+        let move_x = would_move.x.round() as i32;
+        let move_y = would_move.y.round() as i32;
+        if move_x != 0 {
+            moveable.pos.x += move_x;
+            moveable.rem.x = would_move.x - move_x as f32;
+        } else {
+            moveable.rem.x = would_move.x;
+        }
+        if move_y != 0 {
+            moveable.pos.y += move_y;
+            moveable.rem.y = would_move.y - move_y as f32;
+        } else {
+            moveable.rem.y = would_move.y;
+        }
+        tran.translation = moveable.pos.as_vec3();
+    }
+}
+
 #[derive(Component, Debug)]
 pub struct IntDyno {
     pub vel: Vec2,
@@ -142,4 +171,5 @@ pub fn register_int_dynos(app: &mut App) {
             .after(update_triggers)
             .run_if(is_not_in_cutscene),
     );
+    app.add_systems(FixedUpdate, move_int_moveables);
 }

@@ -39,7 +39,8 @@ fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dH
         positions.push([p.x, p.y, 0.0]);
         normals.push([0.0, 0.0, 1.0]);
         let uv_x = (p.x - top_left.x) / (bot_right.x - top_left.x);
-        let uv_y = (p.y - top_left.y) / (bot_right.y - top_left.y);
+        // I'm only 80% confident this should be 1.0 -
+        let uv_y = 1.0 - (p.y - top_left.y) / (bot_right.y - top_left.y);
         uvs.push([uv_x, uv_y]);
     }
     triangle.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
@@ -93,70 +94,31 @@ pub struct MeshOutline {
     pub width: f32,
     pub color: Color,
 }
-
-#[derive(Bundle)]
-pub struct MeshOutlineBundle {
-    outline: MeshOutline,
-    mesh: MaterialMesh2dBundle<ColorMaterial>,
-}
-impl MeshOutlineBundle {
-    pub fn new(
-        outline: MeshOutline,
+impl MeshOutline {
+    pub fn to_bundle(
+        self,
         points: &Vec<Vec2>,
         mats: &mut ResMut<Assets<ColorMaterial>>,
         meshes: &mut ResMut<Assets<Mesh>>,
-    ) -> Self {
-        let mut center = Vec2::ZERO;
-        for point in points {
-            center += *point;
-        }
-        center /= points.len() as f32;
+    ) -> impl Bundle {
         let mut new_points = vec![];
-        for point in points {
-            let diff = *point - center;
-            new_points.push(*point + diff.normalize_or_zero() * outline.width);
+        for (ix, point) in points.iter().enumerate() {
+            let point_before = points[if ix == 0 { points.len() - 1 } else { ix - 1 }];
+            let point_after = points[if ix == points.len() - 1 { 0 } else { ix + 1 }];
+            let slope_before = (*point - point_before).normalize_or_zero();
+            let slope_after = (point_after - *point).normalize_or_zero();
+            let tang = (slope_before + slope_after).normalize_or_zero();
+            let perp = Vec2::new(-tang.y, tang.x);
+            new_points.push(*point + perp * self.width);
         }
         let mesh = points_to_mesh(&new_points, meshes);
-        let mat = mats.add(ColorMaterial::from(outline.color));
-        Self {
-            outline,
-            mesh: MaterialMesh2dBundle {
-                material: mat,
-                mesh,
-                transform: Transform::from_translation(Vec2::ZERO.extend(-0.5)),
-                ..default()
-            },
+        let mat = mats.add(ColorMaterial::from(self.color));
+
+        MaterialMesh2dBundle {
+            material: mat,
+            mesh,
+            transform: Transform::from_translation(Vec2::ZERO.extend(-0.5)),
+            ..default()
         }
-    }
-}
-
-// fn update_mesh_outlines(
-//     mesh_res: Res<Assets<Mesh>>,
-//     meshes_handles: Query<(&Transform, &Mesh2dHandle), Without<MeshOutline>>,
-//     mut outlines: Query<
-//         (&Parent, &mut Transform, &MeshOutline, &mut Mesh2dHandle),
-//         With<MeshOutline>,
-//     >,
-// ) {
-//     for (parent, mut tran, outline, mut handle) in outlines.iter_mut() {
-//         let parent_id = parent.get();
-//         let Ok((parent_tran, parent_mesh_handle)) = meshes_handles.get(parent_id) else {
-//             continue;
-//         };
-//         let test = mesh_res.get(parent_mesh_handle.0.id()).unwrap().clone();
-//         let points = test.attribute(Mesh::ATTRIBUTE_POSITION).unwrap();
-//         println!("points: {:?}", points);
-
-//         *handle = parent_mesh_handle.clone();
-//         tran.scale = parent_tran.scale * outline.scale;
-//         tran.translation.z = -0.5;
-//     }
-// }
-
-pub struct MyMeshPlugin;
-
-impl Plugin for MyMeshPlugin {
-    fn build(&self, app: &mut App) {
-        // app.add_systems(Update, update_mesh_outlines);
     }
 }

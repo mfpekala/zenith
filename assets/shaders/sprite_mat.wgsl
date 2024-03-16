@@ -15,8 +15,8 @@ var<uniform> h: f32;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let box_x = x + w * in.uv[0];
-    let box_y = y + h * in.uv[1];
+    let box_x = (x + w * in.uv[0]) % 1.0;
+    let box_y = (y + h * in.uv[1]) % 1.0;
     let box_uv = vec2<f32>(box_x, box_y);
     return  textureSample(texture, splr, box_uv);
 }

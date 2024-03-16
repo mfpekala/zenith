@@ -1,4 +1,4 @@
-use self::chapter_one::register_chapter_one;
+use self::chapter_one::{register_chapter_one, walk_to_work::Walk2WorkHot};
 use crate::{
     drawing::effects::TriggerFadeToBlack,
     meta::{
@@ -15,9 +15,23 @@ mod chapter_one;
 /// Marks components that should be removed when a cutscene is over
 pub struct CutsceneMarker;
 
-pub fn clear_cutscene_entities(commands: &mut Commands, bgs: &Query<Entity, With<CutsceneMarker>>) {
-    for id in bgs.iter() {
+#[derive(Component)]
+/// Marks components that should be removed when the current cutscene is not in the provided list
+pub struct DurableCutsceneMarker(pub Vec<Cutscene>);
+
+pub fn clear_cutscene_entities(
+    commands: &mut Commands,
+    next_cutscene: Cutscene,
+    css: &Query<Entity, With<CutsceneMarker>>,
+    dcss: &Query<(Entity, &DurableCutsceneMarker)>,
+) {
+    for id in css.iter() {
         commands.entity(id).despawn_recursive();
+    }
+    for (id, durable) in dcss {
+        if !durable.0.contains(&next_cutscene) {
+            commands.entity(id).despawn_recursive();
+        }
     }
 }
 
@@ -125,11 +139,12 @@ fn play_update(
     mut cutscene_stopper: EventWriter<StopCutscene>,
     cutscene_res: Res<Cutscene>,
     tune: Res<TuneableConsts>,
+    walk2work: Res<Walk2WorkHot>,
 ) {
     let playing = Cutscene::One(ChapterOneCutscenes::WalkToWork);
     let Ok((id, mut pd)) = play_delay.get_single_mut() else {
         // This code lets us restart the cutscene whenever one of the consts changes
-        if tune.is_changed() {
+        if tune.is_changed() || walk2work.is_changed() {
             cutscene_stopper.send(StopCutscene(Cutscene::None));
         }
         if *cutscene_res == Cutscene::None {
@@ -156,8 +171,8 @@ impl Plugin for CutscenesPlugin {
         app.add_event::<StartCutscene>();
         app.add_event::<StopCutscene>();
 
-        app.add_systems(Startup, play_setup);
-        app.add_systems(Update, play_update);
+        // app.add_systems(Startup, _play_setup);
+        // app.add_systems(Update, _play_update);
         app.add_systems(FixedUpdate, update_fade_killers);
         app.add_systems(FixedUpdate, translate_cutscenes.after(update_fade_killers));
 

@@ -53,28 +53,6 @@ impl TuneableConsts {
     }
 }
 
-#[derive(Resource)]
-pub struct TuneableConstsHandle(pub Handle<TuneableConsts>);
-
-fn setup_tuneable_consts(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let handle = asset_server.load::<TuneableConsts>("tuneable.consts.ron");
-    commands.insert_resource(TuneableConstsHandle(handle));
-    commands.insert_resource(TuneableConsts::default());
-}
-
-fn update_tuneable_consts(
-    handle: Res<TuneableConstsHandle>,
-    mut consts: ResMut<TuneableConsts>,
-    asset: Res<Assets<TuneableConsts>>,
-) {
-    if let Some(data) = asset.get(handle.0.id()) {
-        if *data != *consts {
-            *consts = data.clone();
-        }
-        // *consts = data.clone();
-    }
-}
-
 pub struct TuneableConstsPlugin;
 
 impl Plugin for TuneableConstsPlugin {
@@ -83,3 +61,33 @@ impl Plugin for TuneableConstsPlugin {
         app.add_systems(Update, update_tuneable_consts);
     }
 }
+
+#[macro_export]
+macro_rules! add_hot_resource {
+    ($res_struct: ident, $ron_path: expr, $setup_fname: ident, $update_fname: ident) => {
+        fn $setup_fname(mut commands: Commands, asset_server: Res<AssetServer>) {
+            let handle = asset_server.load::<$res_struct>($ron_path);
+            // NOTE: This (kind of) dangling handle just ensures the constants never get unloaded
+            commands.insert_resource($res_struct::default());
+            commands.spawn(handle);
+        }
+
+        fn $update_fname(mut consts: ResMut<$res_struct>, asset: Res<Assets<$res_struct>>) {
+            let Some(id) = asset.ids().next() else {
+                return;
+            };
+            if let Some(data) = asset.get(id) {
+                if *data != *consts {
+                    *consts = data.clone();
+                }
+            }
+        }
+    };
+}
+
+add_hot_resource!(
+    TuneableConsts,
+    "tuneable.consts.ron",
+    setup_tuneable_consts,
+    update_tuneable_consts
+);

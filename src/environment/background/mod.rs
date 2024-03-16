@@ -109,7 +109,7 @@ impl PlacedBgBundle {
     }
 }
 
-fn test_new_bg_system_startup(mut commands: Commands) {
+fn _test_new_bg_system_startup(mut commands: Commands) {
     let max_d: u8 = 24;
     for depth in 0..24 {
         let bg_depth = BgDepth {

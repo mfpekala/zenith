@@ -5,6 +5,7 @@ use crate::cutscenes::ChapterOneCutscenes;
 use crate::cutscenes::Cutscene;
 use crate::cutscenes::CutsceneFadeKiller;
 use crate::cutscenes::CutsceneMarker;
+use crate::cutscenes::DurableCutsceneMarker;
 use crate::cutscenes::StartCutscene;
 use crate::cutscenes::StopCutscene;
 use crate::drawing::animated::AnimatedNode;
@@ -235,6 +236,21 @@ pub(super) fn setup_alarm_cutscene(
             parent.spawn((eye_bundle, sprite_layer(), EyeMarker));
         });
 
+    // Bird sounds!
+    commands.spawn((
+        AudioBundle {
+            source: asset_server.load("sound_effects/birds-isaiah658.ogg"),
+            settings: PlaybackSettings {                mode: bevy::audio::PlaybackMode::Despawn,
+                paused: false,
+                ..default()
+            },
+        },
+        DurableCutsceneMarker(vec![
+            Cutscene::One(ChapterOneCutscenes::Alarm),
+            Cutscene::One(ChapterOneCutscenes::WalkToWork),
+        ]),
+    ));
+
     // Add our data component
     commands.spawn((
         AlarmCutsceneData {
@@ -335,7 +351,7 @@ pub(super) fn update_alarm_cutscene(
         }
     }
 
-    if alarm_eye_delay + 3.0 < data.time && killer.is_empty() {
+    if alarm_eye_delay + 5.0 < data.time && killer.is_empty() {
         commands.spawn(CutsceneFadeKiller::new(Cutscene::One(
             ChapterOneCutscenes::WalkToWork,
         )));
@@ -349,6 +365,7 @@ pub(super) fn stop_alarm_cutscene(
     mut commands: Commands,
     bgs: Query<Entity, With<BgMarker>>,
     css: Query<Entity, With<CutsceneMarker>>,
+    dcss: Query<(Entity, &DurableCutsceneMarker)>,
 ) {
     let Some(sdata) = stop.read().last() else {
         return;
@@ -357,7 +374,7 @@ pub(super) fn stop_alarm_cutscene(
         return;
     }
     clear_background_entities(&mut commands, &bgs);
-    clear_cutscene_entities(&mut commands, &css);
+    clear_cutscene_entities(&mut commands, sdata.0, &css, &dcss);
 
     start.send(StartCutscene(sdata.0));
 }

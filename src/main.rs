@@ -8,9 +8,9 @@ pub mod leveler;
 pub mod math;
 pub mod menu;
 pub mod meta;
-pub mod music;
 pub mod physics;
 pub mod ship;
+pub mod sound;
 
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_common_assets::ron::RonAssetPlugin;
@@ -27,9 +27,9 @@ use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
 };
-use music::register_music;
 use physics::register_physics;
 use ship::register_ship;
+use sound::SoundPlugin;
 
 pub fn main_setup() {}
 
@@ -57,6 +57,7 @@ fn main() {
     app.add_plugins(RonAssetPlugin::<TuneableConsts>::new(&["consts.ron"]));
     app.add_plugins(CutscenesPlugin);
     app.add_plugins(WorldInspectorPlugin::new());
+    app.add_plugins(SoundPlugin);
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else
@@ -67,7 +68,6 @@ fn main() {
     register_input(&mut app);
     register_leveler(&mut app);
     register_menus(&mut app);
-    register_music(&mut app);
     register_physics(&mut app);
     register_ship(&mut app);
     app.run();
