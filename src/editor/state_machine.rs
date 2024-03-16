@@ -56,7 +56,6 @@ pub fn editing_state_machine(
                     .id();
                 let new_editing_state = EditingState {
                     mode: EditingMode::CreatingRock(editable_rock_id),
-                    paused: false,
                 };
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
             } else if mouse_buttons.just_pressed(MouseButton::Left) {
@@ -66,7 +65,6 @@ pub fn editing_state_machine(
                         // Start editing this rock
                         let new_editing_state = EditingState {
                             mode: EditingMode::EditingRock(cid),
-                            paused: false,
                         };
                         gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                         return;
@@ -79,7 +77,6 @@ pub fn editing_state_machine(
                 // The rock doesn't exist anymore
                 let new_editing_state = EditingState {
                     mode: EditingMode::Free,
-                    paused: false,
                 };
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                 return;
@@ -88,7 +85,6 @@ pub fn editing_state_machine(
                 // The rock doesn't exist anymore
                 let new_editing_state = EditingState {
                     mode: EditingMode::Free,
-                    paused: false,
                 };
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                 return;
@@ -105,7 +101,6 @@ pub fn editing_state_machine(
                     editing_rock.closed = true;
                     let new_editing_state = EditingState {
                         mode: EditingMode::EditingRock(id),
-                        paused: false,
                     };
                     let Ok((_, first_tran, _)) = exterior_points.get(editing_rock.points[0]) else {
                         return;
@@ -138,7 +133,6 @@ pub fn editing_state_machine(
                 // The focused rock just got deleted, go back to free
                 let new_editing_state = EditingState {
                     mode: EditingMode::Free,
-                    paused: false,
                 };
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
                 return;
@@ -166,7 +160,6 @@ pub fn editing_state_machine(
                 // Otherwise, default back to free
                 let new_editing_state = EditingState {
                     mode: EditingMode::Free,
-                    paused: false,
                 };
                 gs_writer.send(SetGameState(new_editing_state.to_game_state()));
             }
@@ -191,7 +184,6 @@ fn watch_for_edit_test_switch(
             set_action = Some(SetGameState(GameState {
                 meta: MetaState::Editor(EditorState::Editing(EditingState {
                     mode: EditingMode::Free,
-                    paused: false,
                 })),
             }))
         }
@@ -272,7 +264,6 @@ fn start_editing(
     // Start in free editing mode
     let new_editing_state = EditingState {
         mode: EditingMode::Free,
-        paused: false,
     };
     gs_writer.send(SetGameState(new_editing_state.to_game_state()));
     // Free the camera too

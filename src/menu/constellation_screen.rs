@@ -166,9 +166,6 @@ fn destroy_constellation_screen(
             continue;
         }
         commands.entity(id).despawn_recursive();
-        for curse in mac.cursed_children.iter() {
-            commands.entity(*curse).despawn_recursive();
-        }
     }
     for id in data.iter() {
         commands.entity(id).despawn_recursive();

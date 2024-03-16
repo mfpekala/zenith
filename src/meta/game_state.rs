@@ -17,9 +17,14 @@ pub enum EditingMode {
 #[derive(Clone, Copy, Debug)]
 pub struct EditingState {
     pub mode: EditingMode,
-    pub paused: bool,
 }
 impl EditingState {
+    pub fn blank() -> Self {
+        Self {
+            mode: EditingMode::Free,
+        }
+    }
+
     pub fn to_game_state(&self) -> GameState {
         GameState {
             meta: MetaState::Editor(EditorState::Editing(self.clone())),

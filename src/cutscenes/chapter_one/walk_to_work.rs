@@ -33,7 +33,7 @@ pub(super) fn setup_walk_to_work_cutscene(
     asset_server: Res<AssetServer>,
     mut color_mats: ResMut<Assets<ColorMaterial>>,
     mut sprite_mats: ResMut<Assets<SpriteMaterial>>,
-    mut cam_q: Query<&mut CameraMarker>,
+    mut cam_q: Query<(&mut IntMoveable, &mut CameraMarker)>,
     bgs: Query<Entity, With<BgMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
     hot_walk: Res<Walk2WorkHot>,
@@ -41,9 +41,9 @@ pub(super) fn setup_walk_to_work_cutscene(
 ) {
     // Clear the screen by removing background items and moving to the middle of nowhere
     // This lets us still use all the fancy lighting layers in cutscenes like this
-    let mut cam = cam_q.single_mut();
+    let (mut moveable, mut cam) = cam_q.single_mut();
     cam.mode = CameraMode::Controlled;
-    cam.pos = WALK2WORK_CAM_HOME;
+    moveable.pos = WALK2WORK_CAM_HOME.extend(0);
     clear_background_entities(&mut commands, &bgs);
 
     // Spawn in the grass

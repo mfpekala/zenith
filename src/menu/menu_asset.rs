@@ -30,7 +30,6 @@ pub struct MenuAssetComponent {
     pub path: String,
     pub handle: Handle<MenuAsset>,
     pub last_version: Option<MenuAsset>,
-    pub cursed_children: Vec<Entity>,
 }
 impl MenuAssetComponent {
     pub fn spawn(asset_server: &Res<AssetServer>, commands: &mut Commands, path: String) {
@@ -39,7 +38,6 @@ impl MenuAssetComponent {
             path,
             handle,
             last_version: None,
-            cursed_children: vec![],
         });
     }
 }
@@ -61,11 +59,6 @@ fn render_menu_asset(
         // Nothing's changed
         return;
     }
-    // We're clearing and remaking all the children
-    for child in comp.cursed_children.iter() {
-        commands.entity(*child).despawn_recursive();
-    }
-    comp.cursed_children = res.spawn(&mut commands, &asset_server);
     comp.last_version = Some(res.clone());
 }
 

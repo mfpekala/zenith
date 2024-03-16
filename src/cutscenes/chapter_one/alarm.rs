@@ -24,6 +24,7 @@ use crate::is_in_cutscene;
 use crate::math::lerp;
 use crate::math::Spleen;
 use crate::meta::consts::TuneableConsts;
+use crate::physics::dyno::IntMoveable;
 use crate::when_cutscene_started;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
@@ -66,7 +67,7 @@ struct AlarmBgStarBundle {
 
 pub(super) fn setup_alarm_cutscene(
     mut commands: Commands,
-    mut cam_q: Query<&mut CameraMarker>,
+    mut cam_q: Query<(&mut IntMoveable, &mut CameraMarker)>,
     tune: Res<TuneableConsts>,
     asset_server: Res<AssetServer>,
     bgs: Query<Entity, With<BgMarker>>,
@@ -76,9 +77,9 @@ pub(super) fn setup_alarm_cutscene(
 ) {
     // Clear the screen by removing background items and moving to the middle of nowhere
     // This lets us still use all the fancy lighting layers in cutscenes like this
-    let mut cam = cam_q.single_mut();
+    let (mut moveable, mut cam) = cam_q.single_mut();
     cam.mode = CameraMode::Controlled;
-    cam.pos = ALARM_CAM_HOME;
+    moveable.pos = ALARM_CAM_HOME.extend(0);
     clear_background_entities(&mut commands, &bgs);
 
     // Add in the sunrise
@@ -240,7 +241,8 @@ pub(super) fn setup_alarm_cutscene(
     commands.spawn((
         AudioBundle {
             source: asset_server.load("sound_effects/birds-isaiah658.ogg"),
-            settings: PlaybackSettings {                mode: bevy::audio::PlaybackMode::Despawn,
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Despawn,
                 paused: false,
                 ..default()
             },

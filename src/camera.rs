@@ -8,9 +8,49 @@ use crate::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
     },
-    physics::dyno::{move_int_dynos, IntDyno},
+    physics::dyno::{move_int_dynos, IntDyno, IntMoveable},
 };
 use bevy::prelude::*;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CameraScale {
+    Quarter,
+    Half,
+    One,
+    Two,
+    Three,
+}
+impl CameraScale {
+    pub fn to_f32(&self) -> f32 {
+        match *self {
+            CameraScale::Quarter => 0.25,
+            CameraScale::Half => 0.5,
+            CameraScale::One => 1.0,
+            CameraScale::Two => 2.0,
+            CameraScale::Three => 3.0,
+        }
+    }
+
+    pub fn up(&self) -> Self {
+        match *self {
+            CameraScale::Quarter => CameraScale::Half,
+            CameraScale::Half => CameraScale::One,
+            CameraScale::One => CameraScale::Two,
+            CameraScale::Two => CameraScale::Three,
+            CameraScale::Three => CameraScale::Three,
+        }
+    }
+
+    pub fn down(&self) -> Self {
+        match *self {
+            CameraScale::Quarter => CameraScale::Quarter,
+            CameraScale::Half => CameraScale::Quarter,
+            CameraScale::One => CameraScale::Half,
+            CameraScale::Two => CameraScale::One,
+            CameraScale::Three => CameraScale::Two,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraMode {
@@ -31,32 +71,34 @@ impl CameraMode {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct CameraMarker {
     pub mode: CameraMode,
-    pub vel: Vec2,
-    pub pos: IVec2,
-    pub zoom: f32,
+    pub scale: CameraScale,
 }
 impl CameraMarker {
     pub fn new() -> Self {
         Self {
             mode: CameraMode::Follow,
-            vel: Vec2::ZERO,
-            pos: IVec2::ZERO,
-            zoom: 1.0,
+            scale: CameraScale::One,
         }
     }
 
     pub fn rotate(&mut self) {
         self.mode = self.mode.rotate();
-        self.vel = Vec2::ZERO;
     }
+}
+
+#[derive(Bundle)]
+pub struct DynamicCameraBundle {
+    pub marker: CameraMarker,
+    pub moveable: IntMoveable,
+    pub spatial: SpatialBundle,
 }
 
 pub fn update_camera(
     dynos: Query<&IntDyno, Without<CameraMarker>>,
-    mut marker: Query<&mut CameraMarker>,
+    mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
     control_state: Res<CameraControlState>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
     mut set_event: EventReader<SetCameraModeEvent>,
@@ -70,7 +112,7 @@ pub fn update_camera(
     >,
 ) {
     // Get the camera (do nothing if we can't find one)
-    let Ok(mut marker) = marker.get_single_mut() else {
+    let Ok((mut moveable, mut marker)) = marker.get_single_mut() else {
         return;
     };
     // Handle switching
@@ -88,52 +130,49 @@ pub fn update_camera(
             let Ok(dyno) = dynos.get_single() else {
                 return;
             };
-            let diff = dyno.pos - marker.pos;
+            let diff = dyno.pos - moveable.pos.truncate();
             let hor_wiggle = 8;
             if diff.x.abs() > SCREEN_WIDTH as i32 / hor_wiggle {
-                marker.pos.x += (diff.x.abs() - SCREEN_WIDTH as i32 / hor_wiggle) * diff.x.signum();
+                moveable.pos.x +=
+                    (diff.x.abs() - SCREEN_WIDTH as i32 / hor_wiggle) * diff.x.signum();
             }
             let ver_wiggle = 8;
             if diff.y.abs() > SCREEN_HEIGHT as i32 / ver_wiggle {
-                marker.pos.y +=
+                moveable.pos.y +=
                     (diff.y.abs() - SCREEN_HEIGHT as i32 / ver_wiggle) * diff.y.signum();
             }
         }
         CameraMode::Free => {
             if control_state.wasd_dir.length_squared() < 0.1 {
                 // Slow to a stop
-                marker.vel *= 0.7;
+                moveable.vel *= 0.7;
             } else {
                 // Move around
                 let max_speed = 10.0;
-                marker.vel += control_state.wasd_dir * 0.5;
-                if marker.vel.length_squared() > max_speed * max_speed {
-                    marker.vel = marker.vel.normalize() * max_speed;
+                moveable.vel += control_state.wasd_dir * 0.5;
+                if moveable.vel.length_squared() > max_speed * max_speed {
+                    moveable.vel = moveable.vel.normalize() * max_speed;
                 }
             }
-            let vec = marker.vel;
-            marker.pos = IVec2 {
-                x: (marker.pos.x as f32 + vec.x) as i32,
-                y: (marker.pos.y as f32 + vec.y) as i32,
-            };
         }
         CameraMode::Controlled => {
             // Do nothing, something else is driving us
         }
     }
-    // Handle zooming
-    if control_state.zoom < 0.0 {
-        marker.zoom *= 1.02;
-    } else if control_state.zoom > 0.0 {
-        marker.zoom /= 1.02;
+    // Handle zoom
+    if control_state.zoom > 0 {
+        marker.scale = marker.scale.up();
+    } else if control_state.zoom < 0 {
+        marker.scale = marker.scale.down();
     }
+    // Handle moving the "actual" cameras
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = marker.pos.as_vec2().extend(0.0);
+        tran.translation = moveable.pos.truncate().as_vec2().extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
-        proj.scale = marker.zoom;
+        proj.scale = marker.scale.to_f32();
     }
 }
 

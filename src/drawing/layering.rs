@@ -3,10 +3,12 @@
 
 use super::sprite_mat::SpriteMaterial;
 use crate::camera::CameraMarker;
+use crate::camera::DynamicCameraBundle;
 use crate::meta::consts::SCREEN_HEIGHT;
 use crate::meta::consts::SCREEN_WIDTH;
 use crate::meta::consts::WINDOW_HEIGHT;
 use crate::meta::consts::WINDOW_WIDTH;
+use crate::physics::dyno::IntMoveable;
 use bevy::core_pipeline::bloom::BloomCompositeMode;
 use bevy::core_pipeline::bloom::BloomPrefilterSettings;
 use bevy::core_pipeline::bloom::BloomSettings;
@@ -581,17 +583,24 @@ fn setup_post_processing_camera(
     ));
 
     // Camera that renders the final image for the screen
-    commands.spawn((
-        Name::new("post_processing_camera"),
-        Camera2dBundle {
-            camera: Camera {
-                order: 6,
-                hdr: true,
+    commands
+        .spawn((
+            Name::new("post_processing_camera"),
+            Camera2dBundle {
+                camera: Camera {
+                    order: 6,
+                    hdr: true,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        CameraMarker::new(),
-        output_layer,
-    ));
+            output_layer,
+        ))
+        .with_children(|parent| {
+            parent.spawn(DynamicCameraBundle {
+                marker: CameraMarker::new(),
+                moveable: IntMoveable::default(),
+                spatial: SpatialBundle::default(),
+            });
+        });
 }

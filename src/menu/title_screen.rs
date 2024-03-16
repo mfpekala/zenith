@@ -6,7 +6,7 @@ use crate::{
     math::Spleen,
     meta::{
         consts::TuneableConsts,
-        game_state::{GameState, MenuState, MetaState, SetGameState},
+        game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetGameState},
     },
     when_becomes_false,
     when_becomes_true,
@@ -105,6 +105,9 @@ fn update_title_screen(
             timer: Timer::from_seconds(transition_time + 0.25, TimerMode::Once),
         });
     }
+    gs_writer.send(SetGameState(GameState {
+        meta: MetaState::Editor(EditorState::Editing(EditingState::blank())),
+    }));
     let Ok((id, mut death)) = death.get_single_mut() else {
         return;
     };
@@ -127,14 +130,12 @@ fn update_title_screen(
 }
 
 fn destroy_title_screen(mut commands: Commands, mac: Query<(Entity, &MenuAssetComponent)>) {
+    println!("destroy reached");
     for (id, mac) in mac.iter() {
         if mac.path != TITLE_SCREEN_RON_PATH.to_string() {
             continue;
         }
         commands.entity(id).despawn_recursive();
-        for curse in mac.cursed_children.iter() {
-            commands.entity(*curse).despawn_recursive();
-        }
     }
 }
 
