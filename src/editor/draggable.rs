@@ -52,7 +52,7 @@ pub fn handle_draggables(
                 if erock.is_some() {
                     return;
                 }
-                tran.translation = mouse_state.world_pos.extend(0.0);
+                tran.translation = mouse_state.world_pos.extend(0.0).round();
                 // We only want to drag one thing at a time, so return early
                 return;
             }

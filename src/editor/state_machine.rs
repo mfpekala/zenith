@@ -9,6 +9,11 @@ use super::{
 };
 use crate::{
     camera::CameraMode,
+    drawing::{
+        layering::sprite_layer,
+        mesh::{generate_new_sprite_mesh, outline_points, uvec2_bound},
+        sprite_mat::SpriteMaterial,
+    },
     environment::{
         field::Field,
         goal::{Goal, GoalBundle},
@@ -16,6 +21,7 @@ use crate::{
         rock::{Rock, RockBundle, RockResources},
     },
     input::{MouseState, SetCameraModeEvent},
+    math::uvec2mesh_points,
     meta::game_state::{
         in_editor, EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
@@ -36,6 +42,10 @@ pub fn editing_state_machine(
         (With<EditablePoint>, Without<EditableRock>),
     >,
     mut gs_writer: EventWriter<SetGameState>,
+    // BELOW FOR FUNTIME
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
 ) {
     let editing_state = match gs.meta {
         MetaState::Editor(EditorState::Editing(state)) => state,
@@ -119,6 +129,34 @@ pub fn editing_state_machine(
                         .id();
                     editing_rock.gravity_reach_point = Some(gpl_id);
                     gs_writer.send(SetGameState(new_editing_state.to_game_state()));
+                    // THIS IS EXPERIMENTAL LOGIC BECAUSE I WANT TO PLAY WITH SPRITES
+                    let mut outer_points = vec![];
+                    for ext_id in editing_rock.points.iter() {
+                        let (_, tran, _) = exterior_points.get(*ext_id).unwrap();
+                        outer_points.push(tran.translation.truncate().round());
+                    }
+                    let inner_points = outline_points(&outer_points, -4.0);
+
+                    let bounds = uvec2_bound(&outer_points);
+                    let text_size = UVec2::new(36, 36);
+                    let (pos, size) = SpriteMaterial::random_sized_bounds(bounds, text_size);
+
+                    let outer_ass = asset_server.load("textures/play_outer.png");
+                    let outer_mat = SpriteMaterial::from_handle(outer_ass, Some(pos), Some(size));
+                    let outer_hand = mats.add(outer_mat);
+                    let outer_mesh =
+                        generate_new_sprite_mesh(&outer_points, &outer_hand, &mut meshes);
+
+                    let inner_ass = asset_server.load("textures/play_inner.png");
+                    let inner_mat = SpriteMaterial::from_handle(inner_ass, Some(pos), Some(size));
+                    let inner_hand = mats.add(inner_mat);
+                    let inner_mesh =
+                        generate_new_sprite_mesh(&inner_points, &inner_hand, &mut meshes);
+
+                    commands.entity(id).with_children(|parent| {
+                        parent.spawn((outer_mesh, sprite_layer(), Name::new("play_outer")));
+                        parent.spawn((inner_mesh, sprite_layer(), Name::new("play_outer")));
+                    });
                 } else {
                     // If we right click anywhere else, just make a new point
                     let point_id = commands

@@ -21,7 +21,7 @@ pub struct Field {
 }
 impl HollowDrawable for Field {
     fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
+        // draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
     }
 }
 impl Field {

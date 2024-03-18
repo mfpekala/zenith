@@ -89,6 +89,35 @@ pub fn generate_new_screen_mesh(meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHand
     points_to_mesh(&points, meshes)
 }
 
+/// Returns the smallest UVec 2 such that an aabb of that size could cover points
+pub fn uvec2_bound(points: &Vec<Vec2>) -> UVec2 {
+    let mut mins = Vec2::new(f32::MAX, f32::MAX);
+    let mut maxs = Vec2::new(f32::MIN, f32::MIN);
+    for vec in points {
+        mins = mins.min(*vec);
+        maxs = maxs.max(*vec);
+    }
+    UVec2 {
+        x: (maxs.x - mins.x).ceil() as u32,
+        y: (maxs.y - mins.y).ceil() as u32,
+    }
+}
+
+/// Given a list of points, return points that retain the same shape, but are produce an outline
+pub fn outline_points(points: &Vec<Vec2>, width: f32) -> Vec<Vec2> {
+    let mut new_points = vec![];
+    for (ix, point) in points.iter().enumerate() {
+        let point_before = points[if ix == 0 { points.len() - 1 } else { ix - 1 }];
+        let point_after = points[if ix == points.len() - 1 { 0 } else { ix + 1 }];
+        let slope_before = (*point - point_before).normalize_or_zero();
+        let slope_after = (point_after - *point).normalize_or_zero();
+        let tang = (slope_before + slope_after).normalize_or_zero();
+        let perp = Vec2::new(-tang.y, tang.x);
+        new_points.push(*point + perp * width);
+    }
+    new_points
+}
+
 #[derive(Component)]
 pub struct MeshOutline {
     pub width: f32,
@@ -101,16 +130,7 @@ impl MeshOutline {
         mats: &mut ResMut<Assets<ColorMaterial>>,
         meshes: &mut ResMut<Assets<Mesh>>,
     ) -> impl Bundle {
-        let mut new_points = vec![];
-        for (ix, point) in points.iter().enumerate() {
-            let point_before = points[if ix == 0 { points.len() - 1 } else { ix - 1 }];
-            let point_after = points[if ix == points.len() - 1 { 0 } else { ix + 1 }];
-            let slope_before = (*point - point_before).normalize_or_zero();
-            let slope_after = (point_after - *point).normalize_or_zero();
-            let tang = (slope_before + slope_after).normalize_or_zero();
-            let perp = Vec2::new(-tang.y, tang.x);
-            new_points.push(*point + perp * self.width);
-        }
+        let new_points = outline_points(points, self.width);
         let mesh = points_to_mesh(&new_points, meshes);
         let mat = mats.add(ColorMaterial::from(self.color));
 

@@ -171,6 +171,7 @@ fn update_centers(
             }
             etran.translation = total.extend(0.0);
         }
+        etran.translation = etran.translation.round();
     }
 }
 
@@ -288,6 +289,8 @@ fn draw_editable_rocks(
     epoints: Query<&Transform, With<EditablePoint>>,
     mut gz: Gizmos,
 ) {
+    // JUST FOR TESTING SPRITE TIME PLAY TIME
+    return;
     for (rock, tran) in erocks.iter() {
         if rock.points.len() < 3 {
             continue;
