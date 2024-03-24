@@ -6,7 +6,6 @@ use crate::{
     },
     hollow_drawable,
     math::get_shell,
-    meta::level_data::SaveableField,
     physics::collider::ColliderTriggerBundle,
 };
 use bevy::{prelude::*, render::view::RenderLayers};
@@ -21,7 +20,7 @@ pub struct Field {
 }
 impl HollowDrawable for Field {
     fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        // draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
+        draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
     }
 }
 impl Field {
@@ -50,29 +49,6 @@ impl Field {
             regions.push(region);
         }
         regions
-    }
-
-    pub fn from_saveable(sfield: &SaveableField) -> (Self, Vec2) {
-        let mut center = Vec2::ZERO;
-        for point in sfield.points.iter() {
-            center += *point;
-        }
-        center /= sfield.points.len() as f32;
-        let clean_points = sfield
-            .points
-            .clone()
-            .into_iter()
-            .map(|p| p - center)
-            .collect();
-        (
-            Self {
-                points: clean_points,
-                strength: sfield.strength,
-                dir: sfield.dir,
-                drag: sfield.drag,
-            },
-            center,
-        )
     }
 }
 hollow_drawable!(Field, draw_fields);

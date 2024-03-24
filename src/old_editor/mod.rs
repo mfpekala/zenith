@@ -1,17 +1,25 @@
+pub mod draggable;
+pub mod editable_goal;
+pub mod editable_point;
+pub mod editable_rock;
+pub mod editable_starting_point;
+pub mod saver;
+pub mod state_machine;
+
+use self::{
+    draggable::register_draggables, editable_point::register_editable_points,
+    editable_rock::register_editable_rocks, saver::register_saver,
+    state_machine::register_editor_state_machine,
+};
 use crate::{
     meta::{
-        game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
+        game_state::{entered_editor, EditorState, GameState, MetaState},
         level_data::LevelData,
     },
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
-
-use self::point::{delete_points, move_points, select_points, spawn_points};
-
-pub mod input;
-pub mod point;
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -52,12 +60,14 @@ struct LevelEditingData(pub LevelData);
 fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
     let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
     commands.spawn(LevelEditingHandle(handle));
-}
 
-fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {
-    if let Ok(id) = handle.get_single() {
-        commands.entity(id).despawn_recursive();
-    }
+    // let level_data = LevelData::load(get_level_folder().join("editing.zenith"));
+    // if let Some(level_data) = level_data {
+    //     level_data.load_editor(&mut commands);
+    // } else {
+    //     let blank_level = LevelData::blank();
+    //     blank_level.load_editor(&mut commands);
+    // };
 }
 
 fn watch_level_editing_asset(
@@ -76,23 +86,19 @@ fn watch_level_editing_asset(
     }
 }
 
-pub struct EditorPlugin;
+pub struct OldEditorPlugin;
 
-impl Plugin for EditorPlugin {
+impl Plugin for OldEditorPlugin {
     fn build(&self, app: &mut App) {
-        // Meta-editor stuff
         app.insert_resource(LevelEditingData(LevelData::default()));
         app.add_plugins(RonAssetPlugin::<LevelData>::new(&["level.ron"]));
         app.add_systems(Update, setup_editor.run_if(entered_editor));
-        app.add_systems(Update, teardown_editor.run_if(left_editor));
-        app.add_systems(Update, watch_level_editing_asset.run_if(in_editor));
+        app.add_systems(Update, watch_level_editing_asset);
 
-        // Points
-        app.add_systems(
-            Update,
-            (spawn_points, select_points, delete_points, move_points)
-                .chain()
-                .run_if(is_editing),
-        );
+        register_draggables(app);
+        register_editable_points(app);
+        register_editable_rocks(app);
+        register_editor_state_machine(app);
+        register_saver(app);
     }
 }

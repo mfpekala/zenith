@@ -13,6 +13,15 @@ pub struct IntMoveable {
     pub pos: IVec3,
     pub rem: Vec2,
 }
+impl IntMoveable {
+    pub fn new(pos: IVec3) -> Self {
+        Self {
+            vel: Vec2::ZERO,
+            rem: Vec2::ZERO,
+            pos,
+        }
+    }
+}
 
 pub fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable)>) {
     for (mut tran, mut moveable) in moveables.iter_mut() {

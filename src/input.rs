@@ -13,17 +13,17 @@ use crate::{
 
 #[derive(Resource, Debug)]
 pub struct MouseState {
-    pub pos: Vec2,
-    pub world_pos: Vec2,
+    pub pos: IVec2,
+    pub world_pos: IVec2,
     pub left_pressed: bool,
-    pub pending_launch_start: Option<Vec2>,
+    pub pending_launch_start: Option<IVec2>,
     pub pending_launch_vel: Option<Vec2>,
 }
 impl MouseState {
     pub fn empty() -> Self {
         Self {
-            pos: Vec2::ZERO,
-            world_pos: Vec2::ZERO,
+            pos: IVec2::ZERO,
+            world_pos: IVec2::ZERO,
             left_pressed: false,
             pending_launch_start: None,
             pending_launch_vel: None,
@@ -55,22 +55,23 @@ pub fn watch_mouse(
     };
     let scale_down_to_screen =
         (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32) * camera_marker.scale.to_f32();
-    mouse_state.pos = mouse_pos;
+    mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
     mouse_pos *= scale_down_to_screen;
-    mouse_state.world_pos = camera_tran.translation.truncate()
+    let fworld_pos = camera_tran.translation.truncate()
         - Vec2 {
             x: camera_marker.scale.to_f32() * (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
             y: -camera_marker.scale.to_f32() * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
         };
+    mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
 
     mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
     if buttons.just_pressed(MouseButton::Left) {
         // Beginning launch
-        mouse_state.pending_launch_start = Some(mouse_pos);
+        mouse_state.pending_launch_start = Some(mouse_state.pos);
     }
     if buttons.pressed(MouseButton::Left) {
         if let Some(start_pos) = mouse_state.pending_launch_start {
-            let mut almost_vel = (mouse_pos - start_pos) * 1.0;
+            let mut almost_vel = (mouse_state.pos - start_pos).as_vec2();
             almost_vel.x *= -1.0;
             mouse_state.pending_launch_vel = Some(almost_vel);
         }

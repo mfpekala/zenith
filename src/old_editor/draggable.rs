@@ -17,7 +17,7 @@ impl Draggable {
         }
     }
 
-    pub fn is_mouse_over(&self, pos: Vec2, mouse_state: &MouseState) -> bool {
+    pub fn is_mouse_over(&self, pos: IVec2, mouse_state: &MouseState) -> bool {
         mouse_state.world_pos.distance_squared(pos) < self.knob_size * self.knob_size
     }
 }

@@ -148,8 +148,8 @@ pub fn update_camera(
                 moveable.vel *= 0.7;
             } else {
                 // Move around
-                let max_speed = 10.0;
-                moveable.vel += control_state.wasd_dir * 0.5;
+                let max_speed = 10.0 * marker.scale.to_f32();
+                moveable.vel += control_state.wasd_dir * 0.5 * marker.scale.to_f32();
                 if moveable.vel.length_squared() > max_speed * max_speed {
                     moveable.vel = moveable.vel.normalize() * max_speed;
                 }

@@ -5,7 +5,7 @@ LevelData(
         0.0,
     ),
     goal_point: Vec2(
-        1.0,
+        2.0,
         0.0,
     ),
     rocks: [],
