@@ -10,8 +10,8 @@ pub enum MenuState {
 #[derive(Clone, Copy, Debug)]
 pub enum EditingMode {
     Free,
-    CreatingRock(Entity),
-    EditingRock(Entity),
+    CreatingPlanet(Entity),
+    EditingPlanet(Entity),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -36,6 +36,18 @@ impl EditingState {
 pub enum EditorState {
     Editing(EditingState),
     Testing,
+}
+impl EditorState {
+    pub fn get_editing_mode(&self) -> Option<EditingMode> {
+        match *self {
+            Self::Editing(state) => match state.mode {
+                EditingMode::Free => Some(EditingMode::Free),
+                EditingMode::CreatingPlanet(id) => Some(EditingMode::CreatingPlanet(id)),
+                EditingMode::EditingPlanet(id) => Some(EditingMode::EditingPlanet(id)),
+            },
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

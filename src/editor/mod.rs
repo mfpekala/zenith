@@ -11,6 +11,7 @@ use bevy_common_assets::ron::RonAssetPlugin;
 use self::point::{delete_points, move_points, select_points, spawn_points};
 
 pub mod input;
+pub mod planet;
 pub mod point;
 
 fn is_editing_helper(gs: &GameState) -> bool {

@@ -1,6 +1,15 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 
-use crate::{drawing::layering::sprite_layer, input::MouseState, physics::dyno::IntMoveable};
+use crate::{
+    drawing::layering::sprite_layer,
+    input::MouseState,
+    meta::game_state::{
+        EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
+    },
+    physics::dyno::IntMoveable,
+};
+
+use super::planet::{EPlanet, EPlanetBundle};
 
 #[derive(Component)]
 pub struct Point {
@@ -48,7 +57,7 @@ impl PointBundle {
         }
     }
 
-    pub fn spawn(commands: &mut Commands, pos: IVec2) {
+    pub fn spawn(commands: &mut ChildBuilder, pos: IVec2) -> Entity {
         let size = 4;
         commands
             .spawn(Self::new(pos, size, Color::ANTIQUE_WHITE))
@@ -68,7 +77,8 @@ impl PointBundle {
                     },
                     sprite_layer(),
                 ));
-            });
+            })
+            .id()
     }
 }
 
@@ -76,9 +86,63 @@ pub(super) fn spawn_points(
     mut commands: Commands,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_state: Res<MouseState>,
+    gs: Res<GameState>,
+    mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
+    points: Query<&GlobalTransform, With<Point>>,
+    mut gs_writer: EventWriter<SetGameState>,
 ) {
+    let planet_id = match gs.meta {
+        MetaState::Editor(state) => match state.get_editing_mode() {
+            Some(state) => match state {
+                EditingMode::CreatingPlanet(id) => id,
+                EditingMode::Free => {
+                    if mouse_buttons.just_pressed(MouseButton::Right) {
+                        let id = EPlanetBundle::spawn(&mut commands, mouse_state.world_pos);
+                        gs_writer.send(SetGameState(GameState {
+                            meta: MetaState::Editor(EditorState::Editing(EditingState {
+                                mode: EditingMode::CreatingPlanet(id),
+                            })),
+                        }));
+                    }
+                    return;
+                }
+                _ => return,
+            },
+            _ => return,
+        },
+        _ => return,
+    };
+    let (mut eplanet, mv) = eplanets.get_mut(planet_id).unwrap();
     if mouse_buttons.just_pressed(MouseButton::Right) {
-        PointBundle::spawn(&mut commands, mouse_state.world_pos);
+        let closing = match eplanet.rock_points.get(0) {
+            None => false,
+            Some(pid) => {
+                if let Ok(gt) = points.get(*pid) {
+                    if (mouse_state.world_pos.as_vec2() - gt.translation().truncate())
+                        .length_squared()
+                        < 16.0
+                    {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+        };
+        if closing {
+            gs_writer.send(SetGameState(GameState {
+                meta: MetaState::Editor(EditorState::Editing(EditingState {
+                    mode: EditingMode::EditingPlanet(planet_id),
+                })),
+            }));
+        } else {
+            commands.entity(planet_id).with_children(|mut parent| {
+                let id = PointBundle::spawn(&mut parent, mouse_state.world_pos - mv.pos.truncate());
+                eplanet.rock_points.push(id);
+            });
+        }
     }
 }
 
@@ -87,7 +151,13 @@ pub(super) fn select_points(
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_state: Res<MouseState>,
     key_buttons: Res<ButtonInput<KeyCode>>,
-    mut points: Query<(Entity, &mut Point, &IntMoveable, &Transform, &Children)>,
+    mut points: Query<(
+        Entity,
+        &mut Point,
+        &IntMoveable,
+        &GlobalTransform,
+        &Children,
+    )>,
     select_markers: Query<&SelectMarker>,
 ) {
     // If there's no press / release, do nothing
@@ -99,60 +169,81 @@ pub(super) fn select_points(
     // Figure out what points are already selected, and what points are hovered (if any)
     let mut selected = vec![];
     let mut hovered = vec![];
-    for (id, point, mv, tran, _) in points.iter() {
+    for (id, point, _, gt, _) in points.iter() {
         if point.is_selected {
             selected.push(id);
         }
-        let size = (tran.scale.x.abs().ceil()) as u32;
-        let overlap_x = mouse_state.world_pos.x.abs_diff(mv.pos.x) < size;
-        let overlap_y = mouse_state.world_pos.y.abs_diff(mv.pos.y) < size;
+        let size = 4 as u32;
+        let overlap_x = mouse_state
+            .world_pos
+            .x
+            .abs_diff(gt.translation().x.round() as i32)
+            < size;
+        let overlap_y = mouse_state
+            .world_pos
+            .y
+            .abs_diff(gt.translation().y.round() as i32)
+            < size;
         if overlap_x && overlap_y {
             hovered.push(id);
         }
     }
     // Helper functions
-    let select_point =
-        |id: Entity,
-         comms: &mut Commands,
-         q: &mut Query<(Entity, &mut Point, &IntMoveable, &Transform, &Children)>| {
-            let (_, mut p, mv, _, children) = q.get_mut(id).unwrap();
-            p.is_selected = true;
-            p.drag_offset = Some(mv.pos.truncate() - mouse_state.world_pos);
-            if children.len() <= 1 {
-                comms.entity(id).with_children(|parent| {
-                    parent.spawn((
-                        SpriteBundle {
-                            sprite: Sprite {
-                                color: Color::GOLD,
-                                ..default()
-                            },
-                            transform: Transform {
-                                scale: Vec3::ONE * (PointBundle::border_growth() + 0.5),
-                                translation: Vec2::ZERO.extend(-1.0),
-                                ..default()
-                            },
+    let select_point = |id: Entity,
+                        comms: &mut Commands,
+                        q: &mut Query<(
+        Entity,
+        &mut Point,
+        &IntMoveable,
+        &GlobalTransform,
+        &Children,
+    )>| {
+        let (_, mut p, mv, gt, children) = q.get_mut(id).unwrap();
+        p.is_selected = true;
+        let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
+        let standard_off = gt2 - mouse_state.world_pos;
+        let parent_tran = gt2 - mv.pos.truncate();
+        p.drag_offset = Some(standard_off - parent_tran);
+        if children.len() <= 1 {
+            comms.entity(id).with_children(|parent| {
+                parent.spawn((
+                    SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GOLD,
                             ..default()
                         },
-                        SelectMarker,
-                        sprite_layer(),
-                    ));
-                });
+                        transform: Transform {
+                            scale: Vec3::ONE * (PointBundle::border_growth() + 0.5),
+                            translation: Vec2::ZERO.extend(-1.0),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    SelectMarker,
+                    sprite_layer(),
+                ));
+            });
+        }
+    };
+    let deselect_point = |id: Entity,
+                          comms: &mut Commands,
+                          q: &mut Query<(
+        Entity,
+        &mut Point,
+        &IntMoveable,
+        &GlobalTransform,
+        &Children,
+    )>| {
+        let (_, mut p, _, _, children) = q.get_mut(id).unwrap();
+        p.is_selected = false;
+        p.drag_offset = None;
+        for child in children {
+            if select_markers.get(*child).is_ok() {
+                comms.entity(*child).despawn_recursive();
+                comms.entity(id).remove_children(&[*child]);
             }
-        };
-    let deselect_point =
-        |id: Entity,
-         comms: &mut Commands,
-         q: &mut Query<(Entity, &mut Point, &IntMoveable, &Transform, &Children)>| {
-            let (_, mut p, _, _, children) = q.get_mut(id).unwrap();
-            p.is_selected = false;
-            p.drag_offset = None;
-            for child in children {
-                if select_markers.get(*child).is_ok() {
-                    comms.entity(*child).despawn_recursive();
-                    comms.entity(id).remove_children(&[*child]);
-                }
-            }
-        };
+        }
+    };
     // Finally interpret the input
     if mouse_buttons.just_pressed(MouseButton::Left) {
         if !key_buttons.pressed(KeyCode::ShiftLeft) {
