@@ -65,14 +65,17 @@ impl Plugin for TuneableConstsPlugin {
 #[macro_export]
 macro_rules! add_hot_resource {
     ($res_struct: ident, $ron_path: expr, $setup_fname: ident, $update_fname: ident) => {
-        fn $setup_fname(mut commands: Commands, asset_server: Res<AssetServer>) {
+        pub(super) fn $setup_fname(mut commands: Commands, asset_server: Res<AssetServer>) {
             let handle = asset_server.load::<$res_struct>($ron_path);
             // NOTE: This (kind of) dangling handle just ensures the constants never get unloaded
             commands.insert_resource($res_struct::default());
             commands.spawn(handle);
         }
 
-        fn $update_fname(mut consts: ResMut<$res_struct>, asset: Res<Assets<$res_struct>>) {
+        pub(super) fn $update_fname(
+            mut consts: ResMut<$res_struct>,
+            asset: Res<Assets<$res_struct>>,
+        ) {
             let Some(id) = asset.ids().next() else {
                 return;
             };

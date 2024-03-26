@@ -43,7 +43,7 @@ impl PointBundle {
     fn new(pos: IVec2, size: u32, color: Color) -> Self {
         Self {
             point: Point::new(),
-            moveable: IntMoveable::new(pos.extend(0)),
+            moveable: IntMoveable::new(pos.extend(2)),
             sprite: SpriteBundle {
                 sprite: Sprite { color, ..default() },
                 transform: Transform {
@@ -95,17 +95,6 @@ pub(super) fn spawn_points(
         MetaState::Editor(state) => match state.get_editing_mode() {
             Some(state) => match state {
                 EditingMode::CreatingPlanet(id) => id,
-                EditingMode::Free => {
-                    if mouse_buttons.just_pressed(MouseButton::Right) {
-                        let id = EPlanetBundle::spawn(&mut commands, mouse_state.world_pos);
-                        gs_writer.send(SetGameState(GameState {
-                            meta: MetaState::Editor(EditorState::Editing(EditingState {
-                                mode: EditingMode::CreatingPlanet(id),
-                            })),
-                        }));
-                    }
-                    return;
-                }
                 _ => return,
             },
             _ => return,
@@ -214,7 +203,7 @@ pub(super) fn select_points(
                         },
                         transform: Transform {
                             scale: Vec3::ONE * (PointBundle::border_growth() + 0.5),
-                            translation: Vec2::ZERO.extend(-1.0),
+                            translation: Vec2::ZERO.extend(-0.11),
                             ..default()
                         },
                         ..default()

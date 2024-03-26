@@ -2,6 +2,7 @@ use crate::environment::background::BackgroundPlugin;
 
 use self::{
     animated::MyAnimationPlugin,
+    bordered_mesh::bordered_mesh_trickle_down,
     effects::EffectsPlugin,
     hollow::register_hollow_drawing,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
@@ -12,6 +13,7 @@ use self::{
 use bevy::prelude::*;
 
 pub mod animated;
+pub mod bordered_mesh;
 pub mod effects;
 pub mod hollow;
 pub mod layering;
@@ -61,6 +63,8 @@ pub fn register_drawing(app: &mut App) {
     app.init_gizmo_group::<LightGizmoGroup>();
     app.init_gizmo_group::<BgSpriteGizmoGroup>();
     app.init_gizmo_group::<BgLightGizmoGroup>();
+
+    app.add_systems(Update, bordered_mesh_trickle_down);
 
     register_hollow_drawing(app);
     register_light(app);

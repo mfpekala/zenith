@@ -7,11 +7,18 @@ pub enum MenuState {
     GalaxyOverworld,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EditingMode {
     Free,
     CreatingPlanet(Entity),
     EditingPlanet(Entity),
+}
+impl EditingMode {
+    pub fn to_game_state(&self) -> GameState {
+        GameState {
+            meta: MetaState::Editor(EditorState::Editing(EditingState { mode: *self })),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -114,6 +121,13 @@ impl GameState {
 
     pub fn into_prev(self) -> PrevGameState {
         PrevGameState { meta: self.meta }
+    }
+
+    pub fn get_editing_mode(&self) -> Option<EditingMode> {
+        match self.meta {
+            MetaState::Editor(state) => state.get_editing_mode(),
+            _ => None,
+        }
     }
 }
 

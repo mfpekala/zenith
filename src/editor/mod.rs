@@ -8,8 +8,16 @@ use crate::{
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
 
-use self::point::{delete_points, move_points, select_points, spawn_points};
+use self::{
+    help::{
+        setup_editor_help, setup_editor_help_config, teardown_editor_help, update_editor_help,
+        update_editor_help_config, EditorHelpConfig,
+    },
+    planet::{drive_planet_meshes, planet_state_input},
+    point::{delete_points, move_points, select_points, spawn_points},
+};
 
+pub mod help;
 pub mod input;
 pub mod planet;
 pub mod point;
@@ -88,10 +96,28 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, teardown_editor.run_if(left_editor));
         app.add_systems(Update, watch_level_editing_asset.run_if(in_editor));
 
+        // Help system
+        app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[
+            "editor_help.ron",
+        ]));
+        app.add_systems(Startup, setup_editor_help_config);
+        app.add_systems(Update, update_editor_help_config);
+        app.add_systems(Update, setup_editor_help.run_if(entered_editor));
+        app.add_systems(Update, update_editor_help.run_if(in_editor));
+        app.add_systems(Update, teardown_editor_help.run_if(left_editor));
+
         // Points
         app.add_systems(
             Update,
             (spawn_points, select_points, delete_points, move_points)
+                .chain()
+                .run_if(is_editing),
+        );
+
+        // Planets
+        app.add_systems(
+            Update,
+            (planet_state_input, drive_planet_meshes)
                 .chain()
                 .run_if(is_editing),
         );

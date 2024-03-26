@@ -1,0 +1,11 @@
+EditorHelpConfig(
+    box_top_left: IVec2(
+        -400,
+        -350,
+    ),
+    box_bottom_right: IVec2(
+        -200,
+        -400,
+    ),
+    font_size: 18.0,
+)
