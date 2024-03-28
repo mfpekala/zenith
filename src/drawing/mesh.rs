@@ -1,9 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{
-        mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology,
-        view::RenderLayers,
-    },
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
@@ -162,11 +159,9 @@ pub(super) fn scroll_sprite_materials(
         let Some(mat) = mats.get_mut(mat_hand.id()) else {
             continue;
         };
-        println!("Got: {:?}\n\n{:?}, \n\ninfo{:?}", scroll, mat, info);
         mat.x -= scroll.vel.x / info.sprite_size.x as f32;
         mat.y += scroll.vel.y / info.sprite_size.y as f32;
         mat.x = mat.x.rem_euclid(1.0);
         mat.y = mat.y.rem_euclid(1.0);
-        // println!("Mat should now be: {:?}", mat);
     }
 }

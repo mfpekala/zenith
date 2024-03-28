@@ -11,10 +11,11 @@ use crate::{
 
 use super::planet::EPlanet;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EPointKind {
     Rock,
     Field,
+    Wild,
 }
 
 #[derive(Component)]
@@ -24,15 +25,17 @@ pub struct EPoint {
     pub is_hovered: bool,
     pub is_selected: bool,
     pub drag_offset: Option<IVec2>,
+    pub pending_field: Option<Vec<u32>>,
 }
 impl EPoint {
-    pub fn new(kind: EPointKind) -> Self {
+    pub fn new(kind: EPointKind, pending_field: Option<Vec<u32>>) -> Self {
         Self {
             kind,
             size: 3,
             is_hovered: false,
             is_selected: false,
             drag_offset: None,
+            pending_field,
         }
     }
 }
@@ -52,16 +55,26 @@ pub struct EPointBundle {
     pub render_layer: RenderLayers,
 }
 impl EPointBundle {
-    fn new(pos: IVec2, kind: EPointKind, asset_server: &Res<AssetServer>) -> Self {
+    fn new(
+        pos: IVec2,
+        kind: EPointKind,
+        pending_field: Option<Vec<u32>>,
+        asset_server: &Res<AssetServer>,
+    ) -> Self {
         Self {
-            point: EPoint::new(kind),
+            point: EPoint::new(kind.clone(), pending_field),
             moveable: IntMoveable::new(pos.extend(2)),
             sprite: SpriteBundle {
                 transform: Transform {
                     translation: pos.as_vec2().extend(0.1),
                     ..default()
                 },
-                texture: asset_server.load("sprites/editor/point.png"),
+                texture: match kind {
+                    EPointKind::Rock | EPointKind::Field => {
+                        asset_server.load("sprites/editor/point.png")
+                    }
+                    EPointKind::Wild => asset_server.load("sprites/editor/point_wild.png"),
+                },
                 ..default()
             },
             psm: EPointSpriteMarker,
@@ -74,9 +87,10 @@ impl EPointBundle {
         asset_server: &Res<AssetServer>,
         pos: IVec2,
         kind: EPointKind,
+        pending_field: Option<Vec<u32>>,
     ) -> Entity {
         commands
-            .spawn(Self::new(pos, kind, asset_server))
+            .spawn(Self::new(pos, kind, pending_field, asset_server))
             .with_children(|parent| {
                 parent.spawn((
                     SpriteBundle {
@@ -121,6 +135,7 @@ pub(super) fn spawn_points(
     mut commands: Commands,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_state: Res<MouseState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
     points: Query<(&EPoint, &IntMoveable)>,
@@ -156,57 +171,75 @@ pub(super) fn spawn_points(
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
+                        None,
                     );
                     eplanet.rock_points.push(id);
                 });
             }
         }
         EditingMode::EditingPlanet(planet_id) => {
-            // Adds a new point in the most rational segment
             let (mut eplanet, mv) = eplanets.get_mut(planet_id).unwrap();
             let spawning_at = mouse_state.world_pos - mv.pos.truncate();
-            let mut closest_point = None;
-            let mut closest_dist = i32::MAX;
-            let mut closest_ix = 0;
-            for (ix, id) in eplanet.rock_points.iter().enumerate() {
-                let (_, mv) = points.get(*id).unwrap();
-                let dist = mv.pos.truncate().distance_squared(spawning_at);
-                if closest_point.is_none() || dist < closest_dist {
-                    closest_point = Some(*id);
-                    closest_dist = dist;
-                    closest_ix = ix as i32;
-                }
-            }
-            let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
-            let right_ix = (closest_ix + 1).rem_euclid(eplanet.rock_points.len() as i32);
-            let left_dist = points
-                .get(eplanet.rock_points[left_ix as usize])
-                .unwrap()
-                .1
-                .pos
-                .truncate()
-                .distance_squared(spawning_at);
-            let right_dist = points
-                .get(eplanet.rock_points[right_ix as usize])
-                .unwrap()
-                .1
-                .pos
-                .truncate()
-                .distance_squared(spawning_at);
-            let pos = if left_dist < right_dist {
-                closest_ix as usize
+            if keyboard.pressed(KeyCode::KeyF) {
+                // ADDING A WILD POINT
+                // These are points that later can be made into fields
+                commands.entity(planet_id).with_children(|parent| {
+                    let id = EPointBundle::spawn(
+                        parent,
+                        &asset_server,
+                        spawning_at,
+                        EPointKind::Wild,
+                        None,
+                    );
+                    eplanet.wild_points.push(id);
+                });
             } else {
-                right_ix as usize
-            };
-            commands.entity(planet_id).with_children(|mut parent| {
-                let id = EPointBundle::spawn(
-                    &mut parent,
-                    &asset_server,
-                    mouse_state.world_pos - mv.pos.truncate(),
-                    EPointKind::Rock,
-                );
-                eplanet.rock_points.insert(pos, id);
-            });
+                // ADDING A ROCK POINT
+                // Adds a new point in a pretty rational segment
+                let mut closest_point = None;
+                let mut closest_dist = i32::MAX;
+                let mut closest_ix = 0;
+                for (ix, id) in eplanet.rock_points.iter().enumerate() {
+                    let (_, mv) = points.get(*id).unwrap();
+                    let dist = mv.pos.truncate().distance_squared(spawning_at);
+                    if closest_point.is_none() || dist < closest_dist {
+                        closest_point = Some(*id);
+                        closest_dist = dist;
+                        closest_ix = ix as i32;
+                    }
+                }
+                let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
+                let right_ix = (closest_ix + 1).rem_euclid(eplanet.rock_points.len() as i32);
+                let left_dist = points
+                    .get(eplanet.rock_points[left_ix as usize])
+                    .unwrap()
+                    .1
+                    .pos
+                    .truncate()
+                    .distance_squared(spawning_at);
+                let right_dist = points
+                    .get(eplanet.rock_points[right_ix as usize])
+                    .unwrap()
+                    .1
+                    .pos
+                    .truncate()
+                    .distance_squared(spawning_at);
+                let pos = if left_dist < right_dist {
+                    closest_ix as usize
+                } else {
+                    right_ix as usize
+                };
+                commands.entity(planet_id).with_children(|mut parent| {
+                    let id = EPointBundle::spawn(
+                        &mut parent,
+                        &asset_server,
+                        mouse_state.world_pos - mv.pos.truncate(),
+                        EPointKind::Rock,
+                        None,
+                    );
+                    eplanet.rock_points.insert(pos, id);
+                });
+            }
         }
     }
 }
@@ -337,6 +370,10 @@ pub(super) fn delete_points(
                             field.field_points.retain(|x| *x != id);
                         }
                     }
+                    EPointKind::Wild => {
+                        let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
+                        parent.wild_points.retain(|x| *x != id);
+                    }
                 }
                 commands.entity(parent_ref.get()).remove_children(&[id]);
                 commands.entity(id).despawn_recursive();
@@ -349,6 +386,7 @@ pub(super) fn delete_points(
             if eplanet.rock_points.len() < 3 {
                 purged_planets.push(planet_id);
             }
+            // Also check if any fields have less than three points. If so, delete them
         }
         for planet_id in purged_planets {
             // Also need to switch to free if we're deleting the creating or editing planet

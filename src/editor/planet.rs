@@ -2,9 +2,7 @@ use bevy::{prelude::*, utils::petgraph::visit::NodeRef};
 
 use crate::{
     drawing::{
-        bordered_mesh::BorderedMesh,
-        layering::sprite_layer,
-        mesh::{outline_points, ScrollSprite},
+        bordered_mesh::BorderedMesh, layering::sprite_layer, mesh::outline_points,
         sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
@@ -25,6 +23,7 @@ pub(super) struct EPlanetField {
 pub(super) struct EPlanet {
     pub rock_points: Vec<Entity>,
     pub rock_mesh_id: Option<Entity>,
+    pub wild_points: Vec<Entity>,
     pub fields: Vec<EPlanetField>,
 }
 
@@ -130,10 +129,10 @@ pub(super) fn planet_state_input(
 
 /// On cmd+f, redo the field of the active planet
 /// NOTE: Must be editing the planet
-pub(super) fn redo_field(
+pub(super) fn redo_fields(
     mut commands: Commands,
     mut eplanets: Query<&mut EPlanet>,
-    points: Query<(Entity, &IntMoveable), With<EPoint>>,
+    mut points: Query<(Entity, &IntMoveable, &mut EPoint)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     asset_server: Res<AssetServer>,
@@ -159,6 +158,7 @@ pub(super) fn redo_field(
             }
             commands.entity(*id).despawn_recursive();
         }
+        commands.entity(field.mesh_id).despawn_recursive();
     }
     eplanet.fields.clear();
     // Make the new points
@@ -175,50 +175,92 @@ pub(super) fn redo_field(
     for ix in 0..new_poses.len() {
         let next_ix = (ix + 1).rem_euclid(new_poses.len());
         let fp1 = new_poses[ix];
-        let fp2 = new_poses[next_ix];
         let parent1 = points.get(eplanet.rock_points[ix]).unwrap();
-        let parent2 = points.get(eplanet.rock_points[next_ix]).unwrap();
         let mut fp1_id = planet_id;
-        let mut fp2_id = planet_id;
-        commands.entity(parent1.0).with_children(|parent| {
+        // TODO: This actually spawns two points per point
+        commands.entity(planet_id).with_children(|parent| {
             fp1_id = EPointBundle::spawn(
                 parent,
                 &asset_server,
-                fp1 - parent1.1.pos.truncate(),
-                EPointKind::Field,
+                fp1,
+                EPointKind::Wild,
+                Some(vec![ix as u32, next_ix as u32]),
             );
         });
-        commands.entity(parent2.0).with_children(|parent| {
-            fp2_id = EPointBundle::spawn(
-                parent,
-                &asset_server,
-                fp2 - parent2.1.pos.truncate(),
-                EPointKind::Field,
-            );
-        });
-        let mesh_points = vec![parent2.1.pos.truncate(), parent1.1.pos.truncate(), fp1, fp2];
-        commands.entity(planet_id).with_children(|parent| {
-            let mesh_id = BorderedMesh::spawn_easy(
-                parent,
-                &asset_server,
-                &mut meshes,
-                &mut mats,
-                mesh_points,
-                ("sprites/field/field_bg.png", UVec2::new(12, 12)),
-                None,
-                None,
-                sprite_layer(),
-            );
-            let field = EPlanetField {
-                // This order preserves: 0,1 are rock, 2,3 are field
-                field_points: vec![parent2.id(), parent1.id(), fp1_id, fp2_id],
-                mesh_id,
-                dir: Vec2::ONE,
-            };
-            eplanet.fields.push(field);
-        });
+        // Mark the rock points as pending field
+        let mut parent1 = points.get_mut(eplanet.rock_points[ix]).unwrap();
+        if parent1.2.pending_field.is_none() {
+            parent1.2.pending_field = Some(vec![ix as u32]);
+        } else {
+            parent1.2.pending_field.as_mut().unwrap().push(ix as u32);
+        }
+        // let mesh_points = vec![parent2.1.pos.truncate(), parent1.1.pos.truncate(), fp1, fp2];
+        // commands.entity(planet_id).with_children(|parent| {
+        //     let mesh_id = BorderedMesh::spawn_easy(
+        //         parent,
+        //         &asset_server,
+        //         &mut meshes,
+        //         &mut mats,
+        //         mesh_points,
+        //         ("sprites/field/field_bg.png", UVec2::new(12, 12)),
+        //         None,
+        //         None,
+        //         sprite_layer(),
+        //     );
+        //     let field = EPlanetField {
+        //         // This order preserves: 0,1 are rock, 2,3 are field
+        //         field_points: vec![parent2.id(), parent1.id(), fp1_id, fp2_id],
+        //         mesh_id,
+        //         dir: Vec2::ONE,
+        //     };
+        //     eplanet.fields.push(field);
+        // });
     }
 }
+
+/// On cmd + / cmd -, nudge all field points closer/further from their parent
+pub(super) fn nudge_fields(
+    eplanets: Query<&EPlanet>,
+    mut points: Query<(&EPoint, &mut IntMoveable)>,
+    gs: Res<GameState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if !keyboard.pressed(KeyCode::SuperLeft)
+        || (!keyboard.pressed(KeyCode::Comma) && !keyboard.pressed(KeyCode::Period))
+    {
+        return;
+    }
+    let Some(mode) = gs.get_editing_mode() else {
+        return;
+    };
+    let EditingMode::EditingPlanet(planet_id) = mode else {
+        return;
+    };
+    let Ok(eplanet) = eplanets.get(planet_id) else {
+        return;
+    };
+    for field in eplanet.fields.iter() {
+        for id in field.field_points.iter() {
+            let Ok((point, mut mv)) = points.get_mut(*id) else {
+                continue;
+            };
+            if point.kind != EPointKind::Field {
+                continue;
+            }
+            let change = mv.pos.as_vec3().truncate().normalize();
+            let mult = if keyboard.pressed(KeyCode::Period) {
+                1.0
+            } else {
+                -1.0
+            };
+            mv.rem += mult * change;
+        }
+    }
+}
+
+/// If multiple points from the same field are selected, delete that field
+/// Turns points into wild points if needed
+pub(super) fn remove_field() {}
 
 pub(super) fn drive_planet_meshes(
     points: Query<(&EPoint, &IntMoveable, &Parent)>,
@@ -252,12 +294,13 @@ pub(super) fn drive_planet_meshes(
                             let (_, parent_mv, _) = points.get(parent.get()).unwrap();
                             mesh_points.push(parent_mv.pos.truncate() + mv.pos.truncate());
                         }
+                        EPointKind::Wild => (),
                     }
                 }
             }
             if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
                 bm.points = mesh_points;
-                bm.scroll = Vec2::new(1.0 / 24.0, 0.0);
+                bm.scroll = Vec2::new(6.0 / 24.0, 6.0 / 24.0);
             }
         }
     }

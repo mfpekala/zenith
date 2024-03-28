@@ -13,7 +13,7 @@ use self::{
         setup_editor_help, setup_editor_help_config, teardown_editor_help, update_editor_help,
         update_editor_help_config, EditorHelpConfig,
     },
-    planet::{drive_planet_meshes, planet_state_input, redo_field},
+    planet::{drive_planet_meshes, nudge_fields, planet_state_input, redo_fields},
     point::{delete_points, hover_points, move_points, select_points, spawn_points},
 };
 
@@ -123,7 +123,12 @@ impl Plugin for EditorPlugin {
         // Planets
         app.add_systems(
             Update,
-            (planet_state_input, redo_field, drive_planet_meshes)
+            (
+                planet_state_input,
+                redo_fields,
+                nudge_fields,
+                drive_planet_meshes,
+            )
                 .chain()
                 .run_if(is_editing)
                 .after(move_points), // should be after the last thing in point chain
