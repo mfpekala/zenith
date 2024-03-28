@@ -2,7 +2,9 @@ use bevy::{prelude::*, utils::petgraph::visit::NodeRef};
 
 use crate::{
     drawing::{
-        bordered_mesh::BorderedMesh, layering::sprite_layer, mesh::outline_points,
+        bordered_mesh::BorderedMesh,
+        layering::sprite_layer,
+        mesh::{outline_points, ScrollSprite},
         sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
@@ -15,16 +17,18 @@ use super::point::{EPoint, EPointBundle};
 
 pub(super) struct EPlanetField {
     pub field_points: Vec<Entity>,
+    pub mesh_id: Entity,
     dir: Vec2,
 }
 
 #[derive(Component, Default)]
 pub(super) struct EPlanet {
     pub rock_points: Vec<Entity>,
+    pub rock_mesh_id: Option<Entity>,
     pub fields: Vec<EPlanetField>,
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub(super) struct EPlanetBundle {
     eplanet: EPlanet,
     spatial: SpatialBundle,
@@ -38,33 +42,35 @@ impl EPlanetBundle {
         mats: &mut ResMut<Assets<SpriteMaterial>>,
         meshes: &mut ResMut<Assets<Mesh>>,
     ) -> Entity {
+        let mut rock_mesh_id = None;
         let entity = commands
-            .spawn(EPlanetBundle {
-                eplanet: EPlanet::default(),
-                spatial: SpatialBundle::from_transform(Transform::from_translation(
-                    pos.as_vec2().extend(0.0),
-                )),
-                moveable: IntMoveable::new(pos.extend(0)),
-            })
+            .spawn(EPlanetBundle::default())
             .with_children(|parent| {
-                BorderedMesh::spawn_easy(
+                let new_rock_mesh_id = BorderedMesh::spawn_easy(
                     parent,
                     asset_server,
                     meshes,
                     mats,
-                    vec![
-                        IVec2::new(-20, -20),
-                        IVec2::new(-20, 20),
-                        IVec2::new(20, 20),
-                        IVec2::new(20, -20),
-                    ],
+                    vec![],
                     ("textures/play_inner.png", UVec2::new(36, 36)),
                     Some(("textures/play_outer.png", UVec2::new(36, 36))),
                     Some(3.0),
                     sprite_layer(),
                 );
+                rock_mesh_id = Some(new_rock_mesh_id);
             })
             .id();
+        commands.entity(entity).remove::<EPlanetBundle>();
+        commands.entity(entity).insert(EPlanetBundle {
+            eplanet: EPlanet {
+                rock_mesh_id,
+                ..default()
+            },
+            spatial: SpatialBundle::from_transform(Transform::from_translation(
+                pos.as_vec2().extend(0.0),
+            )),
+            moveable: IntMoveable::new(pos.extend(0)),
+        });
         entity
     }
 }
@@ -131,6 +137,8 @@ pub(super) fn redo_field(
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     asset_server: Res<AssetServer>,
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let planet_id = match gs.get_editing_mode() {
         Some(EditingMode::EditingPlanet(id)) => id,
@@ -188,34 +196,69 @@ pub(super) fn redo_field(
                 EPointKind::Field,
             );
         });
-        let field = EPlanetField {
-            // This order preserves: 0,1 are rock, 2,3 are field
-            field_points: vec![parent2.id(), parent1.id(), fp1_id, fp2_id],
-            dir: Vec2::ONE,
-        };
-        eplanet.fields.push(field);
+        let mesh_points = vec![parent2.1.pos.truncate(), parent1.1.pos.truncate(), fp1, fp2];
+        commands.entity(planet_id).with_children(|parent| {
+            let mesh_id = BorderedMesh::spawn_easy(
+                parent,
+                &asset_server,
+                &mut meshes,
+                &mut mats,
+                mesh_points,
+                ("sprites/field/field_bg.png", UVec2::new(12, 12)),
+                None,
+                None,
+                sprite_layer(),
+            );
+            let field = EPlanetField {
+                // This order preserves: 0,1 are rock, 2,3 are field
+                field_points: vec![parent2.id(), parent1.id(), fp1_id, fp2_id],
+                mesh_id,
+                dir: Vec2::ONE,
+            };
+            eplanet.fields.push(field);
+        });
     }
 }
 
 pub(super) fn drive_planet_meshes(
-    points: Query<&IntMoveable, With<EPoint>>,
-    eplanets: Query<(&EPlanet, &Children)>,
+    points: Query<(&EPoint, &IntMoveable, &Parent)>,
+    eplanets: Query<&EPlanet>,
     mut bms: Query<&mut BorderedMesh>,
 ) {
-    for (eplanet, children) in eplanets.iter() {
+    for eplanet in eplanets.iter() {
+        // First update the rock mesh
         let mut mesh_points = vec![];
         for pid in eplanet.rock_points.iter() {
-            if let Ok(mv) = points.get(*pid) {
+            if let Ok((_, mv, _)) = points.get(*pid) {
                 mesh_points.push(mv.pos.truncate());
             }
         }
+        if let Some(id) = eplanet.rock_mesh_id {
+            if let Ok(mut bm) = bms.get_mut(id) {
+                bm.points = mesh_points;
+            }
+        }
 
-        for child in children {
-            let Ok(mut bm) = bms.get_mut(*child) else {
-                continue;
-            };
-            bm.points = mesh_points;
-            break;
+        // Then update each of the field meshes
+        for field in eplanet.fields.iter() {
+            let mut mesh_points = vec![];
+            for pid in field.field_points.iter() {
+                if let Ok((epoint, mv, parent)) = points.get(*pid) {
+                    match epoint.kind {
+                        EPointKind::Rock => {
+                            mesh_points.push(mv.pos.truncate());
+                        }
+                        EPointKind::Field => {
+                            let (_, parent_mv, _) = points.get(parent.get()).unwrap();
+                            mesh_points.push(parent_mv.pos.truncate() + mv.pos.truncate());
+                        }
+                    }
+                }
+            }
+            if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
+                bm.points = mesh_points;
+                bm.scroll = Vec2::new(1.0 / 24.0, 0.0);
+            }
         }
     }
 }

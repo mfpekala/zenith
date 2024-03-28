@@ -7,6 +7,7 @@ use self::{
     hollow::register_hollow_drawing,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
+    mesh::scroll_sprite_materials,
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
 };
@@ -64,6 +65,7 @@ pub fn register_drawing(app: &mut App) {
     app.init_gizmo_group::<BgSpriteGizmoGroup>();
     app.init_gizmo_group::<BgLightGizmoGroup>();
 
+    app.add_systems(FixedUpdate, scroll_sprite_materials);
     app.add_systems(Update, bordered_mesh_trickle_down);
 
     register_hollow_drawing(app);

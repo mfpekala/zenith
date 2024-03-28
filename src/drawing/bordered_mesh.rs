@@ -3,7 +3,7 @@ use bevy::{prelude::*, render::view::RenderLayers, sprite::Mesh2dHandle};
 use crate::physics::dyno::IntMoveable;
 
 use super::{
-    mesh::{generate_new_sprite_mesh, outline_points, uvec2_bound},
+    mesh::{generate_new_sprite_mesh, outline_points, uvec2_bound, ScrollSprite, SpriteInfo},
     sprite_mat::SpriteMaterial,
 };
 
@@ -33,6 +33,7 @@ pub struct BorderedMesh {
     pub last_border_material: Option<BorderedMatData>,
     pub border_material: Option<BorderedMatData>,
     pub border_width: Option<f32>,
+    pub scroll: Vec2,
 }
 impl BorderedMesh {
     fn spawn(
@@ -43,6 +44,8 @@ impl BorderedMesh {
         border_material: Option<(BorderedMatData, Handle<SpriteMaterial>)>,
         border_width: Option<f32>,
         render_layer: RenderLayers,
+        inner_info: SpriteInfo,
+        outer_info: Option<SpriteInfo>,
     ) -> Entity {
         let fpoints: Vec<Vec2> = points.clone().into_iter().map(|p| p.as_vec2()).collect();
         let inner_points = outline_points(&fpoints, -border_width.unwrap_or(0.0));
@@ -68,6 +71,7 @@ impl BorderedMesh {
                         None => None,
                     },
                     border_width,
+                    scroll: default(),
                 },
                 IntMoveable::new(IVec3::ZERO),
                 SpatialBundle::default(),
@@ -77,12 +81,16 @@ impl BorderedMesh {
                     inner_mesh,
                     render_layer.clone(),
                     BorderMeshType("inner".to_string()),
+                    ScrollSprite::default(),
+                    inner_info.clone(),
                 ));
-                if let Some(outer_mesh) = outer_mesh {
+                if let (Some(outer_mesh), Some(outer_info)) = (outer_mesh, outer_info) {
                     parent.spawn((
                         outer_mesh,
                         render_layer.clone(),
                         BorderMeshType("outer".to_string()),
+                        ScrollSprite::default(),
+                        outer_info.clone(),
                     ));
                 }
             })
@@ -121,6 +129,18 @@ impl BorderedMesh {
             None => None,
         };
 
+        let inner_info = SpriteInfo {
+            sprite_size: material.1,
+            bounds,
+        };
+        let outer_info = match border_material {
+            Some(thing) => Some(SpriteInfo {
+                sprite_size: thing.1,
+                bounds,
+            }),
+            None => None,
+        };
+
         Self::spawn(
             commands,
             meshes,
@@ -129,6 +149,8 @@ impl BorderedMesh {
             outer_mat,
             border_width,
             render_layer,
+            inner_info,
+            outer_info,
         )
     }
 
@@ -189,6 +211,7 @@ pub(super) fn bordered_mesh_trickle_down(
     mut handles: Query<(
         &mut Mesh2dHandle,
         &mut Handle<SpriteMaterial>,
+        &mut ScrollSprite,
         &BorderMeshType,
     )>,
     asset_server: Res<AssetServer>,
@@ -196,13 +219,18 @@ pub(super) fn bordered_mesh_trickle_down(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for (mut bm, children) in bms.iter_mut() {
-        if !bm.needs_update() {
-            continue;
-        }
         for child in children {
-            let Ok((mut mesh_handle, mut sprite_handle, kind)) = handles.get_mut(*child) else {
+            let Ok((mut mesh_handle, mut sprite_handle, mut scroll_sprite, kind)) =
+                handles.get_mut(*child)
+            else {
                 continue;
             };
+            // Always set the scroll
+            scroll_sprite.vel = bm.scroll;
+            if !bm.needs_update() {
+                continue;
+            }
+            // Only regen the mesh/mat if we need to (but do both whenever one changes)
             let is_inner = &kind.0 == "inner";
             let Some((new_mesh_handle, new_sprite_handle)) =
                 bm.regen(is_inner, &asset_server, &mut meshes, &mut mats)

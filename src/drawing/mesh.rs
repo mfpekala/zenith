@@ -142,3 +142,31 @@ impl MeshOutline {
         }
     }
 }
+
+#[derive(Component, Debug, Clone)]
+pub struct SpriteInfo {
+    pub sprite_size: UVec2,
+    pub bounds: UVec2,
+}
+
+#[derive(Component, Default, Debug)]
+pub struct ScrollSprite {
+    pub vel: Vec2,
+}
+
+pub(super) fn scroll_sprite_materials(
+    sprites_q: Query<(&ScrollSprite, &SpriteInfo, &Handle<SpriteMaterial>)>,
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+) {
+    for (scroll, info, mat_hand) in sprites_q.iter() {
+        let Some(mat) = mats.get_mut(mat_hand.id()) else {
+            continue;
+        };
+        println!("Got: {:?}\n\n{:?}, \n\ninfo{:?}", scroll, mat, info);
+        mat.x -= scroll.vel.x / info.sprite_size.x as f32;
+        mat.y += scroll.vel.y / info.sprite_size.y as f32;
+        mat.x = mat.x.rem_euclid(1.0);
+        mat.y = mat.y.rem_euclid(1.0);
+        // println!("Mat should now be: {:?}", mat);
+    }
+}
