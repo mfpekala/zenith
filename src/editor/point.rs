@@ -11,17 +11,25 @@ use crate::{
 
 use super::planet::EPlanet;
 
+#[derive(Debug, Clone)]
+pub enum EPointKind {
+    Rock,
+    Field,
+}
+
 #[derive(Component)]
-pub struct Point {
+pub struct EPoint {
+    pub kind: EPointKind,
     pub size: u32,
     pub is_hovered: bool,
     pub is_selected: bool,
     pub drag_offset: Option<IVec2>,
 }
-impl Point {
-    pub fn new() -> Self {
+impl EPoint {
+    pub fn new(kind: EPointKind) -> Self {
         Self {
-            size: 4,
+            kind,
+            size: 3,
             is_hovered: false,
             is_selected: false,
             drag_offset: None,
@@ -30,55 +38,57 @@ impl Point {
 }
 
 #[derive(Component)]
-pub(super) struct SelectMarker;
+pub(super) struct SelectSpriteMarker;
+
+#[derive(Component)]
+pub struct EPointSpriteMarker;
 
 #[derive(Bundle)]
-pub struct PointBundle {
-    pub point: Point,
+pub struct EPointBundle {
+    pub point: EPoint,
     pub moveable: IntMoveable,
     pub sprite: SpriteBundle,
+    pub psm: EPointSpriteMarker,
     pub render_layer: RenderLayers,
 }
-impl PointBundle {
-    fn border_growth() -> f32 {
-        1.5
-    }
-
-    fn new(pos: IVec2, size: u32, color: Color) -> Self {
+impl EPointBundle {
+    fn new(pos: IVec2, kind: EPointKind, asset_server: &Res<AssetServer>) -> Self {
         Self {
-            point: Point::new(),
+            point: EPoint::new(kind),
             moveable: IntMoveable::new(pos.extend(2)),
             sprite: SpriteBundle {
-                sprite: Sprite { color, ..default() },
                 transform: Transform {
-                    scale: (Vec3::ONE * size as f32),
                     translation: pos.as_vec2().extend(0.1),
                     ..default()
                 },
+                texture: asset_server.load("sprites/editor/point.png"),
                 ..default()
             },
+            psm: EPointSpriteMarker,
             render_layer: sprite_layer(),
         }
     }
 
-    pub fn spawn(commands: &mut ChildBuilder, pos: IVec2) -> Entity {
-        let size = 4;
+    pub fn spawn(
+        commands: &mut ChildBuilder,
+        asset_server: &Res<AssetServer>,
+        pos: IVec2,
+        kind: EPointKind,
+    ) -> Entity {
         commands
-            .spawn(Self::new(pos, size, Color::ANTIQUE_WHITE))
+            .spawn(Self::new(pos, kind, asset_server))
             .with_children(|parent| {
                 parent.spawn((
                     SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::DARK_GRAY,
-                            ..default()
-                        },
                         transform: Transform {
-                            scale: Vec3::ONE * Self::border_growth(),
                             translation: Vec2::ZERO.extend(-0.1),
                             ..default()
                         },
+                        texture: asset_server.load("sprites/editor/point_highlight.png"),
+                        visibility: Visibility::Hidden,
                         ..default()
                     },
+                    SelectSpriteMarker,
                     sprite_layer(),
                 ));
             })
@@ -89,7 +99,7 @@ impl PointBundle {
 // Simply mark (in each point) whether it is hovered
 pub(super) fn hover_points(
     mouse_state: Res<MouseState>,
-    mut points: Query<(&GlobalTransform, &mut Point)>,
+    mut points: Query<(&GlobalTransform, &mut EPoint)>,
 ) {
     for (gt, mut point) in points.iter_mut() {
         let overlap_x = mouse_state
@@ -113,8 +123,9 @@ pub(super) fn spawn_points(
     mouse_state: Res<MouseState>,
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
-    points: Query<(&Point, &IntMoveable)>,
+    points: Query<(&EPoint, &IntMoveable)>,
     mut gs_writer: EventWriter<SetGameState>,
+    asset_server: Res<AssetServer>,
 ) {
     let Some(mode) = gs.get_editing_mode() else {
         return;
@@ -140,8 +151,12 @@ pub(super) fn spawn_points(
                 }));
             } else {
                 commands.entity(planet_id).with_children(|mut parent| {
-                    let id =
-                        PointBundle::spawn(&mut parent, mouse_state.world_pos - mv.pos.truncate());
+                    let id = EPointBundle::spawn(
+                        &mut parent,
+                        &asset_server,
+                        mouse_state.world_pos - mv.pos.truncate(),
+                        EPointKind::Rock,
+                    );
                     eplanet.rock_points.push(id);
                 });
             }
@@ -184,7 +199,12 @@ pub(super) fn spawn_points(
                 right_ix as usize
             };
             commands.entity(planet_id).with_children(|mut parent| {
-                let id = PointBundle::spawn(&mut parent, mouse_state.world_pos - mv.pos.truncate());
+                let id = EPointBundle::spawn(
+                    &mut parent,
+                    &asset_server,
+                    mouse_state.world_pos - mv.pos.truncate(),
+                    EPointKind::Rock,
+                );
                 eplanet.rock_points.insert(pos, id);
             });
         }
@@ -194,18 +214,17 @@ pub(super) fn spawn_points(
 /// Really just handles left press/release, which usually means selecting/deselecting points
 /// NOTE: Does NOT handle changing from editing/creating -> free, see planet_state_input for that
 pub(super) fn select_points(
-    mut commands: Commands,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_state: Res<MouseState>,
     key_buttons: Res<ButtonInput<KeyCode>>,
     mut points: Query<(
         Entity,
-        &mut Point,
+        &mut EPoint,
         &IntMoveable,
         &GlobalTransform,
         &Children,
     )>,
-    select_markers: Query<&SelectMarker>,
+    mut select_markers: Query<&mut Visibility, With<SelectSpriteMarker>>,
 ) {
     // If there's no press / release, do nothing
     if !mouse_buttons.just_pressed(MouseButton::Left)
@@ -225,61 +244,48 @@ pub(super) fn select_points(
         }
     }
     // Helper functions
-    let select_point = |id: Entity,
-                        comms: &mut Commands,
-                        q: &mut Query<(
-        Entity,
-        &mut Point,
-        &IntMoveable,
-        &GlobalTransform,
-        &Children,
-    )>| {
-        let (_, mut p, mv, gt, children) = q.get_mut(id).unwrap();
-        p.is_selected = true;
-        let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
-        let standard_off = gt2 - mouse_state.world_pos;
-        let parent_tran = gt2 - mv.pos.truncate();
-        p.drag_offset = Some(standard_off - parent_tran);
-        if children.len() <= 1 {
-            comms.entity(id).with_children(|parent| {
-                parent.spawn((
-                    SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GOLD,
-                            ..default()
-                        },
-                        transform: Transform {
-                            scale: Vec3::ONE * (PointBundle::border_growth() + 0.5),
-                            translation: Vec2::ZERO.extend(-0.11),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    SelectMarker,
-                    sprite_layer(),
-                ));
-            });
-        }
-    };
-    let deselect_point = |id: Entity,
-                          comms: &mut Commands,
-                          q: &mut Query<(
-        Entity,
-        &mut Point,
-        &IntMoveable,
-        &GlobalTransform,
-        &Children,
-    )>| {
-        let (_, mut p, _, _, children) = q.get_mut(id).unwrap();
-        p.is_selected = false;
-        p.drag_offset = None;
-        for child in children {
-            if select_markers.get(*child).is_ok() {
-                comms.entity(*child).despawn_recursive();
-                comms.entity(id).remove_children(&[*child]);
+    let select_point =
+        |id: Entity,
+         q: &mut Query<(
+            Entity,
+            &mut EPoint,
+            &IntMoveable,
+            &GlobalTransform,
+            &Children,
+        )>,
+         sms: &mut Query<&mut Visibility, With<SelectSpriteMarker>>| {
+            let (_, mut p, mv, gt, children) = q.get_mut(id).unwrap();
+            p.is_selected = true;
+            let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
+            let standard_off = gt2 - mouse_state.world_pos;
+            let parent_tran = gt2 - mv.pos.truncate();
+            p.drag_offset = Some(standard_off - parent_tran);
+            for child in children {
+                if let Ok(mut vis) = sms.get_mut(*child) {
+                    *vis = Visibility::Inherited;
+                    break;
+                }
             }
-        }
-    };
+        };
+    let deselect_point =
+        |id: Entity,
+         q: &mut Query<(
+            Entity,
+            &mut EPoint,
+            &IntMoveable,
+            &GlobalTransform,
+            &Children,
+        )>,
+         sms: &mut Query<&mut Visibility, With<SelectSpriteMarker>>| {
+            let (_, mut p, _, _, children) = q.get_mut(id).unwrap();
+            p.is_selected = false;
+            p.drag_offset = None;
+            for child in children {
+                if let Ok(mut vis) = sms.get_mut(*child) {
+                    *vis = Visibility::Hidden;
+                }
+            }
+        };
     // Finally interpret the input
     if mouse_buttons.just_pressed(MouseButton::Left) {
         if !key_buttons.pressed(KeyCode::ShiftLeft) {
@@ -288,16 +294,16 @@ pub(super) fn select_points(
                 .into_iter()
                 .filter(|p| !hovered.contains(p));
             for id in deselecting {
-                deselect_point(id, &mut commands, &mut points);
+                deselect_point(id, &mut points, &mut select_markers);
             }
         } else {
             for id in selected.iter() {
                 // Selecting the already selected points restarts their drag with the new offset
-                select_point(*id, &mut commands, &mut points);
+                select_point(*id, &mut points, &mut select_markers);
             }
         }
         for id in hovered {
-            select_point(id, &mut commands, &mut points);
+            select_point(id, &mut points, &mut select_markers);
         }
     } else if !mouse_buttons.pressed(MouseButton::Left) {
         for id in selected {
@@ -310,7 +316,7 @@ pub(super) fn select_points(
 pub(super) fn delete_points(
     mut commands: Commands,
     mut eplanets: Query<(Entity, &mut EPlanet)>,
-    points: Query<(Entity, &Point, &Parent)>,
+    points: Query<(Entity, &EPoint, &Parent)>,
     key_buttons: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
@@ -319,15 +325,24 @@ pub(super) fn delete_points(
         // Despawn the point, and then remove it from it's parent rock/field list
         for (id, p, parent_ref) in points.iter() {
             if p.is_selected {
-                commands.entity(id).despawn_recursive();
-                let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
-                parent.rock_points.retain(|x| *x != id);
-                for field in parent.fields.iter_mut() {
-                    field.field_points.retain(|x| *x != id);
+                match p.kind {
+                    EPointKind::Rock => {
+                        let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
+                        parent.rock_points.retain(|x| *x != id);
+                    }
+                    EPointKind::Field => {
+                        let parent = points.get(parent_ref.get()).unwrap().2;
+                        let mut eplanet = eplanets.get_mut(parent.get()).unwrap().1;
+                        for field in eplanet.fields.iter_mut() {
+                            field.field_points.retain(|x| *x != id);
+                        }
+                    }
                 }
+                commands.entity(parent_ref.get()).remove_children(&[id]);
+                commands.entity(id).despawn_recursive();
             }
         }
-        // Check to see if any planets have fewer than three points. If so,
+        // Check to see if any planets have fewer than three rock points. If so,
         // delete them
         let mut purged_planets = vec![];
         for (planet_id, eplanet) in eplanets.iter() {
@@ -352,7 +367,7 @@ pub(super) fn delete_points(
 
 pub(super) fn move_points(
     mouse_state: Res<MouseState>,
-    mut points: Query<(&Point, &mut IntMoveable)>,
+    mut points: Query<(&EPoint, &mut IntMoveable)>,
 ) {
     for (p, mut mv) in points.iter_mut() {
         if let Some(offset) = p.drag_offset {
