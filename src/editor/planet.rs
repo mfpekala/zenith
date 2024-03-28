@@ -10,7 +10,7 @@ use crate::{
 use super::point::Point;
 
 pub(super) struct EPlanetField {
-    field_points: Vec<Entity>,
+    pub field_points: Vec<Entity>,
     dir: Vec2,
 }
 
@@ -65,33 +65,59 @@ impl EPlanetBundle {
     }
 }
 
+/// Handle transitions between free, creating, editing
+/// NOTE: Except the creating -> editing transition, that's handled in spawn points
 pub(super) fn planet_state_input(
     mut commands: Commands,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_state: Res<MouseState>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
     asset_server: Res<AssetServer>,
     mut mats: ResMut<Assets<SpriteMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    points: Query<(&Point, &Parent)>,
+    eplanets: Query<Entity, With<EPlanet>>,
 ) {
     let Some(mode) = gs.get_editing_mode() else {
         return;
     };
+    let num_points_hovered = points.iter().filter(|(p, _)| p.is_hovered).count();
+    match mode {
+        EditingMode::Free => {
+            if keyboard.just_pressed(KeyCode::KeyP) {
+                let id = EPlanetBundle::spawn(
+                    &mut commands,
+                    mouse_state.world_pos,
+                    &asset_server,
+                    &mut mats,
+                    &mut meshes,
+                );
+                gs_writer.send(SetGameState(
+                    EditingMode::CreatingPlanet(id).to_game_state(),
+                ));
+            } else if mouse_buttons.just_pressed(MouseButton::Left) {
+                for (point, parent) in points.iter() {
+                    if point.is_hovered && eplanets.get(parent.get()).is_ok() {
+                        gs_writer.send(SetGameState(
+                            EditingMode::EditingPlanet(parent.get()).to_game_state(),
+                        ));
+                        return;
+                    }
+                }
+            }
+        }
+        EditingMode::CreatingPlanet(_) | EditingMode::EditingPlanet(_) => {
+            if mouse_buttons.just_pressed(MouseButton::Left) {
+                if num_points_hovered == 0 {
+                    gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+                }
+            }
+        }
+    }
     if mode != EditingMode::Free {
         return;
-    }
-    if keyboard.just_pressed(KeyCode::KeyP) {
-        let id = EPlanetBundle::spawn(
-            &mut commands,
-            mouse_state.world_pos,
-            &asset_server,
-            &mut mats,
-            &mut meshes,
-        );
-        gs_writer.send(SetGameState(
-            EditingMode::CreatingPlanet(id).to_game_state(),
-        ));
     }
     if keyboard.just_pressed(KeyCode::KeyF) {
         match mode {

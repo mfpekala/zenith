@@ -14,7 +14,7 @@ use self::{
         update_editor_help_config, EditorHelpConfig,
     },
     planet::{drive_planet_meshes, planet_state_input},
-    point::{delete_points, move_points, select_points, spawn_points},
+    point::{delete_points, hover_points, move_points, select_points, spawn_points},
 };
 
 pub mod help;
@@ -109,7 +109,13 @@ impl Plugin for EditorPlugin {
         // Points
         app.add_systems(
             Update,
-            (spawn_points, select_points, delete_points, move_points)
+            (
+                hover_points,
+                spawn_points,
+                select_points,
+                delete_points,
+                move_points,
+            )
                 .chain()
                 .run_if(is_editing),
         );
@@ -119,7 +125,8 @@ impl Plugin for EditorPlugin {
             Update,
             (planet_state_input, drive_planet_meshes)
                 .chain()
-                .run_if(is_editing),
+                .run_if(is_editing)
+                .after(move_points), // should be after the last thing in point chain
         );
     }
 }
