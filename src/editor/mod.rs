@@ -14,7 +14,8 @@ use self::{
         update_editor_help_config, EditorHelpConfig,
     },
     planet::{
-        drive_planet_meshes, nudge_fields, planet_state_input, redo_fields, resolve_pending_fields,
+        draw_field_parents, drive_planet_meshes, nudge_fields, planet_state_input, redo_fields,
+        resolve_pending_fields,
     },
     point::{
         delete_points, hover_points, move_points, select_points, spawn_points, update_point_sprites,
@@ -134,6 +135,7 @@ impl Plugin for EditorPlugin {
                 resolve_pending_fields,
                 nudge_fields,
                 drive_planet_meshes,
+                draw_field_parents,
             )
                 .chain()
                 .run_if(is_editing)

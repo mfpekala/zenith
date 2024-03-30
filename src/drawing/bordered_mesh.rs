@@ -1,4 +1,8 @@
-use bevy::{prelude::*, render::view::RenderLayers, sprite::Mesh2dHandle};
+use bevy::{
+    prelude::*,
+    render::{primitives::Aabb, view::RenderLayers},
+    sprite::Mesh2dHandle,
+};
 
 use crate::physics::dyno::IntMoveable;
 
@@ -217,6 +221,7 @@ pub(super) fn bordered_mesh_trickle_down(
     asset_server: Res<AssetServer>,
     mut mats: ResMut<Assets<SpriteMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut commands: Commands,
 ) {
     for (mut bm, children) in bms.iter_mut() {
         for child in children {
@@ -239,6 +244,7 @@ pub(super) fn bordered_mesh_trickle_down(
             };
             *mesh_handle = new_mesh_handle;
             *sprite_handle = new_sprite_handle;
+            commands.entity(*child).remove::<Aabb>();
         }
         bm.complete_update();
     }

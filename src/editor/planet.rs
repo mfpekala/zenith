@@ -1,6 +1,9 @@
 use std::cmp::Ordering;
 
-use bevy::{prelude::*, utils::hashbrown::HashMap};
+use bevy::{
+    prelude::*,
+    utils::hashbrown::{HashMap, HashSet},
+};
 
 use crate::{
     drawing::{
@@ -72,9 +75,11 @@ impl EPlanetBundle {
                 rock_mesh_id,
                 ..default()
             },
-            spatial: SpatialBundle::from_transform(Transform::from_translation(
-                pos.as_vec2().extend(0.0),
-            )),
+            spatial: SpatialBundle {
+                transform: Transform::from_translation(pos.as_vec2().extend(0.0)),
+                visibility: Visibility::Visible,
+                ..default()
+            },
             moveable: IntMoveable::new(pos.extend(0)),
         });
         entity
@@ -139,12 +144,10 @@ pub(super) fn planet_state_input(
 pub(super) fn redo_fields(
     mut commands: Commands,
     mut eplanets: Query<&mut EPlanet>,
-    mut points: Query<(Entity, &IntMoveable, &mut EPoint)>,
+    points: Query<(Entity, &IntMoveable, &mut EPoint)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     asset_server: Res<AssetServer>,
-    mut mats: ResMut<Assets<SpriteMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let planet_id = match gs.get_editing_mode() {
         Some(EditingMode::EditingPlanet(id)) => id,
@@ -157,13 +160,18 @@ pub(super) fn redo_fields(
     }
     // Despawn and clear the old fields
     let mut eplanet = eplanets.get_mut(planet_id).unwrap();
+    let mut despawned = HashSet::new();
     for field in eplanet.fields.iter() {
         for id in field.field_points.iter() {
             if points.get(*id).is_err() || eplanet.rock_points.iter().any(|rid| rid == id) {
                 // Ignore the rock points of the field
                 continue;
             }
+            if despawned.contains(id) {
+                continue;
+            }
             commands.entity(*id).despawn_recursive();
+            despawned.insert(*id);
         }
         commands.entity(field.mesh_id).despawn_recursive();
     }
@@ -244,7 +252,9 @@ pub(super) fn resolve_pending_fields(
         Some(EditingMode::EditingPlanet(id)) => id,
         _ => return,
     };
-    let mut eplanet = eplanets.get_mut(planet_id).unwrap();
+    let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
+        return;
+    };
 
     // Construct the groupmap (fields)
     let mut rock_points = HashMap::new();
@@ -343,6 +353,7 @@ pub(super) fn resolve_pending_fields(
             commands.entity(parent.get()).remove_children(&[id]);
             commands.entity(new_dad).push_children(&[id]);
             point.kind = EPointKind::Field;
+            eplanet.0.wild_points.retain(|p| *p != id);
             let old_pos = mv.pos;
             mv.pos = old_pos - dad_pos.extend(0);
             commands
@@ -350,21 +361,6 @@ pub(super) fn resolve_pending_fields(
                 .insert(ChangeEPointKind(EPointKind::Field));
         }
     }
-
-    // Don't have enough time to implement so just scaffolding now
-
-    // Get the editing planet
-
-    // Be lazy: just start by making one pass through all points to get a list of
-    // all relevant u32s
-
-    // For each such u32...
-    // Get it's position (relative to PLANET (if the point is already a field point, this is diff))
-    // Make the mesh and EPlanetField struct. Add to eplanet
-
-    // DO THIS AT THE END SEPARATELY
-    // If the point is wild, get the nearest rock point, and make it a field point
-    // ^ If it's already a field point, we don't need to do anything
 }
 
 /// On cmd + / cmd -, nudge all field points closer/further from their parent
@@ -451,6 +447,22 @@ pub(super) fn drive_planet_meshes(
                 bm.points = mesh_points;
                 bm.scroll = Vec2::new(6.0 / 24.0, 6.0 / 24.0);
             }
+        }
+    }
+}
+
+pub(super) fn draw_field_parents(
+    mut gzs: Gizmos,
+    points: Query<(&EPoint, &GlobalTransform, &Parent)>,
+) {
+    for (epoint, gt, parent) in points.iter() {
+        if epoint.kind == EPointKind::Field {
+            let (_, pgt, _) = points.get(parent.get()).unwrap();
+            gzs.line_2d(
+                gt.translation().truncate(),
+                pgt.translation().truncate(),
+                Color::WHITE,
+            );
         }
     }
 }
