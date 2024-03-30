@@ -13,8 +13,12 @@ use self::{
         setup_editor_help, setup_editor_help_config, teardown_editor_help, update_editor_help,
         update_editor_help_config, EditorHelpConfig,
     },
-    planet::{drive_planet_meshes, nudge_fields, planet_state_input, redo_fields},
-    point::{delete_points, hover_points, move_points, select_points, spawn_points},
+    planet::{
+        drive_planet_meshes, nudge_fields, planet_state_input, redo_fields, resolve_pending_fields,
+    },
+    point::{
+        delete_points, hover_points, move_points, select_points, spawn_points, update_point_sprites,
+    },
 };
 
 pub mod help;
@@ -115,6 +119,7 @@ impl Plugin for EditorPlugin {
                 select_points,
                 delete_points,
                 move_points,
+                update_point_sprites,
             )
                 .chain()
                 .run_if(is_editing),
@@ -126,6 +131,7 @@ impl Plugin for EditorPlugin {
             (
                 planet_state_input,
                 redo_fields,
+                resolve_pending_fields,
                 nudge_fields,
                 drive_planet_meshes,
             )

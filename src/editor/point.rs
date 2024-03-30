@@ -1,4 +1,7 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{
+    prelude::*,
+    render::{render_resource::Texture, view::RenderLayers},
+};
 
 use crate::{
     drawing::layering::sprite_layer,
@@ -17,25 +20,31 @@ pub enum EPointKind {
     Field,
     Wild,
 }
+impl EPointKind {
+    pub fn to_path(&self) -> String {
+        match *self {
+            Self::Field | Self::Rock => "sprites/editor/point.png".to_string(),
+            Self::Wild => "sprites/editor/point_wild.png".to_string(),
+        }
+    }
+}
 
-#[derive(Component)]
+#[derive(Component, Clone, Debug)]
 pub struct EPoint {
     pub kind: EPointKind,
     pub size: u32,
     pub is_hovered: bool,
     pub is_selected: bool,
     pub drag_offset: Option<IVec2>,
-    pub pending_field: Option<Vec<u32>>,
 }
 impl EPoint {
-    pub fn new(kind: EPointKind, pending_field: Option<Vec<u32>>) -> Self {
+    pub fn new(kind: EPointKind) -> Self {
         Self {
             kind,
             size: 3,
             is_hovered: false,
             is_selected: false,
             drag_offset: None,
-            pending_field,
         }
     }
 }
@@ -55,26 +64,16 @@ pub struct EPointBundle {
     pub render_layer: RenderLayers,
 }
 impl EPointBundle {
-    fn new(
-        pos: IVec2,
-        kind: EPointKind,
-        pending_field: Option<Vec<u32>>,
-        asset_server: &Res<AssetServer>,
-    ) -> Self {
+    fn new(pos: IVec2, kind: EPointKind, asset_server: &Res<AssetServer>) -> Self {
         Self {
-            point: EPoint::new(kind.clone(), pending_field),
+            point: EPoint::new(kind.clone()),
             moveable: IntMoveable::new(pos.extend(2)),
             sprite: SpriteBundle {
                 transform: Transform {
                     translation: pos.as_vec2().extend(0.1),
                     ..default()
                 },
-                texture: match kind {
-                    EPointKind::Rock | EPointKind::Field => {
-                        asset_server.load("sprites/editor/point.png")
-                    }
-                    EPointKind::Wild => asset_server.load("sprites/editor/point_wild.png"),
-                },
+                texture: asset_server.load(kind.to_path()),
                 ..default()
             },
             psm: EPointSpriteMarker,
@@ -87,10 +86,9 @@ impl EPointBundle {
         asset_server: &Res<AssetServer>,
         pos: IVec2,
         kind: EPointKind,
-        pending_field: Option<Vec<u32>>,
     ) -> Entity {
         commands
-            .spawn(Self::new(pos, kind, pending_field, asset_server))
+            .spawn(Self::new(pos, kind, asset_server))
             .with_children(|parent| {
                 parent.spawn((
                     SpriteBundle {
@@ -171,7 +169,6 @@ pub(super) fn spawn_points(
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
-                        None,
                     );
                     eplanet.rock_points.push(id);
                 });
@@ -184,13 +181,8 @@ pub(super) fn spawn_points(
                 // ADDING A WILD POINT
                 // These are points that later can be made into fields
                 commands.entity(planet_id).with_children(|parent| {
-                    let id = EPointBundle::spawn(
-                        parent,
-                        &asset_server,
-                        spawning_at,
-                        EPointKind::Wild,
-                        None,
-                    );
+                    let id =
+                        EPointBundle::spawn(parent, &asset_server, spawning_at, EPointKind::Wild);
                     eplanet.wild_points.push(id);
                 });
             } else {
@@ -235,7 +227,6 @@ pub(super) fn spawn_points(
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
-                        None,
                     );
                     eplanet.rock_points.insert(pos, id);
                 });
@@ -411,5 +402,19 @@ pub(super) fn move_points(
         if let Some(offset) = p.drag_offset {
             mv.pos = (mouse_state.world_pos + offset).extend(mv.pos.z);
         }
+    }
+}
+
+#[derive(Component, Clone, Debug)]
+pub(super) struct ChangeEPointKind(pub EPointKind);
+
+pub(super) fn update_point_sprites(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut points: Query<(Entity, &ChangeEPointKind, &mut Handle<Image>), With<EPoint>>,
+) {
+    for (id, change, mut hand) in points.iter_mut() {
+        *hand = asset_server.load(change.0.to_path());
+        commands.entity(id).remove::<ChangeEPointKind>();
     }
 }

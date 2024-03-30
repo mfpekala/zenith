@@ -1,4 +1,6 @@
-use bevy::{prelude::*, utils::petgraph::visit::NodeRef};
+use std::cmp::Ordering;
+
+use bevy::{prelude::*, utils::hashbrown::HashMap};
 
 use crate::{
     drawing::{
@@ -11,7 +13,7 @@ use crate::{
     physics::dyno::IntMoveable,
 };
 
-use super::point::{EPoint, EPointBundle};
+use super::point::{ChangeEPointKind, EPoint, EPointBundle};
 
 pub(super) struct EPlanetField {
     pub field_points: Vec<Entity>,
@@ -25,6 +27,11 @@ pub(super) struct EPlanet {
     pub rock_mesh_id: Option<Entity>,
     pub wild_points: Vec<Entity>,
     pub fields: Vec<EPlanetField>,
+}
+
+#[derive(Component)]
+pub(super) struct PendingField {
+    groups: Vec<u32>,
 }
 
 #[derive(Bundle, Default)]
@@ -174,26 +181,19 @@ pub(super) fn redo_fields(
 
     for ix in 0..new_poses.len() {
         let next_ix = (ix + 1).rem_euclid(new_poses.len());
-        let fp1 = new_poses[ix];
-        let parent1 = points.get(eplanet.rock_points[ix]).unwrap();
-        let mut fp1_id = planet_id;
+        let fp = new_poses[ix];
+        let parent = points.get(eplanet.rock_points[ix]).unwrap();
+        let mut fp_id = planet_id;
         // TODO: This actually spawns two points per point
         commands.entity(planet_id).with_children(|parent| {
-            fp1_id = EPointBundle::spawn(
-                parent,
-                &asset_server,
-                fp1,
-                EPointKind::Wild,
-                Some(vec![ix as u32, next_ix as u32]),
-            );
+            fp_id = EPointBundle::spawn(parent, &asset_server, fp, EPointKind::Wild);
         });
-        // Mark the rock points as pending field
-        let mut parent1 = points.get_mut(eplanet.rock_points[ix]).unwrap();
-        if parent1.2.pending_field.is_none() {
-            parent1.2.pending_field = Some(vec![ix as u32]);
-        } else {
-            parent1.2.pending_field.as_mut().unwrap().push(ix as u32);
-        }
+        commands.entity(fp_id).insert(PendingField {
+            groups: vec![ix as u32, next_ix as u32],
+        });
+        commands.entity(parent.0).insert(PendingField {
+            groups: vec![ix as u32, next_ix as u32],
+        });
         // let mesh_points = vec![parent2.1.pos.truncate(), parent1.1.pos.truncate(), fp1, fp2];
         // commands.entity(planet_id).with_children(|parent| {
         //     let mesh_id = BorderedMesh::spawn_easy(
@@ -216,6 +216,155 @@ pub(super) fn redo_fields(
         //     eplanet.fields.push(field);
         // });
     }
+}
+
+/// To make new fields, you mark all the points that should be part of that field
+/// on the editing rock with Some([vec of u32s for which fields it's a part of])
+/// This function goes in and resolves all that data, spitting out new fields
+/// on the active editing rock as it goes
+pub(super) fn resolve_pending_fields(
+    mut commands: Commands,
+    gs: Res<GameState>,
+    mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
+    mut points: Query<
+        (
+            Entity,
+            &mut EPoint,
+            &mut IntMoveable,
+            &PendingField,
+            &Parent,
+        ),
+        Without<EPlanet>,
+    >,
+    asset_server: Res<AssetServer>,
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let planet_id = match gs.get_editing_mode() {
+        Some(EditingMode::EditingPlanet(id)) => id,
+        _ => return,
+    };
+    let mut eplanet = eplanets.get_mut(planet_id).unwrap();
+
+    // Construct the groupmap (fields)
+    let mut rock_points = HashMap::new();
+    let mut group_map = HashMap::<u32, Vec<(Entity, EPoint, IntMoveable, Entity)>>::new();
+    for (id, epoint, mv, pf, parent) in points.iter() {
+        for group in pf.groups.iter() {
+            if group_map.contains_key(group) {
+                let existing = group_map.get_mut(group).unwrap();
+                existing.push((id, epoint.clone(), mv.clone(), parent.get()));
+            } else {
+                group_map.insert(*group, vec![(id, epoint.clone(), mv.clone(), parent.get())]);
+            }
+        }
+        if epoint.kind == EPointKind::Rock {
+            rock_points.insert(id, mv.pos.truncate());
+        }
+    }
+
+    // Spawn a mesh for each field, and add it to the planet
+    for (_, items) in group_map.into_iter() {
+        let mut points_n_ids = vec![];
+        let mut center = Vec2::ZERO;
+        let to_ang = |thing: Vec2| (thing.x as f32).atan2(thing.y as f32);
+        for (id, epoint, mv, parent) in items {
+            match epoint.kind {
+                EPointKind::Rock | EPointKind::Wild => {
+                    let pos = mv.pos.truncate();
+                    points_n_ids.push((id, pos));
+                    center += mv.pos.truncate().as_vec2();
+                }
+                EPointKind::Field => {
+                    let (_, _, mv, _, _) = points.get(parent).unwrap();
+                    let pos = mv.pos.truncate();
+                    points_n_ids.push((id, pos));
+                    center += mv.pos.truncate().as_vec2();
+                }
+            }
+        }
+        center /= points_n_ids.len() as f32;
+        points_n_ids.sort_by(|a, b| {
+            let a_ang = to_ang(a.1.as_vec2() - center);
+            let b_ang = to_ang(b.1.as_vec2() - center);
+            if a_ang < b_ang {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+        let mesh_points = points_n_ids
+            .clone()
+            .into_iter()
+            .map(|thing| thing.1)
+            .collect();
+        let id_order = points_n_ids
+            .clone()
+            .into_iter()
+            .map(|thing| thing.0)
+            .collect();
+        commands.entity(planet_id).with_children(|parent| {
+            let mesh_id = BorderedMesh::spawn_easy(
+                parent,
+                &asset_server,
+                &mut meshes,
+                &mut mats,
+                mesh_points,
+                ("sprites/field/field_bg.png", UVec2::new(12, 12)),
+                None,
+                None,
+                sprite_layer(),
+            );
+            let field = EPlanetField {
+                field_points: id_order,
+                mesh_id,
+                dir: Vec2::ONE,
+            };
+            eplanet.0.fields.push(field);
+        });
+    }
+
+    // Cleanup all the groups and turn wild points into field points
+    for (id, mut point, mut mv, _, parent) in points.iter_mut() {
+        commands.entity(id).remove::<PendingField>();
+        if point.kind == EPointKind::Wild {
+            let mut min_dist = i32::MAX;
+            let mut new_dad = planet_id;
+            let mut dad_pos = IVec2::ZERO;
+            for (id, pos) in rock_points.iter() {
+                let dist = mv.pos.truncate().distance_squared(*pos);
+                if dist < min_dist {
+                    min_dist = dist;
+                    new_dad = *id;
+                    dad_pos = *pos;
+                }
+            }
+            // adoption????!@??!??
+            commands.entity(parent.get()).remove_children(&[id]);
+            commands.entity(new_dad).push_children(&[id]);
+            point.kind = EPointKind::Field;
+            let old_pos = mv.pos;
+            mv.pos = old_pos - dad_pos.extend(0);
+            commands
+                .entity(id)
+                .insert(ChangeEPointKind(EPointKind::Field));
+        }
+    }
+
+    // Don't have enough time to implement so just scaffolding now
+
+    // Get the editing planet
+
+    // Be lazy: just start by making one pass through all points to get a list of
+    // all relevant u32s
+
+    // For each such u32...
+    // Get it's position (relative to PLANET (if the point is already a field point, this is diff))
+    // Make the mesh and EPlanetField struct. Add to eplanet
+
+    // DO THIS AT THE END SEPARATELY
+    // If the point is wild, get the nearest rock point, and make it a field point
+    // ^ If it's already a field point, we don't need to do anything
 }
 
 /// On cmd + / cmd -, nudge all field points closer/further from their parent

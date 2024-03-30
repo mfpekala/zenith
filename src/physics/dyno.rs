@@ -7,7 +7,7 @@ use super::collider::{
     ColliderTrigger,
 };
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Clone)]
 pub struct IntMoveable {
     pub vel: Vec2,
     pub pos: IVec3,
