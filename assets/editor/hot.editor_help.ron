@@ -7,5 +7,15 @@ EditorHelpConfig(
         -200,
         -400,
     ),
-    font_size: 18.0,
+    box_font_size: 18.0,
+
+    bar_top_left: IVec2(
+        -150,
+        -325,
+    ),
+    bar_bottom_right: IVec2(
+        400,
+        -400,
+    ),
+    bar_font_size: 18.0,
 )

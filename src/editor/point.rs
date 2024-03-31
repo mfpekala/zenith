@@ -200,27 +200,57 @@ pub(super) fn spawn_points(
                         closest_ix = ix as i32;
                     }
                 }
+                let anchor = points.get(closest_point.unwrap()).unwrap().1.pos.truncate();
+                let anchor_vec = (spawning_at - anchor).as_vec2();
                 let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
                 let right_ix = (closest_ix + 1).rem_euclid(eplanet.rock_points.len() as i32);
-                let left_dist = points
+                let left_vec = points
                     .get(eplanet.rock_points[left_ix as usize])
                     .unwrap()
                     .1
                     .pos
                     .truncate()
-                    .distance_squared(spawning_at);
-                let right_dist = points
+                    - anchor;
+                let left_vec = left_vec.as_vec2().normalize_or_zero();
+                let right_vec = points
                     .get(eplanet.rock_points[right_ix as usize])
                     .unwrap()
                     .1
                     .pos
                     .truncate()
-                    .distance_squared(spawning_at);
-                let pos = if left_dist < right_dist {
-                    closest_ix as usize
-                } else {
+                    - anchor;
+                let right_vec = right_vec.as_vec2().normalize_or_zero();
+                let left_score = left_vec.dot(anchor_vec);
+                let right_score = right_vec.dot(anchor_vec);
+                println!("anchor: {:?}", anchor_vec);
+                println!("left: {:?} {}", left_vec, left_score);
+                println!("right: {:?} {}", right_vec, right_score);
+                println!("");
+                let pos = if left_score < right_score {
                     right_ix as usize
+                } else {
+                    closest_ix as usize
                 };
+
+                // let left_dist = points
+                //     .get(eplanet.rock_points[left_ix as usize])
+                //     .unwrap()
+                //     .1
+                //     .pos
+                //     .truncate()
+                //     .distance_squared(spawning_at);
+                // let right_dist = points
+                //     .get(eplanet.rock_points[right_ix as usize])
+                //     .unwrap()
+                //     .1
+                //     .pos
+                //     .truncate()
+                //     .distance_squared(spawning_at);
+                // let pos = if left_dist < right_dist {
+                //     closest_ix as usize
+                // } else {
+                //     right_ix as usize
+                // };
                 commands.entity(planet_id).with_children(|mut parent| {
                     let id = EPointBundle::spawn(
                         &mut parent,
@@ -241,14 +271,7 @@ pub(super) fn select_points(
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_state: Res<MouseState>,
     key_buttons: Res<ButtonInput<KeyCode>>,
-    mut points: Query<(
-        Entity,
-        &mut EPoint,
-        &IntMoveable,
-        &GlobalTransform,
-        &Children,
-    )>,
-    mut select_markers: Query<&mut Visibility, With<SelectSpriteMarker>>,
+    mut points: Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>,
 ) {
     // If there's no press / release, do nothing
     if !mouse_buttons.just_pressed(MouseButton::Left)
@@ -259,7 +282,7 @@ pub(super) fn select_points(
     // Figure out what points are already selected, and what points are hovered (if any)
     let mut selected = vec![];
     let mut hovered = vec![];
-    for (id, point, _, _, _) in points.iter() {
+    for (id, point, _, _) in points.iter() {
         if point.is_selected {
             selected.push(id);
         }
@@ -269,46 +292,19 @@ pub(super) fn select_points(
     }
     // Helper functions
     let select_point =
-        |id: Entity,
-         q: &mut Query<(
-            Entity,
-            &mut EPoint,
-            &IntMoveable,
-            &GlobalTransform,
-            &Children,
-        )>,
-         sms: &mut Query<&mut Visibility, With<SelectSpriteMarker>>| {
-            let (_, mut p, mv, gt, children) = q.get_mut(id).unwrap();
+        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
+            let (_, mut p, mv, gt) = q.get_mut(id).unwrap();
             p.is_selected = true;
             let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
             let standard_off = gt2 - mouse_state.world_pos;
             let parent_tran = gt2 - mv.pos.truncate();
             p.drag_offset = Some(standard_off - parent_tran);
-            for child in children {
-                if let Ok(mut vis) = sms.get_mut(*child) {
-                    *vis = Visibility::Inherited;
-                    break;
-                }
-            }
         };
     let deselect_point =
-        |id: Entity,
-         q: &mut Query<(
-            Entity,
-            &mut EPoint,
-            &IntMoveable,
-            &GlobalTransform,
-            &Children,
-        )>,
-         sms: &mut Query<&mut Visibility, With<SelectSpriteMarker>>| {
-            let (_, mut p, _, _, children) = q.get_mut(id).unwrap();
+        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
+            let (_, mut p, _, _) = q.get_mut(id).unwrap();
             p.is_selected = false;
             p.drag_offset = None;
-            for child in children {
-                if let Ok(mut vis) = sms.get_mut(*child) {
-                    *vis = Visibility::Hidden;
-                }
-            }
         };
     // Finally interpret the input
     if mouse_buttons.just_pressed(MouseButton::Left) {
@@ -318,21 +314,87 @@ pub(super) fn select_points(
                 .into_iter()
                 .filter(|p| !hovered.contains(p));
             for id in deselecting {
-                deselect_point(id, &mut points, &mut select_markers);
+                deselect_point(id, &mut points);
             }
         } else {
             for id in selected.iter() {
                 // Selecting the already selected points restarts their drag with the new offset
-                select_point(*id, &mut points, &mut select_markers);
+                select_point(*id, &mut points);
             }
         }
         for id in hovered {
-            select_point(id, &mut points, &mut select_markers);
+            select_point(id, &mut points);
         }
     } else if !mouse_buttons.pressed(MouseButton::Left) {
         for id in selected {
-            let (_, mut p, _, _, _) = points.get_mut(id).unwrap();
+            let (_, mut p, _, _) = points.get_mut(id).unwrap();
             p.drag_offset = None;
+        }
+    }
+}
+
+/// Handy keyboard shortcuts for point selection
+pub(super) fn point_select_shortcuts(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse_state: Res<MouseState>,
+    mut points: Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>,
+    eplanets: Query<&EPlanet>,
+    gs: Res<GameState>,
+) {
+    let planet_id = match gs.get_editing_mode() {
+        Some(EditingMode::CreatingPlanet(id)) => id,
+        Some(EditingMode::EditingPlanet(id)) => id,
+        _ => return,
+    };
+    let Ok(eplanet) = eplanets.get(planet_id) else {
+        return;
+    };
+    // Helper functions
+    let select_point =
+        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
+            let (_, mut p, mv, gt) = q.get_mut(id).unwrap();
+            p.is_selected = true;
+            let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
+            let standard_off = gt2 - mouse_state.world_pos;
+            let parent_tran = gt2 - mv.pos.truncate();
+            p.drag_offset = Some(standard_off - parent_tran);
+        };
+    let deselect_point =
+        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
+            let (_, mut p, _, _) = q.get_mut(id).unwrap();
+            p.is_selected = false;
+            p.drag_offset = None;
+        };
+
+    if (keyboard.just_pressed(KeyCode::SuperLeft) && keyboard.pressed(KeyCode::KeyR))
+        || (keyboard.just_pressed(KeyCode::KeyR) && keyboard.pressed(KeyCode::SuperLeft))
+    {
+        for id in eplanet.rock_points.iter() {
+            select_point(*id, &mut points);
+        }
+    }
+    if keyboard.just_pressed(KeyCode::Escape) {
+        let all_ids: Vec<Entity> = points.iter().map(|thing| thing.0).collect();
+        for id in all_ids {
+            deselect_point(id, &mut points);
+        }
+    }
+}
+
+/// Toggle the visibility of the select marker in response to the points selection status
+pub(super) fn show_select_markers(
+    points: Query<(&EPoint, &Children)>,
+    mut select_markers: Query<&mut Visibility, With<SelectSpriteMarker>>,
+) {
+    for point in points.iter() {
+        for child in point.1 {
+            if let Ok(mut sm) = select_markers.get_mut(*child) {
+                if point.0.is_selected {
+                    *sm = Visibility::Inherited;
+                } else {
+                    *sm = Visibility::Hidden;
+                }
+            }
         }
     }
 }

@@ -10,8 +10,9 @@ use bevy_common_assets::ron::RonAssetPlugin;
 
 use self::{
     help::{
-        setup_editor_help, setup_editor_help_config, teardown_editor_help, update_editor_help,
-        update_editor_help_config, EditorHelpConfig,
+        editor_help_input, read_editor_help_output, run_help_bar_command, setup_editor_help,
+        setup_editor_help_config, teardown_editor_help, update_editor_help_bar,
+        update_editor_help_box, update_editor_help_config, EditorHelpConfig, HelpBarEvent,
     },
     planet::{
         draw_field_parents, drive_planet_meshes, handle_feral_points, make_new_field, nudge_fields,
@@ -19,14 +20,17 @@ use self::{
         update_field_gravity,
     },
     point::{
-        delete_points, hover_points, move_points, select_points, spawn_points, update_point_sprites,
+        delete_points, hover_points, move_points, point_select_shortcuts, select_points,
+        show_select_markers, spawn_points, update_point_sprites,
     },
+    start_goal::{spawn_or_update_start_goal, start_goal_drag},
 };
 
 pub mod help;
 pub mod input;
 pub mod planet;
 pub mod point;
+pub mod start_goal;
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -106,11 +110,16 @@ impl Plugin for EditorPlugin {
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[
             "editor_help.ron",
         ]));
+        app.add_event::<HelpBarEvent>();
         app.add_systems(Startup, setup_editor_help_config);
         app.add_systems(Update, update_editor_help_config);
         app.add_systems(Update, setup_editor_help.run_if(entered_editor));
-        app.add_systems(Update, update_editor_help.run_if(in_editor));
+        app.add_systems(Update, update_editor_help_box.run_if(in_editor));
+        app.add_systems(Update, update_editor_help_bar.run_if(in_editor));
+        app.add_systems(Update, read_editor_help_output.run_if(in_editor));
         app.add_systems(Update, teardown_editor_help.run_if(left_editor));
+        app.add_systems(Update, run_help_bar_command.run_if(in_editor));
+        app.add_systems(Update, editor_help_input.run_if(in_editor));
 
         // Points
         app.add_systems(
@@ -119,12 +128,15 @@ impl Plugin for EditorPlugin {
                 hover_points,
                 spawn_points,
                 select_points,
+                point_select_shortcuts,
+                show_select_markers,
                 delete_points,
                 move_points,
                 update_point_sprites,
             )
                 .chain()
-                .run_if(is_editing),
+                .run_if(is_editing)
+                .after(editor_help_input), // After this so that it can clear keyboard input if captured
         );
 
         // Planets
@@ -145,6 +157,15 @@ impl Plugin for EditorPlugin {
                 .chain()
                 .run_if(is_editing)
                 .after(move_points), // should be after the last thing in point chain
+        );
+
+        // Start n' goal
+        app.add_systems(
+            Update,
+            (spawn_or_update_start_goal, start_goal_drag)
+                .chain()
+                .run_if(is_editing)
+                .after(draw_field_parents),
         );
     }
 }

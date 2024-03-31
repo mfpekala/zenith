@@ -215,6 +215,7 @@ pub(super) fn resolve_pending_fields(
     mut commands: Commands,
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
+    stable_points: Query<&IntMoveable, Without<PendingField>>,
     mut points: Query<
         (
             Entity,
@@ -267,7 +268,10 @@ pub(super) fn resolve_pending_fields(
                     center += mv.pos.truncate().as_vec2();
                 }
                 EPointKind::Field => {
-                    let (_, _, mv, _, _) = points.get(parent).unwrap();
+                    let mv = match points.get(parent) {
+                        Ok(thing) => thing.2,
+                        Err(_) => stable_points.get(parent).unwrap(),
+                    };
                     let pos = mv.pos.truncate();
                     points_n_ids.push((id, pos));
                     center += mv.pos.truncate().as_vec2();
