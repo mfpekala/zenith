@@ -50,6 +50,7 @@ impl BorderedMesh {
         render_layer: RenderLayers,
         inner_info: SpriteInfo,
         outer_info: Option<SpriteInfo>,
+        z_index: i32,
     ) -> Entity {
         let fpoints: Vec<Vec2> = points.clone().into_iter().map(|p| p.as_vec2()).collect();
         let inner_points = outline_points(&fpoints, -border_width.unwrap_or(0.0));
@@ -77,7 +78,7 @@ impl BorderedMesh {
                     border_width,
                     scroll: default(),
                 },
-                IntMoveable::new(IVec3::ZERO),
+                IntMoveable::new(IVec2::ZERO.extend(z_index)),
                 SpatialBundle::default(),
             ))
             .with_children(|parent| {
@@ -111,6 +112,7 @@ impl BorderedMesh {
         border_material: Option<(&str, UVec2)>,
         border_width: Option<f32>,
         render_layer: RenderLayers,
+        z_index: i32,
     ) -> Entity {
         let fpoints: Vec<Vec2> = points.clone().into_iter().map(|p| p.as_vec2()).collect();
         let bounds = uvec2_bound(&fpoints);
@@ -155,6 +157,7 @@ impl BorderedMesh {
             render_layer,
             inner_info,
             outer_info,
+            z_index,
         )
     }
 

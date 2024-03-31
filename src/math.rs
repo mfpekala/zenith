@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use linreg::linear_regression;
 
 #[derive(Debug)]
 pub struct MathLine {
@@ -19,11 +20,11 @@ impl MathLine {
     }
 
     pub fn rise(&self) -> f32 {
-        self.p2.x - self.p1.x
+        self.p2.y - self.p1.y
     }
 
     pub fn run(&self) -> f32 {
-        self.p2.y - self.p1.y
+        self.p2.x - self.p1.x
     }
 
     pub fn with_clockwise_breathing_room(&self, space: f32) -> MathLine {
@@ -97,6 +98,17 @@ impl MathLine {
         let dotprod = diff.dot(normal_pointing);
         let closest_point = self.closest_point_on_line(other_point);
         dotprod.signum() * other_point.distance(closest_point)
+    }
+
+    pub fn slope_fit_points(points: &Vec<Vec2>) -> Self {
+        // ALL WE CARE ABOUT IS SLOPE
+        let xs: Vec<f64> = points.iter().map(|p| p.x as f64).collect();
+        let ys: Vec<f64> = points.iter().map(|p| p.y as f64).collect();
+        let (slope, _): (f64, f64) = linear_regression(&xs, &ys).unwrap();
+        Self {
+            p1: Vec2::ZERO,
+            p2: Vec2::new(1.0, slope as f32),
+        }
     }
 }
 
@@ -257,5 +269,18 @@ fn ease_in_out_quintic(x: f32) -> f32 {
         16.0 * x.powi(5)
     } else {
         1.0 - ((-2.0 * x + 2.0).powi(5)) / 2.0
+    }
+}
+
+#[cfg(test)]
+mod math_nerd {
+    use linreg::linear_regression;
+
+    #[test]
+    fn linear_regression_test() {
+        let xs: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let ys: Vec<f64> = vec![0.0, 1.0, 2.0];
+        let out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
+        println!("out: {:?}", out);
     }
 }

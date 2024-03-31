@@ -12,6 +12,7 @@ use crate::{
     },
     editor::point::EPointKind,
     input::MouseState,
+    math::MathLine,
     meta::game_state::{EditingMode, GameState, SetGameState},
     physics::dyno::IntMoveable,
 };
@@ -65,6 +66,7 @@ impl EPlanetBundle {
                     Some(("textures/play_outer.png", UVec2::new(36, 36))),
                     Some(3.0),
                     sprite_layer(),
+                    0,
                 );
                 rock_mesh_id = Some(new_rock_mesh_id);
             })
@@ -182,7 +184,7 @@ pub(super) fn redo_fields(
         .iter()
         .map(|id| points.get(*id).unwrap().1.pos.truncate().as_vec2())
         .collect();
-    let new_poses: Vec<IVec2> = outline_points(&poses, 10.0)
+    let new_poses: Vec<IVec2> = outline_points(&poses, 60.0)
         .into_iter()
         .map(|pos| IVec2::new(pos.x.round() as i32, pos.y.round() as i32))
         .collect();
@@ -202,27 +204,6 @@ pub(super) fn redo_fields(
         commands.entity(parent.0).insert(PendingField {
             groups: vec![ix as u32, next_ix as u32],
         });
-        // let mesh_points = vec![parent2.1.pos.truncate(), parent1.1.pos.truncate(), fp1, fp2];
-        // commands.entity(planet_id).with_children(|parent| {
-        //     let mesh_id = BorderedMesh::spawn_easy(
-        //         parent,
-        //         &asset_server,
-        //         &mut meshes,
-        //         &mut mats,
-        //         mesh_points,
-        //         ("sprites/field/field_bg.png", UVec2::new(12, 12)),
-        //         None,
-        //         None,
-        //         sprite_layer(),
-        //     );
-        //     let field = EPlanetField {
-        //         // This order preserves: 0,1 are rock, 2,3 are field
-        //         field_points: vec![parent2.id(), parent1.id(), fp1_id, fp2_id],
-        //         mesh_id,
-        //         dir: Vec2::ONE,
-        //     };
-        //     eplanet.fields.push(field);
-        // });
     }
 }
 
@@ -308,11 +289,12 @@ pub(super) fn resolve_pending_fields(
             .into_iter()
             .map(|thing| thing.1)
             .collect();
-        let id_order = points_n_ids
+        let id_order: Vec<Entity> = points_n_ids
             .clone()
             .into_iter()
             .map(|thing| thing.0)
             .collect();
+        commands.entity(id_order[0]).insert(UpdateFieldGravity); // Triggers the field's gravity to update on the next frame
         commands.entity(planet_id).with_children(|parent| {
             let mesh_id = BorderedMesh::spawn_easy(
                 parent,
@@ -324,11 +306,12 @@ pub(super) fn resolve_pending_fields(
                 None,
                 None,
                 sprite_layer(),
+                -1,
             );
             let field = EPlanetField {
                 field_points: id_order,
                 mesh_id,
-                dir: Vec2::ONE,
+                dir: Vec2::ZERO,
             };
             eplanet.0.fields.push(field);
         });
@@ -398,14 +381,246 @@ pub(super) fn nudge_fields(
             } else {
                 -1.0
             };
+            let hmm = mv.pos.truncate().as_vec2() + mv.rem;
+            if hmm.length_squared() < 16.0 {
+                if mult < 0.0 {
+                    continue;
+                }
+            }
             mv.rem += mult * change;
         }
     }
 }
 
+#[derive(Component)]
+pub(super) struct FeralEPoint;
+
 /// If multiple points from the same field are selected, delete that field
 /// Turns points into wild points if needed
-pub(super) fn remove_field() {}
+pub(super) fn remove_field(
+    mut eplanets: Query<&mut EPlanet>,
+    points: Query<(Entity, &EPoint)>,
+    gs: Res<GameState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    let Some(mode) = gs.get_editing_mode() else {
+        return;
+    };
+    let EditingMode::EditingPlanet(planet_id) = mode else {
+        return;
+    };
+    let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
+        return;
+    };
+    if !keyboard.just_pressed(KeyCode::KeyC) {
+        return;
+    }
+    let selected_ids: Vec<Entity> = points
+        .iter()
+        .filter(|p| p.1.is_selected)
+        .map(|p| p.0)
+        .collect();
+    let mut maybe_feral = HashSet::new();
+    for field in eplanet.fields.iter_mut() {
+        if selected_ids.iter().all(|p| field.field_points.contains(p)) {
+            commands.entity(field.mesh_id).despawn_recursive();
+            for id in field.field_points.iter() {
+                maybe_feral.insert(*id);
+            }
+            // hackety hack
+            field.mesh_id = planet_id;
+        }
+    }
+    eplanet.fields.retain(|field| field.mesh_id != planet_id);
+    for id in maybe_feral.into_iter() {
+        let point = points.get(id).unwrap();
+        if point.1.kind != EPointKind::Field {
+            continue;
+        }
+        if !eplanet
+            .fields
+            .iter()
+            .any(|field| field.field_points.contains(&id))
+        {
+            commands.entity(id).insert(FeralEPoint);
+        }
+    }
+}
+
+/// Actually makes old field points wild (adjusting transform and spawning thing to change sprite)
+pub(super) fn handle_feral_points(
+    stable: Query<(&IntMoveable, &Parent), (Without<FeralEPoint>, With<EPoint>)>,
+    mut points: Query<(Entity, &mut EPoint, &mut IntMoveable, &Parent), With<FeralEPoint>>,
+    mut commands: Commands,
+) {
+    for mut feral_point in points.iter_mut() {
+        let parent = stable.get(feral_point.3.get()).unwrap();
+        feral_point.2.pos += parent.0.pos;
+        feral_point.1.kind = EPointKind::Wild;
+        commands
+            .entity(feral_point.3.get())
+            .remove_children(&[feral_point.0]);
+        commands
+            .entity(parent.1.get())
+            .push_children(&[feral_point.0]);
+        commands
+            .entity(feral_point.0)
+            .insert(ChangeEPointKind(EPointKind::Wild));
+        commands.entity(feral_point.0).remove::<FeralEPoint>();
+    }
+}
+
+/// Makes a new field from the selected points
+pub(super) fn make_new_field(
+    eplanets: Query<&EPlanet>,
+    points: Query<(Entity, &EPoint)>,
+    gs: Res<GameState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    let Some(mode) = gs.get_editing_mode() else {
+        return;
+    };
+    let EditingMode::EditingPlanet(planet_id) = mode else {
+        return;
+    };
+    let Ok(mut eplanet) = eplanets.get(planet_id) else {
+        return;
+    };
+    if !keyboard.just_pressed(KeyCode::KeyF) {
+        return;
+    }
+    let selected_info: Vec<(Entity, EPoint)> = points
+        .iter()
+        .filter(|p| p.1.is_selected)
+        .map(|thing| (thing.0, thing.1.clone()))
+        .collect();
+    let valid = selected_info
+        .iter()
+        .any(|p| p.1.kind == EPointKind::Wild || p.1.kind == EPointKind::Field)
+        && selected_info.iter().any(|p| p.1.kind == EPointKind::Rock);
+    if !valid {
+        return;
+    }
+    for (id, _) in selected_info {
+        commands.entity(id).insert(PendingField { groups: vec![0] });
+    }
+}
+
+/// Any point in a field that has this component should update it's gravity
+#[derive(Component)]
+pub(super) struct UpdateFieldGravity;
+
+/// Updates the gravity direction of fields.
+/// Fields with 0 rock points - do nothing
+/// Fields with 1 rock point - get average of field points, direct towards rock point
+/// Fields with 2 rock points - perpendicular, assuming clockwise like normal
+/// Fields with 3+ rock points - get line of best fit. Then pick perp dir using center of field points
+pub(super) fn update_field_gravity(
+    mut eplanets: Query<&mut EPlanet>,
+    points: Query<(
+        Entity,
+        &EPoint,
+        &IntMoveable,
+        Option<&UpdateFieldGravity>,
+        &Parent,
+    )>,
+    gs: Res<GameState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    let Some(mode) = gs.get_editing_mode() else {
+        return;
+    };
+    let EditingMode::EditingPlanet(planet_id) = mode else {
+        return;
+    };
+    let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
+        return;
+    };
+    // First do the input
+    if keyboard.just_pressed(KeyCode::KeyG) {
+        if keyboard.pressed(KeyCode::ShiftLeft) {
+            for field in eplanet.fields.iter() {
+                commands
+                    .entity(field.field_points[0])
+                    .insert(UpdateFieldGravity);
+            }
+        } else {
+            for point in points.iter() {
+                if point.1.is_selected {
+                    commands.entity(point.0).insert(UpdateFieldGravity);
+                }
+            }
+        }
+    }
+
+    // Then actually do the updating
+    let mut affected_points = HashSet::<Entity>::new();
+    for point in points.iter() {
+        if point.3.is_some() {
+            affected_points.insert(point.0);
+        }
+    }
+    for field in eplanet.fields.iter_mut() {
+        let adjusting = field
+            .field_points
+            .iter()
+            .any(|id| affected_points.contains(id));
+        if !adjusting {
+            continue;
+        }
+        for id in field.field_points.iter() {
+            commands.entity(*id).remove::<UpdateFieldGravity>();
+        }
+        let mut rock_points = vec![];
+        let mut field_points = vec![];
+        for point in field.field_points.iter() {
+            let point = points.get(*point).unwrap();
+            if point.1.kind == EPointKind::Rock {
+                rock_points.push((point.2.pos.truncate()).as_vec2());
+            } else {
+                let parent = points.get(point.4.get()).unwrap();
+                field_points.push((parent.2.pos.truncate() + point.2.pos.truncate()).as_vec2());
+            }
+        }
+        if rock_points.len() == 0 {
+            continue;
+        }
+        let field_center = field_points
+            .clone()
+            .into_iter()
+            .reduce(|acc, e| acc + e)
+            .unwrap()
+            / field_points.len() as f32;
+        let rock_center = rock_points
+            .clone()
+            .into_iter()
+            .reduce(|acc, e| acc + e)
+            .unwrap()
+            / rock_points.len() as f32;
+        if rock_points.len() == 1 {
+            field.dir = (rock_points[0] - field_center).normalize_or_zero();
+        } else if rock_points.len() == 2 {
+            let pall = rock_points[1] - rock_points[0];
+            let perp = Vec2::new(-pall.y, pall.x);
+            field.dir = perp.normalize_or_zero();
+            let check_diff = rock_center - field_center;
+            if field.dir.dot(check_diff) < 0.0 {
+                field.dir *= -1.0;
+            }
+        } else {
+            let line = MathLine::slope_fit_points(&rock_points);
+            let perp = Vec2::new(line.rise(), -line.run());
+            field.dir = perp.normalize_or_zero();
+            let check_diff = rock_center - field_center;
+            if field.dir.dot(check_diff) < 0.0 {
+                field.dir *= -1.0;
+            }
+        }
+    }
+}
 
 pub(super) fn drive_planet_meshes(
     points: Query<(&EPoint, &IntMoveable, &Parent)>,
@@ -445,7 +660,7 @@ pub(super) fn drive_planet_meshes(
             }
             if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
                 bm.points = mesh_points;
-                bm.scroll = Vec2::new(6.0 / 24.0, 6.0 / 24.0);
+                bm.scroll = field.dir / 4.0;
             }
         }
     }
@@ -457,7 +672,9 @@ pub(super) fn draw_field_parents(
 ) {
     for (epoint, gt, parent) in points.iter() {
         if epoint.kind == EPointKind::Field {
-            let (_, pgt, _) = points.get(parent.get()).unwrap();
+            let Ok((_, pgt, _)) = points.get(parent.get()) else {
+                continue;
+            };
             gzs.line_2d(
                 gt.translation().truncate(),
                 pgt.translation().truncate(),

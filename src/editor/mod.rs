@@ -14,8 +14,9 @@ use self::{
         update_editor_help_config, EditorHelpConfig,
     },
     planet::{
-        draw_field_parents, drive_planet_meshes, nudge_fields, planet_state_input, redo_fields,
-        resolve_pending_fields,
+        draw_field_parents, drive_planet_meshes, handle_feral_points, make_new_field, nudge_fields,
+        planet_state_input, redo_fields, remove_field, resolve_pending_fields,
+        update_field_gravity,
     },
     point::{
         delete_points, hover_points, move_points, select_points, spawn_points, update_point_sprites,
@@ -134,6 +135,10 @@ impl Plugin for EditorPlugin {
                 redo_fields,
                 resolve_pending_fields,
                 nudge_fields,
+                remove_field,
+                handle_feral_points,
+                make_new_field,
+                update_field_gravity,
                 drive_planet_meshes,
                 draw_field_parents,
             )
