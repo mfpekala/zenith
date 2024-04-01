@@ -1,4 +1,7 @@
+use std::ops::Deref;
+
 use bevy::{prelude::*, render::view::RenderLayers};
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -11,6 +14,18 @@ use crate::{
 };
 
 use super::planet::EPlanet;
+
+pub type EId = u64;
+
+#[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct MyId(pub EId);
+impl Deref for MyId {
+    type Target = u64;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -60,6 +75,7 @@ pub struct EPointSpriteMarker;
 
 #[derive(Bundle)]
 pub struct EPointBundle {
+    pub id: MyId,
     pub point: EPoint,
     pub moveable: IntMoveable,
     pub sprite: SpriteBundle,
@@ -68,7 +84,9 @@ pub struct EPointBundle {
 }
 impl EPointBundle {
     fn new(pos: IVec2, kind: EPointKind, asset_server: &Res<AssetServer>) -> Self {
+        let mut rng = thread_rng();
         Self {
+            id: MyId(rng.gen::<EId>()),
             point: EPoint::new(kind.clone()),
             moveable: IntMoveable::new(pos.extend(2)),
             sprite: SpriteBundle {
@@ -89,25 +107,30 @@ impl EPointBundle {
         asset_server: &Res<AssetServer>,
         pos: IVec2,
         kind: EPointKind,
-    ) -> Entity {
-        commands
-            .spawn(Self::new(pos, kind, asset_server))
-            .with_children(|parent| {
-                parent.spawn((
-                    SpriteBundle {
-                        transform: Transform {
-                            translation: Vec2::ZERO.extend(-0.1),
+    ) -> (Entity, EId) {
+        let bund = Self::new(pos, kind, asset_server);
+        let eid = bund.id.clone();
+        (
+            commands
+                .spawn(bund)
+                .with_children(|parent| {
+                    parent.spawn((
+                        SpriteBundle {
+                            transform: Transform {
+                                translation: Vec2::ZERO.extend(-0.1),
+                                ..default()
+                            },
+                            texture: asset_server.load("sprites/editor/point_highlight.png"),
+                            visibility: Visibility::Hidden,
                             ..default()
                         },
-                        texture: asset_server.load("sprites/editor/point_highlight.png"),
-                        visibility: Visibility::Hidden,
-                        ..default()
-                    },
-                    SelectSpriteMarker,
-                    sprite_layer(),
-                ));
-            })
-            .id()
+                        SelectSpriteMarker,
+                        sprite_layer(),
+                    ));
+                })
+                .id(),
+            eid.0,
+        )
     }
 }
 
@@ -139,7 +162,7 @@ pub(super) fn spawn_points(
     keyboard: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
-    points: Query<(&EPoint, &IntMoveable)>,
+    points: Query<(Entity, &EPoint, &IntMoveable, &MyId)>,
     mut gs_writer: EventWriter<SetGameState>,
     asset_server: Res<AssetServer>,
 ) {
@@ -150,6 +173,14 @@ pub(super) fn spawn_points(
         // See? it just handles right clicks
         return;
     }
+    let get_entity = |eid: EId| {
+        for point in points.iter() {
+            if point.3 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
     match mode {
         EditingMode::Free => {
             // For now do nothing here
@@ -158,7 +189,11 @@ pub(super) fn spawn_points(
             // Either closes the rock or places a new point
             let (mut eplanet, mv) = eplanets.get_mut(planet_id).unwrap();
             let closing = eplanet.rock_points.len() > 2
-                && points.get(eplanet.rock_points[0]).unwrap().0.is_hovered;
+                && points
+                    .get(get_entity(eplanet.rock_points[0]))
+                    .unwrap()
+                    .1
+                    .is_hovered;
             if closing {
                 gs_writer.send(SetGameState(GameState {
                     meta: MetaState::Editor(EditorState::Editing(EditingState {
@@ -167,13 +202,13 @@ pub(super) fn spawn_points(
                 }));
             } else {
                 commands.entity(planet_id).with_children(|mut parent| {
-                    let id = EPointBundle::spawn(
+                    let (id, eid) = EPointBundle::spawn(
                         &mut parent,
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.push(id);
+                    eplanet.rock_points.push(eid);
                 });
             }
         }
@@ -184,7 +219,7 @@ pub(super) fn spawn_points(
                 // ADDING A WILD POINT
                 // These are points that later can be made into fields
                 commands.entity(planet_id).with_children(|parent| {
-                    let id =
+                    let (id, eid) =
                         EPointBundle::spawn(parent, &asset_server, spawning_at, EPointKind::Wild);
                     eplanet.wild_points.push(id);
                 });
@@ -195,7 +230,7 @@ pub(super) fn spawn_points(
                 let mut closest_dist = i32::MAX;
                 let mut closest_ix = 0;
                 for (ix, id) in eplanet.rock_points.iter().enumerate() {
-                    let (_, mv) = points.get(*id).unwrap();
+                    let (_, _, mv, _) = points.get(get_entity(*id)).unwrap();
                     let dist = mv.pos.truncate().distance_squared(spawning_at);
                     if closest_point.is_none() || dist < closest_dist {
                         closest_point = Some(*id);
@@ -203,22 +238,27 @@ pub(super) fn spawn_points(
                         closest_ix = ix as i32;
                     }
                 }
-                let anchor = points.get(closest_point.unwrap()).unwrap().1.pos.truncate();
+                let anchor = points
+                    .get(get_entity(closest_point.unwrap()))
+                    .unwrap()
+                    .2
+                    .pos
+                    .truncate();
                 let anchor_vec = (spawning_at - anchor).as_vec2();
                 let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
                 let right_ix = (closest_ix + 1).rem_euclid(eplanet.rock_points.len() as i32);
                 let left_vec = points
-                    .get(eplanet.rock_points[left_ix as usize])
+                    .get(get_entity(eplanet.rock_points[left_ix as usize]))
                     .unwrap()
-                    .1
+                    .2
                     .pos
                     .truncate()
                     - anchor;
                 let left_vec = left_vec.as_vec2().normalize_or_zero();
                 let right_vec = points
-                    .get(eplanet.rock_points[right_ix as usize])
+                    .get(get_entity(eplanet.rock_points[right_ix as usize]))
                     .unwrap()
-                    .1
+                    .2
                     .pos
                     .truncate()
                     - anchor;
@@ -233,13 +273,13 @@ pub(super) fn spawn_points(
                 };
 
                 commands.entity(planet_id).with_children(|mut parent| {
-                    let id = EPointBundle::spawn(
+                    let (id, eid) = EPointBundle::spawn(
                         &mut parent,
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.insert(pos, id);
+                    eplanet.rock_points.insert(pos, eid);
                 });
             }
         }
@@ -318,7 +358,7 @@ pub(super) fn select_points(
 pub(super) fn point_select_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_state: Res<MouseState>,
-    mut points: Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>,
+    mut points: Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>,
     eplanets: Query<&EPlanet>,
     gs: Res<GameState>,
 ) {
@@ -332,8 +372,9 @@ pub(super) fn point_select_shortcuts(
     };
     // Helper functions
     let select_point =
-        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
-            let (_, mut p, mv, gt) = q.get_mut(id).unwrap();
+        |eid: EId, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
+            let entity = q.iter().find(|p| p.4 .0 == eid).unwrap().0;
+            let (_, mut p, mv, gt, eid) = q.get_mut(entity).unwrap();
             p.is_selected = true;
             let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
             let standard_off = gt2 - mouse_state.world_pos;
@@ -341,8 +382,9 @@ pub(super) fn point_select_shortcuts(
             p.drag_offset = Some(standard_off - parent_tran);
         };
     let deselect_point =
-        |id: Entity, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform)>| {
-            let (_, mut p, _, _) = q.get_mut(id).unwrap();
+        |id: Entity,
+         q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
+            let (_, mut p, _, _, eid) = q.get_mut(id).unwrap();
             p.is_selected = false;
             p.drag_offset = None;
         };
@@ -383,19 +425,27 @@ pub(super) fn show_select_markers(
 pub(super) fn delete_points(
     mut commands: Commands,
     mut eplanets: Query<(Entity, &mut EPlanet)>,
-    points: Query<(Entity, &EPoint, &Parent)>,
+    points: Query<(Entity, &EPoint, &Parent, &MyId)>,
     key_buttons: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
 ) {
+    let get_entity = |eid: EId| {
+        for point in points.iter() {
+            if point.3 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
     if key_buttons.pressed(KeyCode::Backspace) {
         // Despawn the point, and then remove it from it's parent rock/field list
-        for (id, p, parent_ref) in points.iter() {
+        for (id, p, parent_ref, eid) in points.iter() {
             if p.is_selected {
                 match p.kind {
                     EPointKind::Rock => {
                         let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
-                        parent.rock_points.retain(|x| *x != id);
+                        parent.rock_points.retain(|x| *x != eid.0);
                     }
                     EPointKind::Field => {
                         let parent = points.get(parent_ref.get()).unwrap().2;
