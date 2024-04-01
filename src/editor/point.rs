@@ -13,7 +13,7 @@ use crate::{
     physics::dyno::IntMoveable,
 };
 
-use super::planet::EPlanet;
+use super::planet::{EPlanet, EPlanetField, FeralEPoint};
 
 pub type EId = u64;
 
@@ -202,7 +202,7 @@ pub(super) fn spawn_points(
                 }));
             } else {
                 commands.entity(planet_id).with_children(|mut parent| {
-                    let (id, eid) = EPointBundle::spawn(
+                    let (_id, eid) = EPointBundle::spawn(
                         &mut parent,
                         &asset_server,
                         mouse_state.world_pos - mv.pos.truncate(),
@@ -219,9 +219,9 @@ pub(super) fn spawn_points(
                 // ADDING A WILD POINT
                 // These are points that later can be made into fields
                 commands.entity(planet_id).with_children(|parent| {
-                    let (id, eid) =
+                    let (_id, eid) =
                         EPointBundle::spawn(parent, &asset_server, spawning_at, EPointKind::Wild);
-                    eplanet.wild_points.push(id);
+                    eplanet.wild_points.push(eid);
                 });
             } else {
                 // ADDING A ROCK POINT
@@ -374,7 +374,7 @@ pub(super) fn point_select_shortcuts(
     let select_point =
         |eid: EId, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
             let entity = q.iter().find(|p| p.4 .0 == eid).unwrap().0;
-            let (_, mut p, mv, gt, eid) = q.get_mut(entity).unwrap();
+            let (_, mut p, mv, gt, _) = q.get_mut(entity).unwrap();
             p.is_selected = true;
             let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
             let standard_off = gt2 - mouse_state.world_pos;
@@ -384,7 +384,7 @@ pub(super) fn point_select_shortcuts(
     let deselect_point =
         |id: Entity,
          q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
-            let (_, mut p, _, _, eid) = q.get_mut(id).unwrap();
+            let (_, mut p, _, _, _) = q.get_mut(id).unwrap();
             p.is_selected = false;
             p.drag_offset = None;
         };
@@ -433,10 +433,10 @@ pub(super) fn delete_points(
     let get_entity = |eid: EId| {
         for point in points.iter() {
             if point.3 .0 == eid {
-                return point.0;
+                return Some(point.0);
             }
         }
-        panic!("Bad eid");
+        None
     };
     if key_buttons.pressed(KeyCode::Backspace) {
         // Despawn the point, and then remove it from it's parent rock/field list
@@ -451,16 +451,51 @@ pub(super) fn delete_points(
                         let parent = points.get(parent_ref.get()).unwrap().2;
                         let mut eplanet = eplanets.get_mut(parent.get()).unwrap().1;
                         for field in eplanet.fields.iter_mut() {
-                            field.field_points.retain(|x| *x != id);
+                            field.field_points.retain(|x| *x != eid.0);
                         }
                     }
                     EPointKind::Wild => {
                         let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
-                        parent.wild_points.retain(|x| *x != id);
+                        parent.wild_points.retain(|x| *x != eid.0);
                     }
                 }
                 commands.entity(parent_ref.get()).remove_children(&[id]);
                 commands.entity(id).despawn_recursive();
+            }
+        }
+        // Remove bad points
+        for mut eplanet in eplanets.iter_mut() {
+            eplanet.1.rock_points.retain(|p| get_entity(*p).is_some());
+            eplanet.1.wild_points.retain(|p| get_entity(*p).is_some());
+            for field in eplanet.1.fields.iter_mut() {
+                field.field_points.retain(|p| get_entity(*p).is_some());
+            }
+            let dead_fields: Vec<EPlanetField> = eplanet
+                .1
+                .fields
+                .clone()
+                .into_iter()
+                .filter(|f| f.field_points.len() < 3)
+                .collect();
+            eplanet.1.fields.retain(|f| f.field_points.len() >= 3);
+            for field in dead_fields {
+                commands.entity(field.mesh_id).despawn_recursive();
+                for point in field.field_points {
+                    let Some(ent) = get_entity(point) else {
+                        continue;
+                    };
+                    let point = points.get(ent).unwrap();
+                    if point.1.kind != EPointKind::Field
+                        || eplanet
+                            .1
+                            .fields
+                            .iter()
+                            .any(|field| field.field_points.contains(&point.3 .0))
+                    {
+                        continue;
+                    }
+                    commands.entity(point.0).insert(FeralEPoint);
+                }
             }
         }
         // Check to see if any planets have fewer than three rock points. If so,
@@ -470,7 +505,6 @@ pub(super) fn delete_points(
             if eplanet.rock_points.len() < 3 {
                 purged_planets.push(planet_id);
             }
-            // Also check if any fields have less than three points. If so, delete them
         }
         for planet_id in purged_planets {
             // Also need to switch to free if we're deleting the creating or editing planet

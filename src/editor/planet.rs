@@ -20,10 +20,10 @@ use crate::{
 
 use super::point::{ChangeEPointKind, EId, EPoint, EPointBundle, MyId};
 
-#[derive(Component, Reflect, Serialize, Deserialize)]
+#[derive(Component, Clone, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanetField {
-    pub field_points: Vec<Entity>,
+    pub field_points: Vec<EId>,
     pub mesh_id: Entity,
     dir: Vec2,
 }
@@ -33,7 +33,7 @@ pub(super) struct EPlanetField {
 pub(super) struct EPlanet {
     pub rock_points: Vec<EId>,
     pub rock_mesh_id: Option<Entity>,
-    pub wild_points: Vec<Entity>,
+    pub wild_points: Vec<EId>,
     pub fields: Vec<EPlanetField>,
 }
 
@@ -90,6 +90,78 @@ impl EPlanetBundle {
             moveable: IntMoveable::new(pos.extend(0)),
         });
         entity
+    }
+}
+
+/// Fix dangling mesh ids from fields and rocks
+pub(super) fn fix_dangling_mesh_ids(
+    mut commands: Commands,
+    ents: Query<Entity>,
+    mut eplanets: Query<(Entity, &mut EPlanet)>,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+    bms: Query<(Entity, &Parent), With<BorderedMesh>>,
+) {
+    for mut eplanet in eplanets.iter_mut() {
+        if ents
+            .get(eplanet.1.rock_mesh_id.unwrap_or(Entity::PLACEHOLDER))
+            .is_err()
+        {
+            // We found a planet without a valid rock mesh
+            let mut rock_mesh_id = None;
+            commands.entity(eplanet.0).with_children(|parent| {
+                let new_rock_mesh_id = BorderedMesh::spawn_easy(
+                    parent,
+                    &asset_server,
+                    &mut meshes,
+                    &mut mats,
+                    vec![],
+                    ("textures/play_inner.png", UVec2::new(36, 36)),
+                    Some(("textures/play_outer.png", UVec2::new(36, 36))),
+                    Some(3.0),
+                    sprite_layer(),
+                    0,
+                );
+                rock_mesh_id = Some(new_rock_mesh_id);
+            });
+            eplanet.1.rock_mesh_id = rock_mesh_id;
+        }
+        for field in eplanet.1.fields.iter_mut() {
+            if ents.get(field.mesh_id).is_err() {
+                commands.entity(eplanet.0).with_children(|parent| {
+                    let mesh_id = BorderedMesh::spawn_easy(
+                        parent,
+                        &asset_server,
+                        &mut meshes,
+                        &mut mats,
+                        vec![],
+                        ("sprites/field/field_bg.png", UVec2::new(12, 12)),
+                        None,
+                        None,
+                        sprite_layer(),
+                        -1,
+                    );
+                    field.mesh_id = mesh_id;
+                });
+            }
+        }
+    }
+    // Then get rid of any planet bordered meshes that aren't used
+    for bm in bms.iter() {
+        if eplanets.get(bm.1.get()).is_err() {
+            // Ignore strays
+            continue;
+        }
+        if eplanets.iter().any(|eplanet| {
+            eplanet.1.rock_mesh_id == Some(bm.0)
+                || eplanet.1.fields.iter().any(|field| field.mesh_id == bm.0)
+        }) {
+            // It's used
+            continue;
+        }
+        commands.entity(bm.0).despawn_recursive();
+        commands.entity(bm.1.get()).remove_children(&[bm.0]);
     }
 }
 
@@ -165,7 +237,7 @@ pub(super) fn redo_fields(
     {
         return;
     }
-    let get_entity_from_eid = |eid: EId| {
+    let get_entity = |eid: EId| {
         for point in points.iter() {
             if point.3 .0 == eid {
                 return point.0;
@@ -178,11 +250,13 @@ pub(super) fn redo_fields(
     let mut despawned = HashSet::new();
     for field in eplanet.fields.iter() {
         for id in field.field_points.iter() {
-            // TODO: Add back the logic to ignore rock points here
+            if eplanet.rock_points.contains(id) {
+                continue;
+            }
             if despawned.contains(id) {
                 continue;
             }
-            commands.entity(*id).despawn_recursive();
+            commands.entity(get_entity(*id)).despawn_recursive();
             despawned.insert(*id);
         }
         commands.entity(field.mesh_id).despawn_recursive();
@@ -194,7 +268,7 @@ pub(super) fn redo_fields(
         .iter()
         .map(|id| {
             points
-                .get(get_entity_from_eid(*id))
+                .get(get_entity(*id))
                 .unwrap()
                 .1
                 .pos
@@ -210,9 +284,7 @@ pub(super) fn redo_fields(
     for ix in 0..new_poses.len() {
         let next_ix = (ix + 1).rem_euclid(new_poses.len());
         let fp = new_poses[ix];
-        let parent = points
-            .get(get_entity_from_eid(eplanet.rock_points[ix]))
-            .unwrap();
+        let parent = points.get(get_entity(eplanet.rock_points[ix])).unwrap();
         let mut fp_id = planet_id;
         // TODO: This actually spawns two points per point
         commands.entity(planet_id).with_children(|parent| {
@@ -243,6 +315,7 @@ pub(super) fn resolve_pending_fields(
             &mut IntMoveable,
             &PendingField,
             &Parent,
+            &MyId,
         ),
         Without<EPlanet>,
     >,
@@ -257,17 +330,28 @@ pub(super) fn resolve_pending_fields(
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
     };
+    let get_entity = |eid: EId| {
+        for point in points.iter() {
+            if point.5 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
 
     // Construct the groupmap (fields)
     let mut rock_points = HashMap::new();
-    let mut group_map = HashMap::<u32, Vec<(Entity, EPoint, IntMoveable, Entity)>>::new();
-    for (id, epoint, mv, pf, parent) in points.iter() {
+    let mut group_map = HashMap::<u32, Vec<(Entity, EPoint, IntMoveable, Entity, EId)>>::new();
+    for (id, epoint, mv, pf, parent, eid) in points.iter() {
         for group in pf.groups.iter() {
             if group_map.contains_key(group) {
                 let existing = group_map.get_mut(group).unwrap();
-                existing.push((id, epoint.clone(), mv.clone(), parent.get()));
+                existing.push((id, epoint.clone(), mv.clone(), parent.get(), eid.0));
             } else {
-                group_map.insert(*group, vec![(id, epoint.clone(), mv.clone(), parent.get())]);
+                group_map.insert(
+                    *group,
+                    vec![(id, epoint.clone(), mv.clone(), parent.get(), eid.0)],
+                );
             }
         }
         if epoint.kind == EPointKind::Rock {
@@ -280,11 +364,11 @@ pub(super) fn resolve_pending_fields(
         let mut points_n_ids = vec![];
         let mut center = Vec2::ZERO;
         let to_ang = |thing: Vec2| (thing.x as f32).atan2(thing.y as f32);
-        for (id, epoint, mv, parent) in items {
+        for (_id, epoint, mv, parent, eid) in items {
             match epoint.kind {
                 EPointKind::Rock | EPointKind::Wild => {
                     let pos = mv.pos.truncate();
-                    points_n_ids.push((id, pos));
+                    points_n_ids.push((eid, pos));
                     center += mv.pos.truncate().as_vec2();
                 }
                 EPointKind::Field => {
@@ -293,7 +377,7 @@ pub(super) fn resolve_pending_fields(
                         Err(_) => stable_points.get(parent).unwrap(),
                     };
                     let pos = mv.pos.truncate();
-                    points_n_ids.push((id, pos));
+                    points_n_ids.push((eid, pos));
                     center += mv.pos.truncate().as_vec2();
                 }
             }
@@ -313,12 +397,14 @@ pub(super) fn resolve_pending_fields(
             .into_iter()
             .map(|thing| thing.1)
             .collect();
-        let id_order: Vec<Entity> = points_n_ids
+        let id_order: Vec<EId> = points_n_ids
             .clone()
             .into_iter()
             .map(|thing| thing.0)
             .collect();
-        commands.entity(id_order[0]).insert(UpdateFieldGravity); // Triggers the field's gravity to update on the next frame
+        commands
+            .entity(get_entity(id_order[0]))
+            .insert(UpdateFieldGravity); // Triggers the field's gravity to update on the next frame
         commands.entity(planet_id).with_children(|parent| {
             let mesh_id = BorderedMesh::spawn_easy(
                 parent,
@@ -342,7 +428,7 @@ pub(super) fn resolve_pending_fields(
     }
 
     // Cleanup all the groups and turn wild points into field points
-    for (id, mut point, mut mv, _, parent) in points.iter_mut() {
+    for (id, mut point, mut mv, _, parent, eid) in points.iter_mut() {
         commands.entity(id).remove::<PendingField>();
         if point.kind == EPointKind::Wild {
             let mut min_dist = i32::MAX;
@@ -360,7 +446,7 @@ pub(super) fn resolve_pending_fields(
             commands.entity(parent.get()).remove_children(&[id]);
             commands.entity(new_dad).push_children(&[id]);
             point.kind = EPointKind::Field;
-            eplanet.0.wild_points.retain(|p| *p != id);
+            eplanet.0.wild_points.retain(|p| *p != eid.0);
             let old_pos = mv.pos;
             mv.pos = old_pos - dad_pos.extend(0);
             commands
@@ -373,7 +459,7 @@ pub(super) fn resolve_pending_fields(
 /// On cmd + / cmd -, nudge all field points closer/further from their parent
 pub(super) fn nudge_fields(
     eplanets: Query<&EPlanet>,
-    mut points: Query<(&EPoint, &mut IntMoveable)>,
+    mut points: Query<(Entity, &EPoint, &mut IntMoveable, &MyId)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
@@ -391,9 +477,18 @@ pub(super) fn nudge_fields(
     let Ok(eplanet) = eplanets.get(planet_id) else {
         return;
     };
+    let get_entity = |eid: EId, q: &Query<(Entity, &EPoint, &mut IntMoveable, &MyId)>| {
+        for point in q.iter() {
+            if point.3 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
     for field in eplanet.fields.iter() {
         for id in field.field_points.iter() {
-            let Ok((point, mut mv)) = points.get_mut(*id) else {
+            let ent = get_entity(*id, &points);
+            let Ok((_, point, mut mv, _)) = points.get_mut(ent) else {
                 continue;
             };
             if point.kind != EPointKind::Field {
@@ -424,7 +519,7 @@ pub(super) struct FeralEPoint;
 /// Turns points into wild points if needed
 pub(super) fn remove_field(
     mut eplanets: Query<&mut EPlanet>,
-    points: Query<(Entity, &EPoint)>,
+    points: Query<(Entity, &EPoint, &MyId)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
@@ -441,10 +536,18 @@ pub(super) fn remove_field(
     if !keyboard.just_pressed(KeyCode::KeyC) {
         return;
     }
-    let selected_ids: Vec<Entity> = points
+    let get_entity = |eid: EId| {
+        for point in points.iter() {
+            if point.2 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
+    let selected_ids: Vec<EId> = points
         .iter()
         .filter(|p| p.1.is_selected)
-        .map(|p| p.0)
+        .map(|p| p.2 .0)
         .collect();
     let mut maybe_feral = HashSet::new();
     for field in eplanet.fields.iter_mut() {
@@ -459,7 +562,7 @@ pub(super) fn remove_field(
     }
     eplanet.fields.retain(|field| field.mesh_id != planet_id);
     for id in maybe_feral.into_iter() {
-        let point = points.get(id).unwrap();
+        let point = points.get(get_entity(id)).unwrap();
         if point.1.kind != EPointKind::Field {
             continue;
         }
@@ -468,7 +571,7 @@ pub(super) fn remove_field(
             .iter()
             .any(|field| field.field_points.contains(&id))
         {
-            commands.entity(id).insert(FeralEPoint);
+            commands.entity(get_entity(id)).insert(FeralEPoint);
         }
     }
 }
@@ -498,16 +601,12 @@ pub(super) fn handle_feral_points(
 
 /// Makes a new field from the selected points
 pub(super) fn make_new_field(
-    eplanets: Query<&EPlanet>,
     points: Query<(Entity, &EPoint)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
 ) {
-    let Some(mode) = gs.get_editing_mode() else {
-        return;
-    };
-    let EditingMode::EditingPlanet(planet_id) = mode else {
+    let Some(_) = gs.get_editing_mode() else {
         return;
     };
     if !keyboard.just_pressed(KeyCode::KeyF) {
@@ -548,6 +647,7 @@ pub(super) fn update_field_gravity(
         &IntMoveable,
         Option<&UpdateFieldGravity>,
         &Parent,
+        &MyId,
     )>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -562,12 +662,20 @@ pub(super) fn update_field_gravity(
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
     };
+    let get_entity = |eid: EId| {
+        for point in points.iter() {
+            if point.5 .0 == eid {
+                return point.0;
+            }
+        }
+        panic!("Bad eid");
+    };
     // First do the input
     if keyboard.just_pressed(KeyCode::KeyG) {
         if keyboard.pressed(KeyCode::ShiftLeft) {
             for field in eplanet.fields.iter() {
                 commands
-                    .entity(field.field_points[0])
+                    .entity(get_entity(field.field_points[0]))
                     .insert(UpdateFieldGravity);
             }
         } else {
@@ -580,10 +688,10 @@ pub(super) fn update_field_gravity(
     }
 
     // Then actually do the updating
-    let mut affected_points = HashSet::<Entity>::new();
+    let mut affected_points = HashSet::<EId>::new();
     for point in points.iter() {
         if point.3.is_some() {
-            affected_points.insert(point.0);
+            affected_points.insert(point.5 .0);
         }
     }
     for field in eplanet.fields.iter_mut() {
@@ -595,12 +703,14 @@ pub(super) fn update_field_gravity(
             continue;
         }
         for id in field.field_points.iter() {
-            commands.entity(*id).remove::<UpdateFieldGravity>();
+            commands
+                .entity(get_entity(*id))
+                .remove::<UpdateFieldGravity>();
         }
         let mut rock_points = vec![];
         let mut field_points = vec![];
         for point in field.field_points.iter() {
-            let point = points.get(*point).unwrap();
+            let point = points.get(get_entity(*point)).unwrap();
             if point.1.kind == EPointKind::Rock {
                 rock_points.push((point.2.pos.truncate()).as_vec2());
             } else {
@@ -650,19 +760,22 @@ pub(super) fn drive_planet_meshes(
     eplanets: Query<&EPlanet>,
     mut bms: Query<&mut BorderedMesh>,
 ) {
-    let get_entity_from_id = |eid: EId| {
+    let get_entity = |eid: EId| {
         for point in points.iter() {
             if point.1 .0 == eid {
-                return point.0;
+                return Some(point.0);
             }
         }
-        panic!("Bad eid");
+        None
     };
     for eplanet in eplanets.iter() {
         // First update the rock mesh
         let mut mesh_points = vec![];
         for pid in eplanet.rock_points.iter() {
-            if let Ok((_, _, _, mv, _)) = points.get(get_entity_from_id(*pid)) {
+            let Some(ent) = get_entity(*pid) else {
+                continue;
+            };
+            if let Ok((_, _, _, mv, _)) = points.get(ent) {
                 mesh_points.push(mv.pos.truncate());
             }
         }
@@ -676,7 +789,10 @@ pub(super) fn drive_planet_meshes(
         for field in eplanet.fields.iter() {
             let mut mesh_points = vec![];
             for pid in field.field_points.iter() {
-                if let Ok((_, _, epoint, mv, parent)) = points.get(*pid) {
+                let Some(ent) = get_entity(*pid) else {
+                    continue;
+                };
+                if let Ok((_, _, epoint, mv, parent)) = points.get(ent) {
                     match epoint.kind {
                         EPointKind::Rock => {
                             mesh_points.push(mv.pos.truncate());
@@ -711,6 +827,32 @@ pub(super) fn draw_field_parents(
                 pgt.translation().truncate(),
                 Color::WHITE,
             );
+        }
+    }
+}
+
+pub(super) fn debug_planets(eplanets: Query<&EPlanet>, points: Query<(Entity, &MyId)>) {
+    for eplanet in eplanets.iter() {
+        let mut ids = vec![];
+        for id in eplanet.rock_points.iter().chain(eplanet.wild_points.iter()) {
+            ids.push(*id);
+        }
+        for field in eplanet.fields.iter() {
+            for point in field.field_points.iter() {
+                ids.push(*point);
+            }
+        }
+        for id in ids {
+            let mut good = false;
+            for point in points.iter() {
+                if point.1 .0 == id {
+                    good = true;
+                    break;
+                }
+            }
+            if !good {
+                println!("there's a bad id: {:?}", id);
+            }
         }
     }
 }

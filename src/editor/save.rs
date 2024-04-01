@@ -198,7 +198,9 @@ pub(super) fn load_editor(
     if loads.read().count() <= 0 {
         return;
     }
-    let root = root.get_single().unwrap();
+    let Ok(root) = root.get_single() else {
+        return;
+    };
     commands.entity(root).despawn_recursive();
     commands.spawn((
         DynamicSceneBundle {
