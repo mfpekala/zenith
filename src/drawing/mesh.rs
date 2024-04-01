@@ -3,6 +3,7 @@ use bevy::{
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
@@ -140,13 +141,15 @@ impl MeshOutline {
     }
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct SpriteInfo {
     pub sprite_size: UVec2,
     pub bounds: UVec2,
 }
 
-#[derive(Component, Default, Debug)]
+#[derive(Component, Debug, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct ScrollSprite {
     pub vel: Vec2,
 }

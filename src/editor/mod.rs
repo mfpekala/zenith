@@ -1,8 +1,13 @@
 use crate::{
+    drawing::{
+        bordered_mesh::{BorderMeshType, BorderedMatData, BorderedMesh},
+        mesh::{ScrollSprite, SpriteInfo},
+    },
     meta::{
         game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
         level_data::LevelData,
     },
+    physics::dyno::IntMoveable,
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -21,9 +26,13 @@ use self::{
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
-        show_select_markers, spawn_points, update_point_sprites,
+        show_select_markers, spawn_points, update_point_sprites, EPoint, EPointSpriteMarker,
+        SelectSpriteMarker,
     },
-    save::{connect_parents, load_editor, save_editor, LoadEditorEvent, SaveEditorEvent},
+    save::{
+        cleanup_load, connect_parents, fix_after_load, load_editor, resolve_holes, save_editor,
+        CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent,
+    },
     start_goal::{spawn_or_update_start_goal, start_goal_drag},
 };
 
@@ -76,7 +85,11 @@ struct LevelEditingData(pub LevelData);
 fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
     let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
     commands.spawn(LevelEditingHandle(handle));
-    commands.spawn((EditingSceneRoot, SpatialBundle::default()));
+    commands.spawn((
+        EditingSceneRoot,
+        SpatialBundle::default(),
+        Name::new("EditingRoot"),
+    ));
 }
 
 fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {
@@ -115,10 +128,24 @@ impl Plugin for EditorPlugin {
         // Save system
         app.add_event::<SaveEditorEvent>();
         app.add_event::<LoadEditorEvent>();
+        app.add_event::<CleanupLoadEvent>();
         app.add_systems(Update, save_editor.run_if(in_editor));
         app.add_systems(Update, load_editor.run_if(in_editor));
         app.add_systems(Update, connect_parents.run_if(in_editor));
+        app.add_systems(Update, resolve_holes.run_if(in_editor));
+        app.add_systems(Update, fix_after_load.run_if(in_editor));
+        app.add_systems(Update, cleanup_load.run_if(in_editor));
         app.register_type::<EPlanet>();
+        app.register_type::<EPoint>();
+        app.register_type::<IntMoveable>();
+        app.register_type::<SelectSpriteMarker>();
+        app.register_type::<EPointSpriteMarker>();
+        app.register_type::<EPointSpriteMarker>();
+        app.register_type::<BorderedMesh>();
+        app.register_type::<BorderMeshType>();
+        app.register_type::<SpriteInfo>();
+        app.register_type::<ScrollSprite>();
+        app.register_type::<BorderedMatData>();
 
         // Help system
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[

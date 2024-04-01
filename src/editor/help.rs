@@ -6,7 +6,7 @@ use crate::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use std::fmt;
 
-use super::save::{LoadEditorEvent, SaveEditorEvent};
+use super::save::{CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent};
 
 #[derive(Component)]
 pub(super) struct EditorHelpBox;
@@ -406,6 +406,7 @@ pub(super) fn run_help_bar_command(
     mut event: EventWriter<HelpBarEvent>,
     mut save_editor_writer: EventWriter<SaveEditorEvent>,
     mut load_editor_writer: EventWriter<LoadEditorEvent>,
+    mut load_cleanup_writer: EventWriter<CleanupLoadEvent>,
 ) {
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
@@ -427,6 +428,8 @@ pub(super) fn run_help_bar_command(
         save_editor_writer.send(SaveEditorEvent);
     } else if &help_bar.input == "load" {
         load_editor_writer.send(LoadEditorEvent);
+    } else if &help_bar.input == "cleanup_load" {
+        load_cleanup_writer.send(CleanupLoadEvent);
     } else {
         send_output(&format!("INVALID COMMAND: {}", help_bar.input));
     }

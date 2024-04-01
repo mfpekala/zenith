@@ -495,9 +495,6 @@ pub(super) fn make_new_field(
     let EditingMode::EditingPlanet(planet_id) = mode else {
         return;
     };
-    let Ok(mut eplanet) = eplanets.get(planet_id) else {
-        return;
-    };
     if !keyboard.just_pressed(KeyCode::KeyF) {
         return;
     }

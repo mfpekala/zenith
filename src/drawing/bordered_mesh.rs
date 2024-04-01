@@ -3,6 +3,7 @@ use bevy::{
     render::{primitives::Aabb, view::RenderLayers},
     sprite::Mesh2dHandle,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::physics::dyno::IntMoveable;
 
@@ -11,10 +12,12 @@ use super::{
     sprite_mat::SpriteMaterial,
 };
 
-#[derive(Component)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct BorderMeshType(pub String);
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize)]
 pub struct BorderedMatData {
     pub path: String,
     pub size: UVec2,
@@ -28,7 +31,8 @@ impl BorderedMatData {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct BorderedMesh {
     pub last_points: Vec<IVec2>,
     pub points: Vec<IVec2>,

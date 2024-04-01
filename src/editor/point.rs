@@ -225,9 +225,6 @@ pub(super) fn spawn_points(
                 let right_vec = right_vec.as_vec2().normalize_or_zero();
                 let left_score = left_vec.dot(anchor_vec);
                 let right_score = right_vec.dot(anchor_vec);
-                println!("anchor: {:?}", anchor_vec);
-                println!("left: {:?} {}", left_vec, left_score);
-                println!("right: {:?} {}", right_vec, right_score);
                 println!("");
                 let pos = if left_score < right_score {
                     right_ix as usize
@@ -235,25 +232,6 @@ pub(super) fn spawn_points(
                     closest_ix as usize
                 };
 
-                // let left_dist = points
-                //     .get(eplanet.rock_points[left_ix as usize])
-                //     .unwrap()
-                //     .1
-                //     .pos
-                //     .truncate()
-                //     .distance_squared(spawning_at);
-                // let right_dist = points
-                //     .get(eplanet.rock_points[right_ix as usize])
-                //     .unwrap()
-                //     .1
-                //     .pos
-                //     .truncate()
-                //     .distance_squared(spawning_at);
-                // let pos = if left_dist < right_dist {
-                //     closest_ix as usize
-                // } else {
-                //     right_ix as usize
-                // };
                 commands.entity(planet_id).with_children(|mut parent| {
                     let id = EPointBundle::spawn(
                         &mut parent,
