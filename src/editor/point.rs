@@ -1,7 +1,5 @@
-use bevy::{
-    prelude::*,
-    render::{render_resource::Texture, view::RenderLayers},
-};
+use bevy::{prelude::*, render::view::RenderLayers};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::layering::sprite_layer,
@@ -14,10 +12,12 @@ use crate::{
 
 use super::planet::EPlanet;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub enum EPointKind {
     Rock,
     Field,
+    #[default]
     Wild,
 }
 impl EPointKind {
@@ -29,7 +29,8 @@ impl EPointKind {
     }
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct EPoint {
     pub kind: EPointKind,
     pub size: u32,
@@ -49,10 +50,12 @@ impl EPoint {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct SelectSpriteMarker;
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct EPointSpriteMarker;
 
 #[derive(Bundle)]
@@ -467,7 +470,8 @@ pub(super) fn move_points(
     }
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct ChangeEPointKind(pub EPointKind);
 
 pub(super) fn update_point_sprites(

@@ -60,6 +60,9 @@ fn main() {
     app.add_plugins(WorldInspectorPlugin::new());
     app.add_plugins(SoundPlugin);
     app.add_plugins(EditorPlugin);
+    app.register_type::<Option<Vec2>>();
+    app.register_type::<Rect>();
+    app.register_type::<Option<Rect>>();
     // First register the game state
     register_game_state(&mut app);
     // Then we can register everything else

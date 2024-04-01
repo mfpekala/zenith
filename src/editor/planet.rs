@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
     utils::hashbrown::{HashMap, HashSet},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
@@ -19,13 +20,16 @@ use crate::{
 
 use super::point::{ChangeEPointKind, EPoint, EPointBundle};
 
+#[derive(Component, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanetField {
     pub field_points: Vec<Entity>,
     pub mesh_id: Entity,
     dir: Vec2,
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanet {
     pub rock_points: Vec<Entity>,
     pub rock_mesh_id: Option<Entity>,
@@ -33,7 +37,8 @@ pub(super) struct EPlanet {
     pub fields: Vec<EPlanetField>,
 }
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct PendingField {
     groups: Vec<u32>,
 }
@@ -396,7 +401,8 @@ pub(super) fn nudge_fields(
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct FeralEPoint;
 
 /// If multiple points from the same field are selected, delete that field
@@ -513,7 +519,8 @@ pub(super) fn make_new_field(
 }
 
 /// Any point in a field that has this component should update it's gravity
-#[derive(Component)]
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct UpdateFieldGravity;
 
 /// Updates the gravity direction of fields.

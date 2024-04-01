@@ -17,12 +17,13 @@ use self::{
     planet::{
         draw_field_parents, drive_planet_meshes, handle_feral_points, make_new_field, nudge_fields,
         planet_state_input, redo_fields, remove_field, resolve_pending_fields,
-        update_field_gravity,
+        update_field_gravity, EPlanet,
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
         show_select_markers, spawn_points, update_point_sprites,
     },
+    save::{connect_parents, load_editor, save_editor, LoadEditorEvent, SaveEditorEvent},
     start_goal::{spawn_or_update_start_goal, start_goal_drag},
 };
 
@@ -30,6 +31,7 @@ pub mod help;
 pub mod input;
 pub mod planet;
 pub mod point;
+pub mod save;
 pub mod start_goal;
 
 fn is_editing_helper(gs: &GameState) -> bool {
@@ -62,6 +64,9 @@ pub fn is_testing(gs: Res<GameState>) -> bool {
 when_becomes_true!(is_testing_helper, entered_testing);
 when_becomes_false!(is_testing_helper, left_testing);
 
+#[derive(Component, Debug)]
+struct EditingSceneRoot;
+
 #[derive(Component)]
 struct LevelEditingHandle(pub Handle<LevelData>);
 
@@ -71,6 +76,7 @@ struct LevelEditingData(pub LevelData);
 fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
     let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
     commands.spawn(LevelEditingHandle(handle));
+    commands.spawn((EditingSceneRoot, SpatialBundle::default()));
 }
 
 fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {
@@ -105,6 +111,14 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, setup_editor.run_if(entered_editor));
         app.add_systems(Update, teardown_editor.run_if(left_editor));
         app.add_systems(Update, watch_level_editing_asset.run_if(in_editor));
+
+        // Save system
+        app.add_event::<SaveEditorEvent>();
+        app.add_event::<LoadEditorEvent>();
+        app.add_systems(Update, save_editor.run_if(in_editor));
+        app.add_systems(Update, load_editor.run_if(in_editor));
+        app.add_systems(Update, connect_parents.run_if(in_editor));
+        app.register_type::<EPlanet>();
 
         // Help system
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[

@@ -6,6 +6,8 @@ use crate::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use std::fmt;
 
+use super::save::{LoadEditorEvent, SaveEditorEvent};
+
 #[derive(Component)]
 pub(super) struct EditorHelpBox;
 
@@ -402,6 +404,8 @@ pub(super) fn read_editor_help_output(
 pub(super) fn run_help_bar_command(
     mut help_bar: Query<&mut HelpBarData>,
     mut event: EventWriter<HelpBarEvent>,
+    mut save_editor_writer: EventWriter<SaveEditorEvent>,
+    mut load_editor_writer: EventWriter<LoadEditorEvent>,
 ) {
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
@@ -409,17 +413,22 @@ pub(super) fn run_help_bar_command(
     if !help_bar.submitted {
         return;
     }
+    let mut send_output = |msg: &str| {
+        event.send(HelpBarEvent(msg.to_string()));
+    };
 
     if &help_bar.input == "print out" {
         println!("Output:");
         for thing in help_bar.output.iter() {
             println!("{}", thing);
         }
-        event.send(HelpBarEvent(
-            "HelpBar output printed to terminal".to_string(),
-        ));
+        send_output("HelpBar output printed to terminal");
+    } else if &help_bar.input == "save" {
+        save_editor_writer.send(SaveEditorEvent);
+    } else if &help_bar.input == "load" {
+        load_editor_writer.send(LoadEditorEvent);
     } else {
-        event.send(HelpBarEvent(format!("INVALID COMMAND: {}", help_bar.input)));
+        send_output(&format!("INVALID COMMAND: {}", help_bar.input));
     }
 
     help_bar.submitted = false;

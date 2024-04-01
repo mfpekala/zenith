@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{cutscenes::is_not_in_cutscene, environment::field::Field, ship::launch_ship};
 
@@ -7,7 +8,8 @@ use super::collider::{
     ColliderTrigger,
 };
 
-#[derive(Component, Debug, Default, Clone)]
+#[derive(Component, Debug, Default, Clone, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct IntMoveable {
     pub vel: Vec2,
     pub pos: IVec3,

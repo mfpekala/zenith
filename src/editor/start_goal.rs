@@ -1,4 +1,5 @@
 use bevy::{prelude::*, render::view::RenderLayers};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{animated::AnimationBundleStub, layering::sprite_layer},
@@ -8,14 +9,17 @@ use crate::{
 
 /// This is hard to make shared with point. At least share it between start/end
 /// (or I'm just challenged)
-#[derive(Component)]
+#[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EStartGoalDragOffset(pub Option<IVec2>);
 
 /// Can't tell if this is smart of challenged
-#[derive(Component)]
+#[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EStartGoalDiameter(pub u32);
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize)]
 pub(super) enum EGoalSize {
     #[default]
     Medium,
@@ -51,7 +55,8 @@ impl EGoalSize {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize)]
 pub(super) enum EStartSize {
     #[default]
     Medium,
@@ -87,7 +92,8 @@ impl EStartSize {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize)]
 pub(super) enum EGoalStrength {
     #[default]
     Medium,
@@ -100,7 +106,8 @@ impl EGoalStrength {
     }
 }
 
-#[derive(Component, Clone, Debug, Default)]
+#[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EGoal {
     pub size: EGoalSize,
     pub strength: EGoalStrength,
@@ -116,7 +123,8 @@ pub(super) struct EGoalBundle {
     pub diameter: EStartGoalDiameter, // NOTE: This is just to make the drag function less wordy. Will need a system to update if size changes later, doesn't exist yet, so not worrying
 }
 
-#[derive(Component, Clone, Debug, Default)]
+#[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EStart {
     pub size: EStartSize,
 }
