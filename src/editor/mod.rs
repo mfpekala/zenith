@@ -21,9 +21,9 @@ use self::{
         update_editor_help_box, update_editor_help_config, EditorHelpConfig, HelpBarEvent,
     },
     planet::{
-        draw_field_parents, drive_planet_meshes, handle_feral_points, make_new_field, nudge_fields,
-        planet_state_input, redo_fields, remove_field, resolve_pending_fields,
-        update_field_gravity, EPlanet,
+        cleanup_degen_fields, draw_field_parents, drive_planet_meshes, handle_feral_points,
+        make_new_field, nudge_fields, planet_state_input, redo_fields, remove_field,
+        resolve_pending_fields, update_field_gravity, EPlanet,
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
@@ -186,6 +186,7 @@ impl Plugin for EditorPlugin {
                 resolve_pending_fields,
                 nudge_fields,
                 remove_field,
+                cleanup_degen_fields,
                 handle_feral_points,
                 make_new_field,
                 update_field_gravity,

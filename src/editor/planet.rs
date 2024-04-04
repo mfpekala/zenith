@@ -24,9 +24,6 @@ use super::point::{EPoint, EPointBundle};
 #[derive(Component)]
 pub(super) struct FeralEPoint;
 
-#[derive(Component)]
-pub(super) struct AdoptedEPoint;
-
 #[derive(Component, Clone, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanetField {
@@ -161,7 +158,6 @@ pub(super) fn redo_fields(
     points: Query<(Entity, &IntMoveable, &mut EPoint, &UIdMarker)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    asset_server: Res<AssetServer>,
     ut: Res<UIdTranslator>,
 ) {
     let planet_id = match gs.get_editing_mode() {
@@ -206,7 +202,7 @@ pub(super) fn redo_fields(
                 .as_vec2()
         })
         .collect();
-    let new_poses: Vec<IVec2> = outline_points(&poses, 60.0)
+    let new_poses: Vec<IVec2> = outline_points(&poses, 40.0)
         .into_iter()
         .map(|pos| IVec2::new(pos.x.round() as i32, pos.y.round() as i32))
         .collect();
@@ -264,6 +260,12 @@ pub(super) fn resolve_pending_fields(
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
     };
+    // Wait until every point is in the ut
+    for point in points.iter() {
+        if ut.get_entity(point.5 .0).is_none() {
+            return;
+        }
+    }
 
     // Construct the groupmap (fields)
     let mut rock_points = HashMap::new();
@@ -290,11 +292,11 @@ pub(super) fn resolve_pending_fields(
         let mut points_n_ids = vec![];
         let mut center = Vec2::ZERO;
         let to_ang = |thing: Vec2| (thing.x as f32).atan2(thing.y as f32);
-        for (_id, epoint, mv, parent, eid) in items {
+        for (_id, epoint, mv, parent, uid) in items {
             match epoint.kind {
                 EPointKind::Rock | EPointKind::Wild => {
                     let pos = mv.pos.truncate();
-                    points_n_ids.push((eid, pos));
+                    points_n_ids.push((uid, pos));
                     center += mv.pos.truncate().as_vec2();
                 }
                 EPointKind::Field => {
@@ -303,7 +305,7 @@ pub(super) fn resolve_pending_fields(
                         Err(_) => stable_points.get(parent).unwrap(),
                     };
                     let pos = mv.pos.truncate();
-                    points_n_ids.push((eid, pos));
+                    points_n_ids.push((uid, pos));
                     center += mv.pos.truncate().as_vec2();
                 }
             }
@@ -375,7 +377,6 @@ pub(super) fn resolve_pending_fields(
             eplanet.0.wild_points.retain(|p| *p != eid.0);
             let old_pos = mv.pos;
             mv.pos = old_pos - dad_pos.extend(0);
-            commands.entity(id).insert(AdoptedEPoint);
         }
     }
 }
@@ -435,15 +436,15 @@ pub(super) fn remove_field(
     mut commands: Commands,
     ut: Res<UIdTranslator>,
 ) {
+    if !keyboard.just_pressed(KeyCode::KeyC) {
+        return;
+    }
     let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
         return;
     };
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
     };
-    if !keyboard.just_pressed(KeyCode::KeyC) {
-        return;
-    }
     let selected_ids: Vec<UId> = points
         .iter()
         .filter(|p| p.1.is_selected)
@@ -457,10 +458,12 @@ pub(super) fn remove_field(
                 maybe_feral.insert(*id);
             }
             // hackety hack
-            field.mesh_id = planet_id;
+            field.mesh_id = Entity::PLACEHOLDER;
         }
     }
-    eplanet.fields.retain(|field| field.mesh_id != planet_id);
+    eplanet
+        .fields
+        .retain(|field| field.mesh_id != Entity::PLACEHOLDER);
     for id in maybe_feral.into_iter() {
         let point = points.get(ut.get_entity(id).unwrap()).unwrap();
         if point.1.kind != EPointKind::Field {
@@ -478,7 +481,58 @@ pub(super) fn remove_field(
     }
 }
 
-/// Actually makes old field points wild (adjusting transform and spawning thing to change sprite)
+/// Remove any fields with less than two points OR no field points, turning everyhting non-rock wild
+pub(super) fn cleanup_degen_fields(
+    mut commands: Commands,
+    mut eplanets: Query<&mut EPlanet>,
+    points: Query<(Entity, &EPoint)>,
+    gs: Res<GameState>,
+    ut: Res<UIdTranslator>,
+) {
+    let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
+        return;
+    };
+    let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
+        return;
+    };
+    let should_purge_field = |field: &EPlanetField| {
+        field.field_points.len() < 3
+            || !field.field_points.iter().any(|p| {
+                let Some(eid) = ut.get_entity(*p) else {
+                    return false;
+                };
+                let Ok(point) = points.get(eid) else {
+                    return false;
+                };
+                point.1.kind == EPointKind::Field
+            })
+    };
+    let mut purged_fields = vec![];
+    for field in eplanet.fields.iter() {
+        if should_purge_field(field) {
+            purged_fields.push(field.clone());
+        }
+    }
+    eplanet.fields.retain(|f| !should_purge_field(f));
+    for field in purged_fields {
+        // TODO: Code below is going to be good
+        // if let Some(eid) = ut.get_entity(field.mesh_id) {
+        // commands.entity(eid).despawn_recursive();
+        // }
+        commands.entity(field.mesh_id).despawn_recursive();
+        for uid in field.field_points {
+            let Some(eid) = ut.get_entity(uid) else {
+                continue;
+            };
+            let point = points.get(eid).unwrap();
+            if point.1.kind == EPointKind::Field {
+                commands.entity(eid).insert(FeralEPoint);
+            }
+        }
+    }
+}
+
+/// Actually makes old field points wild
 pub(super) fn handle_feral_points(
     stable: Query<(&IntMoveable, &Parent), (Without<FeralEPoint>, With<EPoint>)>,
     mut points: Query<(Entity, &mut EPoint, &mut IntMoveable, &Parent), With<FeralEPoint>>,
@@ -494,9 +548,6 @@ pub(super) fn handle_feral_points(
         commands
             .entity(parent.1.get())
             .push_children(&[feral_point.0]);
-        // commands
-        // .entity(feral_point.0)
-        // .insert(ChangeEPointKind(EPointKind::Wild));
         commands.entity(feral_point.0).remove::<FeralEPoint>();
     }
 }
