@@ -16,7 +16,7 @@ use crate::{
     math::MathLine,
     meta::game_state::{EditingMode, GameState, SetGameState},
     physics::dyno::IntMoveable,
-    uid::{UId, UIdMarker},
+    uid::{UId, UIdMarker, UIdTranslator},
 };
 
 use super::point::{EPoint, EPointBundle};
@@ -100,78 +100,6 @@ impl EPlanetBundle {
     }
 }
 
-/// Fix dangling mesh ids from fields and rocks
-pub(super) fn fix_dangling_mesh_ids(
-    mut commands: Commands,
-    ents: Query<Entity>,
-    mut eplanets: Query<(Entity, &mut EPlanet)>,
-    asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mats: ResMut<Assets<SpriteMaterial>>,
-    bms: Query<(Entity, &Parent), With<BorderedMesh>>,
-) {
-    for mut eplanet in eplanets.iter_mut() {
-        if ents
-            .get(eplanet.1.rock_mesh_id.unwrap_or(Entity::PLACEHOLDER))
-            .is_err()
-        {
-            // We found a planet without a valid rock mesh
-            let mut rock_mesh_id = None;
-            commands.entity(eplanet.0).with_children(|parent| {
-                let new_rock_mesh_id = BorderedMesh::spawn_easy(
-                    parent,
-                    &asset_server,
-                    &mut meshes,
-                    &mut mats,
-                    vec![],
-                    ("textures/play_inner.png", UVec2::new(36, 36)),
-                    Some(("textures/play_outer.png", UVec2::new(36, 36))),
-                    Some(3.0),
-                    sprite_layer(),
-                    0,
-                );
-                rock_mesh_id = Some(new_rock_mesh_id);
-            });
-            eplanet.1.rock_mesh_id = rock_mesh_id;
-        }
-        for field in eplanet.1.fields.iter_mut() {
-            if ents.get(field.mesh_id).is_err() {
-                commands.entity(eplanet.0).with_children(|parent| {
-                    let mesh_id = BorderedMesh::spawn_easy(
-                        parent,
-                        &asset_server,
-                        &mut meshes,
-                        &mut mats,
-                        vec![],
-                        ("sprites/field/field_bg.png", UVec2::new(12, 12)),
-                        None,
-                        None,
-                        sprite_layer(),
-                        -1,
-                    );
-                    field.mesh_id = mesh_id;
-                });
-            }
-        }
-    }
-    // Then get rid of any planet bordered meshes that aren't used
-    for bm in bms.iter() {
-        if eplanets.get(bm.1.get()).is_err() {
-            // Ignore strays
-            continue;
-        }
-        if eplanets.iter().any(|eplanet| {
-            eplanet.1.rock_mesh_id == Some(bm.0)
-                || eplanet.1.fields.iter().any(|field| field.mesh_id == bm.0)
-        }) {
-            // It's used
-            continue;
-        }
-        commands.entity(bm.0).despawn_recursive();
-        commands.entity(bm.1.get()).remove_children(&[bm.0]);
-    }
-}
-
 /// Handle transitions between free, creating, editing
 /// NOTE: Except the creating -> editing transition, that's handled in spawn points
 pub(super) fn planet_state_input(
@@ -234,6 +162,7 @@ pub(super) fn redo_fields(
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     asset_server: Res<AssetServer>,
+    ut: Res<UIdTranslator>,
 ) {
     let planet_id = match gs.get_editing_mode() {
         Some(EditingMode::EditingPlanet(id)) => id,
@@ -244,14 +173,6 @@ pub(super) fn redo_fields(
     {
         return;
     }
-    let get_entity = |eid: UId| {
-        for point in points.iter() {
-            if point.3 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
-    };
     // Despawn and clear the old fields
     let mut eplanet = eplanets.get_mut(planet_id).unwrap();
     let mut despawned = HashSet::new();
@@ -263,7 +184,9 @@ pub(super) fn redo_fields(
             if despawned.contains(id) {
                 continue;
             }
-            commands.entity(get_entity(*id)).despawn_recursive();
+            commands
+                .entity(ut.get_entity(*id).unwrap())
+                .despawn_recursive();
             despawned.insert(*id);
         }
         commands.entity(field.mesh_id).despawn_recursive();
@@ -275,7 +198,7 @@ pub(super) fn redo_fields(
         .iter()
         .map(|id| {
             points
-                .get(get_entity(*id))
+                .get(ut.get_entity(*id).unwrap())
                 .unwrap()
                 .1
                 .pos
@@ -291,7 +214,9 @@ pub(super) fn redo_fields(
     for ix in 0..new_poses.len() {
         let next_ix = (ix + 1).rem_euclid(new_poses.len());
         let fp = new_poses[ix];
-        let parent = points.get(get_entity(eplanet.rock_points[ix])).unwrap();
+        let parent = points
+            .get(ut.get_entity(eplanet.rock_points[ix]).unwrap())
+            .unwrap();
         let mut fp_id = Entity::PLACEHOLDER;
 
         commands.entity(planet_id).with_children(|parent| {
@@ -330,6 +255,7 @@ pub(super) fn resolve_pending_fields(
     asset_server: Res<AssetServer>,
     mut mats: ResMut<Assets<SpriteMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    ut: Res<UIdTranslator>,
 ) {
     let planet_id = match gs.get_editing_mode() {
         Some(EditingMode::EditingPlanet(id)) => id,
@@ -337,14 +263,6 @@ pub(super) fn resolve_pending_fields(
     };
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
-    };
-    let get_entity = |eid: UId| {
-        for point in points.iter() {
-            if point.5 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
     };
 
     // Construct the groupmap (fields)
@@ -411,7 +329,7 @@ pub(super) fn resolve_pending_fields(
             .map(|thing| thing.0)
             .collect();
         commands
-            .entity(get_entity(id_order[0]))
+            .entity(ut.get_entity(id_order[0]).unwrap())
             .insert(UpdateFieldGravity); // Triggers the field's gravity to update on the next frame
         commands.entity(planet_id).with_children(|parent| {
             let mesh_id = BorderedMesh::spawn_easy(
@@ -468,32 +386,22 @@ pub(super) fn nudge_fields(
     mut points: Query<(Entity, &EPoint, &mut IntMoveable, &UIdMarker)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    ut: Res<UIdTranslator>,
 ) {
     if !keyboard.pressed(KeyCode::SuperLeft)
         || (!keyboard.pressed(KeyCode::Comma) && !keyboard.pressed(KeyCode::Period))
     {
         return;
     }
-    let Some(mode) = gs.get_editing_mode() else {
-        return;
-    };
-    let EditingMode::EditingPlanet(planet_id) = mode else {
+    let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
         return;
     };
     let Ok(eplanet) = eplanets.get(planet_id) else {
         return;
     };
-    let get_entity = |eid: UId, q: &Query<(Entity, &EPoint, &mut IntMoveable, &UIdMarker)>| {
-        for point in q.iter() {
-            if point.3 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
-    };
     for field in eplanet.fields.iter() {
         for id in field.field_points.iter() {
-            let ent = get_entity(*id, &points);
+            let ent = ut.get_entity(*id).unwrap();
             let Ok((_, point, mut mv, _)) = points.get_mut(ent) else {
                 continue;
             };
@@ -525,11 +433,9 @@ pub(super) fn remove_field(
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
+    ut: Res<UIdTranslator>,
 ) {
-    let Some(mode) = gs.get_editing_mode() else {
-        return;
-    };
-    let EditingMode::EditingPlanet(planet_id) = mode else {
+    let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
         return;
     };
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
@@ -538,14 +444,6 @@ pub(super) fn remove_field(
     if !keyboard.just_pressed(KeyCode::KeyC) {
         return;
     }
-    let get_entity = |eid: UId| {
-        for point in points.iter() {
-            if point.2 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
-    };
     let selected_ids: Vec<UId> = points
         .iter()
         .filter(|p| p.1.is_selected)
@@ -564,7 +462,7 @@ pub(super) fn remove_field(
     }
     eplanet.fields.retain(|field| field.mesh_id != planet_id);
     for id in maybe_feral.into_iter() {
-        let point = points.get(get_entity(id)).unwrap();
+        let point = points.get(ut.get_entity(id).unwrap()).unwrap();
         if point.1.kind != EPointKind::Field {
             continue;
         }
@@ -573,7 +471,9 @@ pub(super) fn remove_field(
             .iter()
             .any(|field| field.field_points.contains(&id))
         {
-            commands.entity(get_entity(id)).insert(FeralEPoint);
+            commands
+                .entity(ut.get_entity(id).unwrap())
+                .insert(FeralEPoint);
         }
     }
 }
@@ -654,30 +554,20 @@ pub(super) fn update_field_gravity(
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
+    ut: Res<UIdTranslator>,
 ) {
-    let Some(mode) = gs.get_editing_mode() else {
-        return;
-    };
-    let EditingMode::EditingPlanet(planet_id) = mode else {
+    let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
         return;
     };
     let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
         return;
-    };
-    let get_entity = |eid: UId| {
-        for point in points.iter() {
-            if point.5 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
     };
     // First do the input
     if keyboard.just_pressed(KeyCode::KeyG) {
         if keyboard.pressed(KeyCode::ShiftLeft) {
             for field in eplanet.fields.iter() {
                 commands
-                    .entity(get_entity(field.field_points[0]))
+                    .entity(ut.get_entity(field.field_points[0]).unwrap())
                     .insert(UpdateFieldGravity);
             }
         } else {
@@ -706,13 +596,13 @@ pub(super) fn update_field_gravity(
         }
         for id in field.field_points.iter() {
             commands
-                .entity(get_entity(*id))
+                .entity(ut.get_entity(*id).unwrap())
                 .remove::<UpdateFieldGravity>();
         }
         let mut rock_points = vec![];
         let mut field_points = vec![];
         for point in field.field_points.iter() {
-            let point = points.get(get_entity(*point)).unwrap();
+            let point = points.get(ut.get_entity(*point).unwrap()).unwrap();
             if point.1.kind == EPointKind::Rock {
                 rock_points.push((point.2.pos.truncate()).as_vec2());
             } else {
@@ -761,20 +651,13 @@ pub(super) fn drive_planet_meshes(
     points: Query<(Entity, &UIdMarker, &EPoint, &IntMoveable, &Parent)>,
     eplanets: Query<&EPlanet>,
     mut bms: Query<&mut BorderedMesh>,
+    ut: Res<UIdTranslator>,
 ) {
-    let get_entity = |eid: UId| {
-        for point in points.iter() {
-            if point.1 .0 == eid {
-                return Some(point.0);
-            }
-        }
-        None
-    };
     for eplanet in eplanets.iter() {
         // First update the rock mesh
         let mut mesh_points = vec![];
         for pid in eplanet.rock_points.iter() {
-            let Some(ent) = get_entity(*pid) else {
+            let Some(ent) = ut.get_entity(*pid) else {
                 continue;
             };
             if let Ok((_, _, _, mv, _)) = points.get(ent) {
@@ -791,7 +674,7 @@ pub(super) fn drive_planet_meshes(
         for field in eplanet.fields.iter() {
             let mut mesh_points = vec![];
             for pid in field.field_points.iter() {
-                let Some(ent) = get_entity(*pid) else {
+                let Some(ent) = ut.get_entity(*pid) else {
                     continue;
                 };
                 if let Ok((_, _, epoint, mv, parent)) = points.get(ent) {
@@ -829,32 +712,6 @@ pub(super) fn draw_field_parents(
                 pgt.translation().truncate(),
                 Color::WHITE,
             );
-        }
-    }
-}
-
-pub(super) fn debug_planets(eplanets: Query<&EPlanet>, points: Query<(Entity, &UIdMarker)>) {
-    for eplanet in eplanets.iter() {
-        let mut ids = vec![];
-        for id in eplanet.rock_points.iter().chain(eplanet.wild_points.iter()) {
-            ids.push(*id);
-        }
-        for field in eplanet.fields.iter() {
-            for point in field.field_points.iter() {
-                ids.push(*point);
-            }
-        }
-        for id in ids {
-            let mut good = false;
-            for point in points.iter() {
-                if point.1 .0 == id {
-                    good = true;
-                    break;
-                }
-            }
-            if !good {
-                println!("there's a bad id: {:?}", id);
-            }
         }
     }
 }

@@ -21,9 +21,9 @@ use self::{
         update_editor_help_box, update_editor_help_config, EditorHelpConfig, HelpBarEvent,
     },
     planet::{
-        debug_planets, draw_field_parents, drive_planet_meshes, fix_dangling_mesh_ids,
-        handle_feral_points, make_new_field, nudge_fields, planet_state_input, redo_fields,
-        remove_field, resolve_pending_fields, update_field_gravity, EPlanet,
+        draw_field_parents, drive_planet_meshes, handle_feral_points, make_new_field, nudge_fields,
+        planet_state_input, redo_fields, remove_field, resolve_pending_fields,
+        update_field_gravity, EPlanet,
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
@@ -181,7 +181,6 @@ impl Plugin for EditorPlugin {
         app.add_systems(
             Update,
             (
-                fix_dangling_mesh_ids,
                 planet_state_input,
                 redo_fields,
                 resolve_pending_fields,
@@ -192,7 +191,6 @@ impl Plugin for EditorPlugin {
                 update_field_gravity,
                 drive_planet_meshes,
                 draw_field_parents,
-                debug_planets,
             )
                 .chain()
                 .run_if(is_editing)
