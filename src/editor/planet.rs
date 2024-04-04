@@ -22,7 +22,10 @@ use crate::{
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
-use super::point::{EPoint, EPointBundle};
+use super::{
+    point::{EPoint, EPointBundle},
+    save::SaveMarker,
+};
 
 #[derive(Component)]
 pub(super) struct FeralEPoint;
@@ -56,6 +59,7 @@ pub(super) struct EPlanetBundle {
     eplanet: EPlanet,
     spatial: SpatialBundle,
     moveable: IntMoveable,
+    save: SaveMarker,
 }
 impl EPlanetBundle {
     pub fn new(pos: IVec2) -> (Self, impl Bundle) {
@@ -80,6 +84,7 @@ impl EPlanetBundle {
                 pos.as_vec2().extend(0.0),
             )),
             moveable: IntMoveable::new(pos.extend(0)),
+            save: SaveMarker,
         };
         (bund, mesh_head_stubs)
     }
@@ -94,9 +99,6 @@ pub(super) fn planet_state_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_state: Res<MouseState>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
-    asset_server: Res<AssetServer>,
-    mut mats: ResMut<Assets<SpriteMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     points: Query<(&EPoint, &Parent)>,
     eplanets: Query<Entity, With<EPlanet>>,
 ) {

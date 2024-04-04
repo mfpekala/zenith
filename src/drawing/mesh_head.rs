@@ -1,7 +1,10 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use serde::{Deserialize, Serialize};
 
-use crate::uid::{UId, UIdMarker};
+use crate::{
+    editor::save::SaveMarker,
+    uid::{UId, UIdMarker},
+};
 
 use super::{
     mesh::{generate_new_sprite_mesh, uvec2_bound},
@@ -40,6 +43,7 @@ pub struct MeshHead {
 pub struct MeshHeadBundle {
     pub head: MeshHead,
     spatial: SpatialBundle,
+    save: SaveMarker,
 }
 impl MeshHeadBundle {
     pub fn from_head(head: MeshHead) -> Self {
@@ -115,6 +119,7 @@ pub(super) fn update_mesh_heads(
             Some(children) => {
                 for child in children {
                     let Ok((cid, body)) = bodies.get(*child) else {
+                        commands.entity(eid).remove::<Children>();
                         continue;
                     };
                     if &body.last_head == head {

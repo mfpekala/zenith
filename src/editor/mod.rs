@@ -2,6 +2,8 @@ use crate::{
     drawing::{
         bordered_mesh::{BorderMeshType, BorderedMatData, BorderedMesh},
         mesh::{ScrollSprite, SpriteInfo},
+        mesh_head::MeshHead,
+        sprite_head::SpriteHead,
     },
     meta::{
         game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
@@ -13,6 +15,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
+use serde::{Deserialize, Serialize};
 
 use self::{
     help::{
@@ -31,7 +34,7 @@ use self::{
     },
     save::{
         cleanup_load, connect_parents, fix_after_load, load_editor, resolve_holes, save_editor,
-        CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent,
+        CleanupLoadEvent, FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
     start_goal::{spawn_or_update_start_goal, start_goal_drag},
 };
@@ -73,7 +76,8 @@ pub fn is_testing(gs: Res<GameState>) -> bool {
 when_becomes_true!(is_testing_helper, entered_testing);
 when_becomes_false!(is_testing_helper, left_testing);
 
-#[derive(Component, Debug)]
+#[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 struct EditingSceneRoot;
 
 #[derive(Component)]
@@ -126,6 +130,7 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, watch_level_editing_asset.run_if(in_editor));
 
         // Save system
+        app.insert_resource(FuckySceneResource::default());
         app.add_event::<SaveEditorEvent>();
         app.add_event::<LoadEditorEvent>();
         app.add_event::<CleanupLoadEvent>();
@@ -135,15 +140,14 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, resolve_holes.run_if(in_editor));
         app.add_systems(Update, fix_after_load.run_if(in_editor));
         app.add_systems(Update, cleanup_load.run_if(in_editor));
+        app.register_type::<EditingSceneRoot>();
         app.register_type::<EPlanet>();
         app.register_type::<EPoint>();
         app.register_type::<IntMoveable>();
-        app.register_type::<BorderedMesh>();
-        app.register_type::<BorderMeshType>();
-        app.register_type::<SpriteInfo>();
-        app.register_type::<ScrollSprite>();
-        app.register_type::<BorderedMatData>();
         app.register_type::<UIdMarker>();
+        app.register_type::<SpriteHead>();
+        app.register_type::<MeshHead>();
+        app.register_type::<SaveMarker>();
 
         // Help system
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[

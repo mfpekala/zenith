@@ -1,7 +1,10 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use serde::{Deserialize, Serialize};
 
-use crate::uid::{UId, UIdMarker};
+use crate::{
+    editor::save::SaveMarker,
+    uid::{UId, UIdMarker},
+};
 
 pub struct SpriteHeadStub {
     pub uid: UId,
@@ -36,6 +39,7 @@ impl Default for SpriteHead {
 pub struct SpriteHeadBundle {
     pub head: SpriteHead,
     spatial: SpatialBundle,
+    save: SaveMarker,
 }
 impl SpriteHeadBundle {
     pub fn from_head(head: SpriteHead) -> Self {
@@ -76,6 +80,7 @@ pub(super) fn update_sprite_heads(
             Some(children) => {
                 for child in children {
                     let Ok((cid, body)) = bodies.get(*child) else {
+                        commands.entity(eid).remove::<Children>();
                         continue;
                     };
                     if &body.last_head == head {

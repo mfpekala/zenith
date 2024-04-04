@@ -1,9 +1,9 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
-        layering::{sprite_layer, sprite_layer_u8},
+        layering::sprite_layer_u8,
         sprite_head::{SpriteHead, SpriteHeadStub, SpriteHeadStubs},
     },
     input::MouseState,
@@ -14,7 +14,7 @@ use crate::{
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
-use super::planet::{EPlanet, EPlanetField, FeralEPoint};
+use super::{planet::EPlanet, save::SaveMarker};
 
 #[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -64,7 +64,7 @@ pub struct EPointBundle {
     pub point: EPoint,
     pub moveable: IntMoveable,
     pub spatial: SpatialBundle,
-    pub render_layer: RenderLayers,
+    pub save: SaveMarker,
 }
 impl EPointBundle {
     pub fn new(pos: IVec2, kind: EPointKind) -> (Self, impl Bundle) {
@@ -80,7 +80,7 @@ impl EPointBundle {
                     translation: pos.as_vec2().extend(0.1),
                     ..default()
                 }),
-                render_layer: sprite_layer(),
+                save: SaveMarker,
             },
             SpriteHeadStubs(vec![
                 SpriteHeadStub {
@@ -175,7 +175,9 @@ pub(super) fn spawn_points(
             }
         }
         EditingMode::EditingPlanet(planet_id) => {
-            let (mut eplanet, mv) = eplanets.get_mut(planet_id).unwrap();
+            let Ok((mut eplanet, mv)) = eplanets.get_mut(planet_id) else {
+                return;
+            };
             let spawning_at = mouse_state.world_pos - mv.pos.truncate();
             if keyboard.pressed(KeyCode::KeyF) {
                 // ADDING A WILD POINT
@@ -416,7 +418,6 @@ pub(super) fn delete_points(
     key_buttons: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
-    ut: Res<UIdTranslator>,
 ) {
     if key_buttons.pressed(KeyCode::Backspace) {
         // Despawn the point, and then remove it from it's parent rock/field list

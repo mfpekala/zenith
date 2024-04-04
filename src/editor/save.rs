@@ -1,11 +1,17 @@
 use std::{fs, ops::Deref};
 
-use bevy::{ecs::system::SystemState, prelude::*, sprite::Mesh2dHandle, utils::HashSet};
+use bevy::{
+    ecs::{entity::EntityHashMap, system::SystemState},
+    prelude::*,
+    sprite::Mesh2dHandle,
+    utils::HashSet,
+};
+use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
 
 use super::{
     help::HelpBarEvent,
     planet::EPlanet,
-    point::EPoint,
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
@@ -13,6 +19,10 @@ use crate::drawing::{
     bordered_mesh::{BorderMeshType, BorderedMesh},
     sprite_mat::SpriteMaterial,
 };
+
+#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct SaveMarker;
 
 #[derive(Event)]
 pub(super) struct SaveEditorEvent;
@@ -97,7 +107,8 @@ fn unfuck_serialization(fucked: String) -> String {
             it.next();
         }
 
-        let processing = line.contains("size: (") || line.contains("bounds: (");
+        let processing =
+            line.contains("size: (") || line.contains("bounds: (") || line.contains("Repeating((");
         if processing {
             let x = it.next().unwrap().split(":").nth(1);
             let x = x.unwrap().replace(",", "");
@@ -133,10 +144,39 @@ fn unfuck_serialization(fucked: String) -> String {
             let y = y.parse::<f32>().unwrap();
             result.push_str(&format!("{}, {},", x, y));
         }
+        let processing = line.contains("offset: (");
+        if processing {
+            let x = it.next().unwrap().split(":").nth(1);
+            let x = x.unwrap().replace(",", "");
+            let x = x.trim();
+            let x = x.parse::<f32>().unwrap();
+            let y = it
+                .next()
+                .unwrap()
+                .split(":")
+                .nth(1)
+                .unwrap()
+                .replace(",", "");
+            let y = y.trim();
+            let y = y.parse::<f32>().unwrap();
+            let z = it
+                .next()
+                .unwrap()
+                .split(":")
+                .nth(1)
+                .unwrap()
+                .replace(",", "");
+            let z = z.trim();
+            let z = z.parse::<f32>().unwrap();
+            result.push_str(&format!("{}, {}, {}", x, y, z));
+        }
     }
 
     result
 }
+
+#[derive(Resource, Default)]
+pub struct FuckySceneResource(pub Option<Handle<DynamicScene>>);
 
 pub(super) fn save_editor(
     world: &mut World,
@@ -144,32 +184,40 @@ pub(super) fn save_editor(
         EventReader<SaveEditorEvent>,
         Query<Entity, With<EditingSceneRoot>>,
         Query<&Children>,
+        Query<&Parent>,
+        Query<&SaveMarker>,
     )>,
 ) {
-    let (mut events, eroot, children) = params.get(world);
+    let (mut events, eroot_q, _, parent_q, _) = params.get(world);
     if events.read().count() <= 0 {
         return;
     }
-    let Ok(eroot) = eroot.get_single() else {
+    let Ok(eroot) = eroot_q.get_single() else {
         return;
     };
+    let old_parent = match parent_q.get(eroot) {
+        Ok(old) => Some(old.get()),
+        Err(_) => None,
+    };
+
+    // Remove the parent to avoid fuckery on load
+    world.entity_mut(eroot).remove::<Parent>();
+
+    let (_, _, children, _, save_marker) = params.get(world);
     let mut keep = HashSet::new();
     keep.insert(eroot);
     for id in children.iter_descendants(eroot) {
-        keep.insert(id);
+        if save_marker.get(id).is_ok() {
+            keep.insert(id);
+        }
     }
     let mut scene = DynamicSceneBuilder::from_world(&world)
-        .deny::<Handle<SpriteMaterial>>()
-        .deny::<Handle<Mesh>>()
-        .deny::<Handle<Image>>()
-        .deny::<Mesh2dHandle>()
         .deny_all_resources()
         .extract_entities(world.iter_entities().map(|entity| entity.id()))
         .build();
     scene
         .entities
         .retain(|entity| keep.contains(&entity.entity));
-    scene.resources.clear();
 
     let type_registry = world.resource::<AppTypeRegistry>();
     let type_registry = type_registry.deref();
@@ -187,49 +235,53 @@ pub(super) fn save_editor(
             world.send_event(HelpBarEvent("Failed to save scene".to_string()));
         }
     }
+
+    // Add the parent back to avoid fuckery in real time
+    if let Some(old_parent) = old_parent {
+        world.entity_mut(old_parent).add_child(eroot);
+    }
 }
 
 pub(super) fn load_editor(
-    mut loads: EventReader<LoadEditorEvent>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    root: Query<Entity, With<EditingSceneRoot>>,
+    world: &mut World,
+    params: &mut SystemState<(
+        EventReader<LoadEditorEvent>,
+        Res<AssetServer>,
+        ResMut<FuckySceneResource>,
+    )>,
 ) {
+    let (mut loads, _, _) = params.get_mut(world);
     if loads.read().count() <= 0 {
         return;
     }
-    let Ok(root) = root.get_single() else {
-        return;
-    };
-    commands.entity(root).despawn_recursive();
-    commands.spawn((
-        DynamicSceneBundle {
-            scene: asset_server.load("test.scn.ron"),
-            ..default()
-        },
-        Name::new("NewRoot"),
-    ));
+    let (_, asset_server, mut fucky_scene) = params.get_mut(world);
+    let scene_handle: Handle<DynamicScene> = asset_server.load("test.scn.ron");
+    *fucky_scene = FuckySceneResource(Some(scene_handle));
 }
 
 pub(super) fn fix_after_load(
-    mut commands: Commands,
-    dynamic: Query<(Entity, &Handle<DynamicScene>, Option<&Children>)>,
-    names: Query<(Entity, &Name)>,
+    world: &mut World,
+    params: &mut SystemState<(
+        ResMut<FuckySceneResource>,
+        ResMut<Assets<DynamicScene>>,
+        Query<Entity, With<EditingSceneRoot>>,
+    )>,
 ) {
-    for dyno in dynamic.iter() {
-        if dyno.2.is_some() {
-            commands
-                .entity(dyno.0)
-                .remove_children(&dyno.2.clone().unwrap());
-            for child in dyno.2.unwrap().iter() {
-                commands.entity(*child).remove_parent();
-            }
+    if thread_rng().gen_bool(0.1) {
+        let (mut fucky_scene, mut scenes, root_q) = params.get_mut(world);
+        let roots: Vec<Entity> = root_q.iter().collect();
+        let Some(scene_handle) = fucky_scene.0.clone() else {
+            return;
+        };
+        let Some(scene) = scenes.remove(scene_handle.id()) else {
+            return;
+        };
+        *fucky_scene = FuckySceneResource(None);
+        let mut entity_map = EntityHashMap::default();
+        for root in roots {
+            world.entity_mut(root).despawn_recursive();
         }
-    }
-    for name in names.iter() {
-        if name.1.as_str() == "EditingRoot" {
-            commands.entity(name.0).insert(EditingSceneRoot);
-        }
+        scene.write_to_world(world, &mut entity_map).unwrap();
     }
 }
 
