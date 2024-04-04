@@ -12,6 +12,7 @@ pub mod meta;
 pub mod physics;
 pub mod ship;
 pub mod sound;
+pub mod uid;
 
 use bevy::{prelude::*, window::WindowResolution};
 use bevy_common_assets::ron::RonAssetPlugin;
@@ -31,6 +32,7 @@ use meta::{
 use physics::register_physics;
 use ship::register_ship;
 use sound::SoundPlugin;
+use uid::UIdPlugin;
 
 pub fn main_setup() {}
 
@@ -54,6 +56,7 @@ fn main() {
     .add_systems(Startup, main_setup);
     app.insert_resource(Time::<Fixed>::from_hz(24.0));
     app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
+    app.add_plugins(UIdPlugin);
     app.add_plugins(TuneableConstsPlugin);
     app.add_plugins(RonAssetPlugin::<TuneableConsts>::new(&["consts.ron"]));
     app.add_plugins(CutscenesPlugin);

@@ -1,31 +1,20 @@
-use std::ops::Deref;
-
 use bevy::{prelude::*, render::view::RenderLayers};
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::layering::sprite_layer,
+    drawing::{
+        layering::{sprite_layer, sprite_layer_u8},
+        sprite_head::{SpriteHead, SpriteHeadStub, SpriteHeadStubs},
+    },
     input::MouseState,
     meta::game_state::{
         EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
     },
     physics::dyno::IntMoveable,
+    uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
 use super::planet::{EPlanet, EPlanetField, FeralEPoint};
-
-pub type EId = u64;
-
-#[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
-pub struct MyId(pub EId);
-impl Deref for MyId {
-    type Target = u64;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 #[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -48,15 +37,19 @@ impl EPointKind {
 #[reflect(Component, Serialize, Deserialize)]
 pub struct EPoint {
     pub kind: EPointKind,
+    pub core_uid: UId,
+    pub highlight_uid: UId,
     pub size: u32,
     pub is_hovered: bool,
     pub is_selected: bool,
     pub drag_offset: Option<IVec2>,
 }
 impl EPoint {
-    pub fn new(kind: EPointKind) -> Self {
+    pub fn new(kind: EPointKind, core_uid: UId, highlight_uid: UId) -> Self {
         Self {
             kind,
+            core_uid,
+            highlight_uid,
             size: 3,
             is_hovered: false,
             is_selected: false,
@@ -65,71 +58,49 @@ impl EPoint {
     }
 }
 
-#[derive(Component, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
-pub(super) struct SelectSpriteMarker;
-
-#[derive(Component, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
-pub struct EPointSpriteMarker;
-
 #[derive(Bundle)]
 pub struct EPointBundle {
-    pub id: MyId,
+    pub uid: UIdMarker,
     pub point: EPoint,
     pub moveable: IntMoveable,
-    pub sprite: SpriteBundle,
-    pub psm: EPointSpriteMarker,
+    pub spatial: SpatialBundle,
     pub render_layer: RenderLayers,
 }
 impl EPointBundle {
-    fn new(pos: IVec2, kind: EPointKind, asset_server: &Res<AssetServer>) -> Self {
-        let mut rng = thread_rng();
-        Self {
-            id: MyId(rng.gen::<EId>()),
-            point: EPoint::new(kind.clone()),
-            moveable: IntMoveable::new(pos.extend(2)),
-            sprite: SpriteBundle {
-                transform: Transform {
+    pub fn new(pos: IVec2, kind: EPointKind) -> (Self, impl Bundle) {
+        let my_uid = fresh_uid();
+        let core_uid = fresh_uid();
+        let highlight_uid = fresh_uid();
+        (
+            Self {
+                uid: UIdMarker(my_uid),
+                point: EPoint::new(kind.clone(), core_uid, highlight_uid),
+                moveable: IntMoveable::new(pos.extend(2)),
+                spatial: SpatialBundle::from_transform(Transform {
                     translation: pos.as_vec2().extend(0.1),
                     ..default()
-                },
-                texture: asset_server.load(kind.to_path()),
-                ..default()
+                }),
+                render_layer: sprite_layer(),
             },
-            psm: EPointSpriteMarker,
-            render_layer: sprite_layer(),
-        }
-    }
-
-    pub fn spawn(
-        commands: &mut ChildBuilder,
-        asset_server: &Res<AssetServer>,
-        pos: IVec2,
-        kind: EPointKind,
-    ) -> (Entity, EId) {
-        let bund = Self::new(pos, kind, asset_server);
-        let eid = bund.id.clone();
-        (
-            commands
-                .spawn(bund)
-                .with_children(|parent| {
-                    parent.spawn((
-                        SpriteBundle {
-                            transform: Transform {
-                                translation: Vec2::ZERO.extend(-0.1),
-                                ..default()
-                            },
-                            texture: asset_server.load("sprites/editor/point_highlight.png"),
-                            visibility: Visibility::Hidden,
-                            ..default()
-                        },
-                        SelectSpriteMarker,
-                        sprite_layer(),
-                    ));
-                })
-                .id(),
-            eid.0,
+            SpriteHeadStubs(vec![
+                SpriteHeadStub {
+                    uid: core_uid,
+                    head: SpriteHead {
+                        path: kind.to_path(),
+                        render_layers: vec![sprite_layer_u8()],
+                        ..default()
+                    },
+                },
+                SpriteHeadStub {
+                    uid: highlight_uid,
+                    head: SpriteHead {
+                        path: "sprites/editor/point_highlight.png".to_string(),
+                        render_layers: vec![sprite_layer_u8()],
+                        hidden: true,
+                        ..default()
+                    },
+                },
+            ]),
         )
     }
 }
@@ -162,9 +133,9 @@ pub(super) fn spawn_points(
     keyboard: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
-    points: Query<(Entity, &EPoint, &IntMoveable, &MyId)>,
+    points: Query<(Entity, &EPoint, &IntMoveable, &UIdMarker)>,
     mut gs_writer: EventWriter<SetGameState>,
-    asset_server: Res<AssetServer>,
+    ut: Res<UIdTranslator>,
 ) {
     let Some(mode) = gs.get_editing_mode() else {
         return;
@@ -173,14 +144,6 @@ pub(super) fn spawn_points(
         // See? it just handles right clicks
         return;
     }
-    let get_entity = |eid: EId| {
-        for point in points.iter() {
-            if point.3 .0 == eid {
-                return point.0;
-            }
-        }
-        panic!("Bad eid");
-    };
     match mode {
         EditingMode::Free => {
             // For now do nothing here
@@ -190,7 +153,7 @@ pub(super) fn spawn_points(
             let (mut eplanet, mv) = eplanets.get_mut(planet_id).unwrap();
             let closing = eplanet.rock_points.len() > 2
                 && points
-                    .get(get_entity(eplanet.rock_points[0]))
+                    .get(ut.get_entity(eplanet.rock_points[0]).unwrap())
                     .unwrap()
                     .1
                     .is_hovered;
@@ -201,14 +164,13 @@ pub(super) fn spawn_points(
                     })),
                 }));
             } else {
-                commands.entity(planet_id).with_children(|mut parent| {
-                    let (_id, eid) = EPointBundle::spawn(
-                        &mut parent,
-                        &asset_server,
+                commands.entity(planet_id).with_children(|parent| {
+                    let bund = EPointBundle::new(
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.push(eid);
+                    eplanet.rock_points.push(bund.0.uid.0);
+                    parent.spawn(bund);
                 });
             }
         }
@@ -219,9 +181,9 @@ pub(super) fn spawn_points(
                 // ADDING A WILD POINT
                 // These are points that later can be made into fields
                 commands.entity(planet_id).with_children(|parent| {
-                    let (_id, eid) =
-                        EPointBundle::spawn(parent, &asset_server, spawning_at, EPointKind::Wild);
-                    eplanet.wild_points.push(eid);
+                    let bund = EPointBundle::new(spawning_at, EPointKind::Wild);
+                    eplanet.wild_points.push(bund.0.uid.0);
+                    parent.spawn(bund);
                 });
             } else {
                 // ADDING A ROCK POINT
@@ -230,7 +192,7 @@ pub(super) fn spawn_points(
                 let mut closest_dist = i32::MAX;
                 let mut closest_ix = 0;
                 for (ix, id) in eplanet.rock_points.iter().enumerate() {
-                    let (_, _, mv, _) = points.get(get_entity(*id)).unwrap();
+                    let (_, _, mv, _) = points.get(ut.get_entity(*id).unwrap()).unwrap();
                     let dist = mv.pos.truncate().distance_squared(spawning_at);
                     if closest_point.is_none() || dist < closest_dist {
                         closest_point = Some(*id);
@@ -239,7 +201,7 @@ pub(super) fn spawn_points(
                     }
                 }
                 let anchor = points
-                    .get(get_entity(closest_point.unwrap()))
+                    .get(ut.get_entity(closest_point.unwrap()).unwrap())
                     .unwrap()
                     .2
                     .pos
@@ -248,7 +210,10 @@ pub(super) fn spawn_points(
                 let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
                 let right_ix = (closest_ix + 1).rem_euclid(eplanet.rock_points.len() as i32);
                 let left_vec = points
-                    .get(get_entity(eplanet.rock_points[left_ix as usize]))
+                    .get(
+                        ut.get_entity(eplanet.rock_points[left_ix as usize])
+                            .unwrap(),
+                    )
                     .unwrap()
                     .2
                     .pos
@@ -256,7 +221,10 @@ pub(super) fn spawn_points(
                     - anchor;
                 let left_vec = left_vec.as_vec2().normalize_or_zero();
                 let right_vec = points
-                    .get(get_entity(eplanet.rock_points[right_ix as usize]))
+                    .get(
+                        ut.get_entity(eplanet.rock_points[right_ix as usize])
+                            .unwrap(),
+                    )
                     .unwrap()
                     .2
                     .pos
@@ -265,21 +233,19 @@ pub(super) fn spawn_points(
                 let right_vec = right_vec.as_vec2().normalize_or_zero();
                 let left_score = left_vec.dot(anchor_vec);
                 let right_score = right_vec.dot(anchor_vec);
-                println!("");
                 let pos = if left_score < right_score {
                     right_ix as usize
                 } else {
                     closest_ix as usize
                 };
 
-                commands.entity(planet_id).with_children(|mut parent| {
-                    let (id, eid) = EPointBundle::spawn(
-                        &mut parent,
-                        &asset_server,
+                commands.entity(planet_id).with_children(|parent| {
+                    let bund = EPointBundle::new(
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.insert(pos, eid);
+                    eplanet.rock_points.insert(pos, bund.0.uid.0);
+                    parent.spawn(bund);
                 });
             }
         }
@@ -358,7 +324,13 @@ pub(super) fn select_points(
 pub(super) fn point_select_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_state: Res<MouseState>,
-    mut points: Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>,
+    mut points: Query<(
+        Entity,
+        &mut EPoint,
+        &IntMoveable,
+        &GlobalTransform,
+        &UIdMarker,
+    )>,
     eplanets: Query<&EPlanet>,
     gs: Res<GameState>,
 ) {
@@ -371,23 +343,34 @@ pub(super) fn point_select_shortcuts(
         return;
     };
     // Helper functions
-    let select_point =
-        |eid: EId, q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
-            let entity = q.iter().find(|p| p.4 .0 == eid).unwrap().0;
-            let (_, mut p, mv, gt, _) = q.get_mut(entity).unwrap();
-            p.is_selected = true;
-            let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
-            let standard_off = gt2 - mouse_state.world_pos;
-            let parent_tran = gt2 - mv.pos.truncate();
-            p.drag_offset = Some(standard_off - parent_tran);
-        };
-    let deselect_point =
-        |id: Entity,
-         q: &mut Query<(Entity, &mut EPoint, &IntMoveable, &GlobalTransform, &MyId)>| {
-            let (_, mut p, _, _, _) = q.get_mut(id).unwrap();
-            p.is_selected = false;
-            p.drag_offset = None;
-        };
+    let select_point = |eid: UId,
+                        q: &mut Query<(
+        Entity,
+        &mut EPoint,
+        &IntMoveable,
+        &GlobalTransform,
+        &UIdMarker,
+    )>| {
+        let entity = q.iter().find(|p| p.4 .0 == eid).unwrap().0;
+        let (_, mut p, mv, gt, _) = q.get_mut(entity).unwrap();
+        p.is_selected = true;
+        let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
+        let standard_off = gt2 - mouse_state.world_pos;
+        let parent_tran = gt2 - mv.pos.truncate();
+        p.drag_offset = Some(standard_off - parent_tran);
+    };
+    let deselect_point = |id: Entity,
+                          q: &mut Query<(
+        Entity,
+        &mut EPoint,
+        &IntMoveable,
+        &GlobalTransform,
+        &UIdMarker,
+    )>| {
+        let (_, mut p, _, _, _) = q.get_mut(id).unwrap();
+        p.is_selected = false;
+        p.drag_offset = None;
+    };
 
     if (keyboard.just_pressed(KeyCode::SuperLeft) && keyboard.pressed(KeyCode::KeyR))
         || (keyboard.just_pressed(KeyCode::KeyR) && keyboard.pressed(KeyCode::SuperLeft))
@@ -404,19 +387,23 @@ pub(super) fn point_select_shortcuts(
     }
 }
 
-/// Toggle the visibility of the select marker in response to the points selection status
-pub(super) fn show_select_markers(
-    points: Query<(&EPoint, &Children)>,
-    mut select_markers: Query<&mut Visibility, With<SelectSpriteMarker>>,
+/// Changes the sprite based on wild/unwild, and toggles the highlight visibility if selected
+pub(super) fn update_point_sprites(
+    points: Query<&EPoint>,
+    mut sprite_heads: Query<&mut SpriteHead>,
+    ut: Res<UIdTranslator>,
 ) {
     for point in points.iter() {
-        for child in point.1 {
-            if let Ok(mut sm) = select_markers.get_mut(*child) {
-                if point.0.is_selected {
-                    *sm = Visibility::Inherited;
-                } else {
-                    *sm = Visibility::Hidden;
-                }
+        // Update the core sprite
+        if let Some(eid) = ut.get_entity(point.core_uid) {
+            if let Ok(mut head) = sprite_heads.get_mut(eid) {
+                head.path = point.kind.to_path();
+            }
+        }
+        // Update the highlight
+        if let Some(eid) = ut.get_entity(point.highlight_uid) {
+            if let Ok(mut head) = sprite_heads.get_mut(eid) {
+                head.hidden = !point.is_selected;
             }
         }
     }
@@ -425,19 +412,12 @@ pub(super) fn show_select_markers(
 pub(super) fn delete_points(
     mut commands: Commands,
     mut eplanets: Query<(Entity, &mut EPlanet)>,
-    points: Query<(Entity, &EPoint, &Parent, &MyId)>,
+    points: Query<(Entity, &EPoint, &Parent, &UIdMarker)>,
     key_buttons: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
+    ut: Res<UIdTranslator>,
 ) {
-    let get_entity = |eid: EId| {
-        for point in points.iter() {
-            if point.3 .0 == eid {
-                return Some(point.0);
-            }
-        }
-        None
-    };
     if key_buttons.pressed(KeyCode::Backspace) {
         // Despawn the point, and then remove it from it's parent rock/field list
         for (id, p, parent_ref, eid) in points.iter() {
@@ -461,41 +441,6 @@ pub(super) fn delete_points(
                 }
                 commands.entity(parent_ref.get()).remove_children(&[id]);
                 commands.entity(id).despawn_recursive();
-            }
-        }
-        // Remove bad points
-        for mut eplanet in eplanets.iter_mut() {
-            eplanet.1.rock_points.retain(|p| get_entity(*p).is_some());
-            eplanet.1.wild_points.retain(|p| get_entity(*p).is_some());
-            for field in eplanet.1.fields.iter_mut() {
-                field.field_points.retain(|p| get_entity(*p).is_some());
-            }
-            let dead_fields: Vec<EPlanetField> = eplanet
-                .1
-                .fields
-                .clone()
-                .into_iter()
-                .filter(|f| f.field_points.len() < 3)
-                .collect();
-            eplanet.1.fields.retain(|f| f.field_points.len() >= 3);
-            for field in dead_fields {
-                commands.entity(field.mesh_id).despawn_recursive();
-                for point in field.field_points {
-                    let Some(ent) = get_entity(point) else {
-                        continue;
-                    };
-                    let point = points.get(ent).unwrap();
-                    if point.1.kind != EPointKind::Field
-                        || eplanet
-                            .1
-                            .fields
-                            .iter()
-                            .any(|field| field.field_points.contains(&point.3 .0))
-                    {
-                        continue;
-                    }
-                    commands.entity(point.0).insert(FeralEPoint);
-                }
             }
         }
         // Check to see if any planets have fewer than three rock points. If so,
@@ -529,20 +474,5 @@ pub(super) fn move_points(
         if let Some(offset) = p.drag_offset {
             mv.pos = (mouse_state.world_pos + offset).extend(mv.pos.z);
         }
-    }
-}
-
-#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
-pub(super) struct ChangeEPointKind(pub EPointKind);
-
-pub(super) fn update_point_sprites(
-    asset_server: Res<AssetServer>,
-    mut commands: Commands,
-    mut points: Query<(Entity, &ChangeEPointKind, &mut Handle<Image>), With<EPoint>>,
-) {
-    for (id, change, mut hand) in points.iter_mut() {
-        *hand = asset_server.load(change.0.to_path());
-        commands.entity(id).remove::<ChangeEPointKind>();
     }
 }

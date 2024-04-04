@@ -5,7 +5,7 @@ use bevy::{ecs::system::SystemState, prelude::*, sprite::Mesh2dHandle, utils::Ha
 use super::{
     help::HelpBarEvent,
     planet::EPlanet,
-    point::{EPoint, SelectSpriteMarker},
+    point::EPoint,
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
@@ -270,8 +270,6 @@ pub(super) fn connect_parents(
 pub(super) fn resolve_holes(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    epoint_sprite: Query<(Entity, &EPoint), Without<Handle<Image>>>,
-    epoint_sprite_select: Query<(Entity, &SelectSpriteMarker), Without<Handle<Image>>>,
     bms: Query<&BorderedMesh>,
     border_meshes: Query<
         (Entity, &BorderMeshType, &Parent),
@@ -280,16 +278,6 @@ pub(super) fn resolve_holes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<SpriteMaterial>>,
 ) {
-    for (id, epoint) in epoint_sprite.iter() {
-        commands
-            .entity(id)
-            .insert(asset_server.load::<Image>(epoint.kind.to_path()));
-    }
-    for (id, _) in epoint_sprite_select.iter() {
-        commands
-            .entity(id)
-            .insert(asset_server.load::<Image>("sprites/editor/point_highlight.png"));
-    }
     for (id, kind, parent) in border_meshes.iter() {
         let bm = bms.get(parent.get()).unwrap();
         let is_inner = &kind.0 == "inner";

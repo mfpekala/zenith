@@ -1,1652 +1,7 @@
 (
   resources: {},
   entities: {
-    4294967840: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: 0.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: 0.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Visible,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (24, -6, 0),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935122),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935133,
-          8589935125,
-          8589935130,
-          8589935128,
-          8589935126,
-          12884902433,
-          4294967851,
-          4294967853,
-          4294967855,
-          4294967857,
-          4294967859,
-        ]),
-        "zenith::editor::planet::EPlanet": (
-          rock_points: [
-            10976844020928166915,
-            5601690512729192902,
-            18295425915309765963,
-            10502953444656488630,
-            15850258968426525907,
-          ],
-          rock_mesh_id: Some(12884902433),
-          wild_points: [],
-          fields: [
-            (
-              field_points: [
-                10976844020928166915,
-                461640263653873636,
-                17760544611677855687,
-                5601690512729192902,
-              ],
-              mesh_id: 4294967851,
-              dir: (
-0.08662962, -0.9962407,              ),
-            ),
-            (
-              field_points: [
-                16106033521054209987,
-                10502953444656488630,
-                18295425915309765963,
-                9583778855736061106,
-              ],
-              mesh_id: 4294967853,
-              dir: (
--0, 1,              ),
-            ),
-            (
-              field_points: [
-                18295425915309765963,
-                5601690512729192902,
-                17760544611677855687,
-                9583778855736061106,
-              ],
-              mesh_id: 4294967855,
-              dir: (
--0.99905616, -0.043437224,              ),
-            ),
-            (
-              field_points: [
-                15850258968426525907,
-                8875871983898133200,
-                461640263653873636,
-                10976844020928166915,
-              ],
-              mesh_id: 4294967857,
-              dir: (
--0.20165293, -0.9794571,              ),
-            ),
-            (
-              field_points: [
-                8875871983898133200,
-                15850258968426525907,
-                10502953444656488630,
-                16106033521054209987,
-              ],
-              mesh_id: 4294967859,
-              dir: (
-0.6357073, 0.7719303,              ),
-            ),
-          ],
-        ),
-      },
-    ),
-    4294967842: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: 0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (12884902433),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
-0, 0,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -22.730173,
-            y: 5.390349,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 26.563269,
-            y: 12.315613,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-36, 36,          ),
-          bounds: (
-0, 0,          ),
-        ),
-      },
-    ),
-    4294967843: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: 0.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (12884902433),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("outer"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
-0, 0,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -23.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 29.0,
-            y: 14.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-36, 36,          ),
-          bounds: (
-0, 0,          ),
-        ),
-      },
-    ),
-    4294967844: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 69.0,
-            y: 53.0,
-            z: 3.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (12884902431),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    4294967845: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 43.0,
-            y: -41.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 73.0,
-            y: -56.0,
-            z: 4.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (43, -41, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935130),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967846,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Field,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (9583778855736061106),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    4294967846: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 73.0,
-            y: -56.0,
-            z: 3.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967845),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    4294967847: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: -20.0,
-            y: -56.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -14.0,
-            y: -71.0,
-            z: 4.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (-20, -56, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935128),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967848,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Field,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (16106033521054209987),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    4294967848: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -14.0,
-            y: -71.0,
-            z: 3.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967847),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    4294967849: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: -54.0,
-            y: 26.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -82.0,
-            y: 39.0,
-            z: 4.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (-54, 26, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935126),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967850,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Field,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (8875871983898133200),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    4294967850: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -82.0,
-            y: 39.0,
-            z: 3.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967849),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    4294967851: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -1.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (0, 0, -1),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967852,
-        ]),
-        "zenith::drawing::bordered_mesh::BorderedMesh": (
-          last_points: [
-(-18, 12),(-15, 72),(45, 59),(5, 14),          ],
-          points: [
-(-18, 12),(-15, 72),(45, 59),(5, 14),          ],
-          last_material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          last_border_material: None,
-          border_material: None,
-          border_width: None,
-          scroll: (
-0.021657405, -0.24906017,          ),
-        ),
-      },
-    ),
-    4294967852: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967851),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
-0.021657405, -0.24906017,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: 13.5,
-            y: 42.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 31.5,
-            y: 30.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-12, 12,          ),
-          bounds: (
-63, 60,          ),
-        ),
-      },
-    ),
-    4294967853: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -1.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (0, 0, -1),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967854,
-        ]),
-        "zenith::drawing::bordered_mesh::BorderedMesh": (
-          last_points: [
-(-38, -65),(-18, -9),(6, -9),(49, -50),          ],
-          points: [
-(-38, -65),(-18, -9),(6, -9),(49, -50),          ],
-          last_material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          last_border_material: None,
-          border_material: None,
-          border_width: None,
-          scroll: (
--0, 0.25,          ),
-        ),
-      },
-    ),
-    4294967854: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967853),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
--0, 0.25,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: 5.5,
-            y: -37.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 43.5,
-            y: 28.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-12, 12,          ),
-          bounds: (
-87, 56,          ),
-        ),
-      },
-    ),
-    4294967855: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -1.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (0, 0, -1),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967856,
-        ]),
-        "zenith::drawing::bordered_mesh::BorderedMesh": (
-          last_points: [
-(6, -9),(5, 14),(45, 59),(49, -50),          ],
-          points: [
-(6, -9),(5, 14),(45, 59),(49, -50),          ],
-          last_material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          last_border_material: None,
-          border_material: None,
-          border_width: None,
-          scroll: (
--0.24976404, -0.010859306,          ),
-        ),
-      },
-    ),
-    4294967856: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967855),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
--0.24976404, -0.010859306,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: 27.0,
-            y: 4.5,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 22.0,
-            y: 54.5,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-12, 12,          ),
-          bounds: (
-44, 109,          ),
-        ),
-      },
-    ),
-    4294967857: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -1.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (0, 0, -1),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967858,
-        ]),
-        "zenith::drawing::bordered_mesh::BorderedMesh": (
-          last_points: [
-(-52, 19),(-106, 45),(-15, 72),(-18, 12),          ],
-          points: [
-(-52, 19),(-106, 45),(-15, 72),(-18, 12),          ],
-          last_material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          last_border_material: None,
-          border_material: None,
-          border_width: None,
-          scroll: (
--0.050413232, -0.24486427,          ),
-        ),
-      },
-    ),
-    4294967858: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967857),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
--0.050413232, -0.24486427,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -60.5,
-            y: 42.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 45.5,
-            y: 30.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-12, 12,          ),
-          bounds: (
-91, 60,          ),
-        ),
-      },
-    ),
-    4294967859: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -1.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (0, 0, -1),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967860,
-        ]),
-        "zenith::drawing::bordered_mesh::BorderedMesh": (
-          last_points: [
-(-106, 45),(-52, 19),(-18, -9),(-38, -65),          ],
-          points: [
-(-106, 45),(-52, 19),(-18, -9),(-38, -65),          ],
-          last_material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          material: (
-            path: "sprites/field/field_bg.png",
-            size: (
-12, 12,            ),
-          ),
-          last_border_material: None,
-          border_material: None,
-          border_width: None,
-          scroll: (
-0.15892683, 0.19298257,          ),
-        ),
-      },
-    ),
-    4294967860: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.5,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
-            z: -0.5,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (4294967859),
-        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
-        "zenith::drawing::mesh::ScrollSprite": (
-          vel: (
-0.15892683, 0.19298257,          ),
-        ),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -62.0,
-            y: -10.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 44.0,
-            y: 55.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::drawing::mesh::SpriteInfo": (
-          sprite_size: (
-12, 12,          ),
-          bounds: (
-88, 110,          ),
-        ),
-      },
-    ),
-    8589935122: (
+    4294967826: (
       components: {
         "bevy_transform::components::transform::Transform": (
           translation: (
@@ -1694,21 +49,21 @@
         "bevy_render::view::visibility::InheritedVisibility": (true),
         "bevy_render::view::visibility::ViewVisibility": (false),
         "bevy_core::name::Name": (
-          hash: 6575475387854692380,
+          hash: 16357969761461562094,
           name: "EditingRoot",
         ),
         "bevy_hierarchy::components::children::Children": ([
-          4294967840,
+          8589934612,
         ]),
       },
     ),
-    8589935123: (
+    4294967827: (
       components: {
         "bevy_transform::components::transform::Transform": (
           translation: (
             x: 0.0,
             y: 0.0,
-            z: -0.1,
+            z: 0.0,
           ),
           rotation: (
             x: 0.0,
@@ -1741,1133 +96,8 @@
             ),
           ),
           translation: (
-            x: 6.0,
-            y: 6.0,
-            z: 1.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (8589935133),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    8589935124: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 29.0,
-            y: 8.0,
-            z: 1.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (8589935125),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    8589935125: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 5.0,
-            y: 14.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 29.0,
-            y: 8.0,
-            z: 2.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (5, 14, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935124,
-          12884902431,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Rock,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (5601690512729192902),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    8589935126: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: -52.0,
-            y: 19.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -28.0,
+            x: 25.0,
             y: 13.0,
-            z: 2.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (-52, 19, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935127,
-          4294967849,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Rock,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (15850258968426525907),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    8589935127: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: -28.0,
-            y: 13.0,
-            z: 1.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (8589935126),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    8589935128: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: -18.0,
-            y: -9.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 6.0,
-            y: -15.0,
-            z: 2.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (-18, -9, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935129,
-          4294967847,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Rock,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (10502953444656488630),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    8589935129: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 6.0,
-            y: -15.0,
-            z: 1.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (8589935128),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    8589935130: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 6.0,
-            y: -9.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 30.0,
-            y: -15.0,
-            z: 2.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (6, -9, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935131,
-          4294967845,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Rock,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (18295425915309765963),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    8589935131: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 30.0,
-            y: -15.0,
-            z: 1.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (8589935130),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    8589935133: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: -18.0,
-            y: 12.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 6.0,
-            y: 6.0,
-            z: 2.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (-18, 12, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
-        "bevy_hierarchy::components::children::Children": ([
-          8589935123,
-          12884902430,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Rock,
-          size: 3,
-          is_hovered: false,
-          is_selected: true,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (10976844020928166915),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    12884902428: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: -0.1,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 9.0,
-            y: 66.0,
-            z: 3.9,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Hidden,
-        "bevy_render::view::visibility::InheritedVisibility": (false),
-        "bevy_render::view::visibility::ViewVisibility": (false),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "bevy_hierarchy::components::parent::Parent": (12884902430),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::SelectSpriteMarker": (),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 5.0,
-            y: 5.0,
-            z: 0.0,
-          ),
-        ),
-      },
-    ),
-    12884902430: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 3.0,
-            y: 60.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 9.0,
-            y: 66.0,
-            z: 4.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (3, 60, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935133),
-        "bevy_hierarchy::components::children::Children": ([
-          12884902428,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Field,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (461640263653873636),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    12884902431: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 40.0,
-            y: 45.0,
-            z: 2.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 69.0,
-            y: 53.0,
-            z: 4.0,
-          ),
-        )),
-        "bevy_render::view::visibility::Visibility": Inherited,
-        "bevy_render::view::visibility::InheritedVisibility": (true),
-        "bevy_render::view::visibility::ViewVisibility": (true),
-        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
-        "zenith::physics::dyno::IntMoveable": (
-
-    vel: (0, 0),
-    pos: (40, 45, 2),
-    rem: (0, 0),
-),
-                    "bevy_hierarchy::components::parent::Parent": (8589935125),
-        "bevy_hierarchy::components::children::Children": ([
-          4294967844,
-        ]),
-        "bevy_sprite::sprite::Sprite": (
-          color: Rgba(
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-            alpha: 1.0,
-          ),
-          flip_x: false,
-          flip_y: false,
-          custom_size: None,
-          rect: None,
-          anchor: Center,
-        ),
-        "zenith::editor::point::EPoint": (
-          kind: Field,
-          size: 3,
-          is_hovered: false,
-          is_selected: false,
-          drag_offset: None,
-        ),
-        "zenith::editor::point::MyId": (17760544611677855687),
-        "bevy_render::primitives::Aabb": (
-          center: (
-            x: -0.0,
-            y: -0.0,
-            z: 0.0,
-          ),
-          half_extents: (
-            x: 3.0,
-            y: 3.0,
-            z: 0.0,
-          ),
-        ),
-        "zenith::editor::point::EPointSpriteMarker": (),
-      },
-    ),
-    12884902433: (
-      components: {
-        "bevy_transform::components::transform::Transform": (
-          translation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-          ),
-          rotation: (
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-          ),
-          scale: (
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-          ),
-        ),
-        "bevy_transform::components::global_transform::GlobalTransform": ((
-          matrix3: (
-            x_axis: (
-              x: 1.0,
-              y: 0.0,
-              z: 0.0,
-            ),
-            y_axis: (
-              x: 0.0,
-              y: 1.0,
-              z: 0.0,
-            ),
-            z_axis: (
-              x: 0.0,
-              y: 0.0,
-              z: 1.0,
-            ),
-          ),
-          translation: (
-            x: 24.0,
-            y: -6.0,
             z: 0.0,
           ),
         )),
@@ -2880,16 +110,16 @@
     pos: (0, 0, 0),
     rem: (0, 0),
 ),
-                    "bevy_hierarchy::components::parent::Parent": (4294967840),
+                    "bevy_hierarchy::components::parent::Parent": (8589934612),
         "bevy_hierarchy::components::children::Children": ([
-          4294967842,
-          4294967843,
+          4294967828,
+          4294967829,
         ]),
         "zenith::drawing::bordered_mesh::BorderedMesh": (
           last_points: [
-(-18, 12),(5, 14),(6, -9),(-18, -9),(-52, 19),          ],
+(0, 0),(12, -38),(-29, -49),(-32, -13),          ],
           points: [
-(-18, 12),(5, 14),(6, -9),(-18, -9),(-52, 19),          ],
+(0, 0),(12, -38),(-29, -49),(-32, -13),          ],
           last_material: (
             path: "textures/play_inner.png",
             size: (
@@ -2913,6 +143,912 @@
           border_width: Some(3.0),
           scroll: (
 0, 0,          ),
+        ),
+      },
+    ),
+    4294967828: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.5,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 0.5,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967827),
+        "zenith::drawing::bordered_mesh::BorderMeshType": ("inner"),
+        "zenith::drawing::mesh::ScrollSprite": (
+          vel: (
+0, 0,          ),
+        ),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -10.037275,
+            y: -24.630346,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 19.406542,
+            y: 21.915476,
+            z: 0.0,
+          ),
+        ),
+        "zenith::drawing::mesh::SpriteInfo": (
+          sprite_size: (
+36, 36,          ),
+          bounds: (
+0, 0,          ),
+        ),
+      },
+    ),
+    4294967829: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967827),
+        "zenith::drawing::bordered_mesh::BorderMeshType": ("outer"),
+        "zenith::drawing::mesh::ScrollSprite": (
+          vel: (
+0, 0,          ),
+        ),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -10.0,
+            y: -24.5,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 22.0,
+            y: 24.5,
+            z: 0.0,
+          ),
+        ),
+        "zenith::drawing::mesh::SpriteInfo": (
+          sprite_size: (
+36, 36,          ),
+          bounds: (
+0, 0,          ),
+        ),
+      },
+    ),
+    4294967830: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (0, 0, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589934612),
+        "bevy_hierarchy::components::children::Children": ([
+          4294967831,
+        ]),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+        ),
+        "zenith::editor::point::MyId": (17403916109633350034),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 3.0,
+            y: 3.0,
+            z: 0.0,
+          ),
+        ),
+        "zenith::editor::point::EPointSpriteMarker": (),
+      },
+    ),
+    4294967831: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: -0.1,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 1.9,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Hidden,
+        "bevy_render::view::visibility::InheritedVisibility": (false),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967830),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::SelectSpriteMarker": (),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 5.0,
+            y: 5.0,
+            z: 0.0,
+          ),
+        ),
+      },
+    ),
+    4294967832: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 12.0,
+            y: -38.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 37.0,
+            y: -25.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (12, -38, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589934612),
+        "bevy_hierarchy::components::children::Children": ([
+          4294967833,
+        ]),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+        ),
+        "zenith::editor::point::MyId": (6975443293370579266),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 3.0,
+            y: 3.0,
+            z: 0.0,
+          ),
+        ),
+        "zenith::editor::point::EPointSpriteMarker": (),
+      },
+    ),
+    4294967833: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: -0.1,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 37.0,
+            y: -25.0,
+            z: 1.9,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Hidden,
+        "bevy_render::view::visibility::InheritedVisibility": (false),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967832),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::SelectSpriteMarker": (),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 5.0,
+            y: 5.0,
+            z: 0.0,
+          ),
+        ),
+      },
+    ),
+    4294967834: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -29.0,
+            y: -49.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -4.0,
+            y: -36.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-29, -49, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589934612),
+        "bevy_hierarchy::components::children::Children": ([
+          4294967835,
+        ]),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+        ),
+        "zenith::editor::point::MyId": (1405349605280821911),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 3.0,
+            y: 3.0,
+            z: 0.0,
+          ),
+        ),
+        "zenith::editor::point::EPointSpriteMarker": (),
+      },
+    ),
+    4294967835: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: -0.1,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -4.0,
+            y: -36.0,
+            z: 1.9,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Hidden,
+        "bevy_render::view::visibility::InheritedVisibility": (false),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967834),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::SelectSpriteMarker": (),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 5.0,
+            y: 5.0,
+            z: 0.0,
+          ),
+        ),
+      },
+    ),
+    4294967836: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -32.0,
+            y: -13.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -7.0,
+            y: 0.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-32, -13, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589934612),
+        "bevy_hierarchy::components::children::Children": ([
+          4294967837,
+        ]),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+        ),
+        "zenith::editor::point::MyId": (16094679499053453982),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 3.0,
+            y: 3.0,
+            z: 0.0,
+          ),
+        ),
+        "zenith::editor::point::EPointSpriteMarker": (),
+      },
+    ),
+    4294967837: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: -0.1,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -7.0,
+            y: 0.0,
+            z: 1.9,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Hidden,
+        "bevy_render::view::visibility::InheritedVisibility": (false),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "bevy_hierarchy::components::parent::Parent": (4294967836),
+        "bevy_sprite::sprite::Sprite": (
+          color: Rgba(
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+          ),
+          flip_x: false,
+          flip_y: false,
+          custom_size: None,
+          rect: None,
+          anchor: Center,
+        ),
+        "zenith::editor::point::SelectSpriteMarker": (),
+        "bevy_render::primitives::Aabb": (
+          center: (
+            x: -0.0,
+            y: -0.0,
+            z: 0.0,
+          ),
+          half_extents: (
+            x: 5.0,
+            y: 5.0,
+            z: 0.0,
+          ),
+        ),
+      },
+    ),
+    8589934612: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 25.0,
+            y: 13.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Visible,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (25, 13, 0),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (4294967826),
+        "bevy_hierarchy::components::children::Children": ([
+          4294967827,
+          4294967830,
+          4294967832,
+          4294967834,
+          4294967836,
+        ]),
+        "zenith::editor::planet::EPlanet": (
+          rock_points: [
+            17403916109633350034,
+            6975443293370579266,
+            1405349605280821911,
+            16094679499053453982,
+          ],
+          rock_mesh_id: Some(4294967827),
+          wild_points: [],
+          fields: [],
         ),
       },
     ),

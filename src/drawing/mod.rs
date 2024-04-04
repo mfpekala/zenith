@@ -8,6 +8,7 @@ use self::{
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
     mesh::scroll_sprite_materials,
+    sprite_head::{resolve_sprite_head_stubs, update_sprite_heads},
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
 };
@@ -21,6 +22,7 @@ pub mod layering;
 pub mod light;
 pub mod mesh;
 pub mod post_pixel;
+pub mod sprite_head;
 pub mod sprite_mat;
 pub mod sunrise_mat;
 pub mod text;
@@ -67,6 +69,8 @@ pub fn register_drawing(app: &mut App) {
 
     app.add_systems(FixedUpdate, scroll_sprite_materials);
     app.add_systems(Update, bordered_mesh_trickle_down);
+
+    app.add_systems(Update, (resolve_sprite_head_stubs, update_sprite_heads));
 
     register_hollow_drawing(app);
     register_light(app);

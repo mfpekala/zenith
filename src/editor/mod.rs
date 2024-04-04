@@ -8,6 +8,7 @@ use crate::{
         level_data::LevelData,
     },
     physics::dyno::IntMoveable,
+    uid::UIdMarker,
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -26,8 +27,7 @@ use self::{
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
-        show_select_markers, spawn_points, update_point_sprites, EPoint, EPointSpriteMarker, MyId,
-        SelectSpriteMarker,
+        spawn_points, update_point_sprites, EPoint,
     },
     save::{
         cleanup_load, connect_parents, fix_after_load, load_editor, resolve_holes, save_editor,
@@ -138,15 +138,12 @@ impl Plugin for EditorPlugin {
         app.register_type::<EPlanet>();
         app.register_type::<EPoint>();
         app.register_type::<IntMoveable>();
-        app.register_type::<SelectSpriteMarker>();
-        app.register_type::<EPointSpriteMarker>();
-        app.register_type::<EPointSpriteMarker>();
         app.register_type::<BorderedMesh>();
         app.register_type::<BorderMeshType>();
         app.register_type::<SpriteInfo>();
         app.register_type::<ScrollSprite>();
         app.register_type::<BorderedMatData>();
-        app.register_type::<MyId>();
+        app.register_type::<UIdMarker>();
 
         // Help system
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[
@@ -171,7 +168,6 @@ impl Plugin for EditorPlugin {
                 spawn_points,
                 select_points,
                 point_select_shortcuts,
-                show_select_markers,
                 delete_points,
                 move_points,
                 update_point_sprites,
