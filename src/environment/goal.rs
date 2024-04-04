@@ -1,9 +1,4 @@
-use crate::{
-    drawing::hollow::{CircleMarker, ShrinkingCircleBundle},
-    meta::game_state::in_level,
-    physics::dyno::IntDyno,
-    ship::Ship,
-};
+use crate::{meta::game_state::in_level, physics::dyno::IntDyno, ship::Ship};
 use bevy::prelude::*;
 
 #[derive(Event, Debug)]
@@ -19,7 +14,6 @@ pub struct Goal {
 #[derive(Bundle)]
 pub struct GoalBundle {
     pub goal: Goal,
-    pub shrink: ShrinkingCircleBundle,
     pub spatial: SpatialBundle,
 }
 impl GoalBundle {
@@ -30,7 +24,6 @@ impl GoalBundle {
                 strength,
                 occupied_for: 0,
             },
-            shrink: ShrinkingCircleBundle::new(radius, strength * 2.0),
             spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
         }
     }
@@ -38,10 +31,7 @@ impl GoalBundle {
     pub fn spawn(pos: Vec2, commands: &mut Commands) {
         let goal = Self::new(pos, 30.0, 0.1);
         commands.spawn(goal).with_children(|comms| {
-            comms.spawn((
-                CircleMarker::new(30.0, Color::TOMATO),
-                SpatialBundle::default(),
-            ));
+            comms.spawn((SpatialBundle::default(),));
         });
     }
 }

@@ -4,10 +4,10 @@ use self::{
     animated::MyAnimationPlugin,
     bordered_mesh::bordered_mesh_trickle_down,
     effects::EffectsPlugin,
-    hollow::register_hollow_drawing,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
     mesh::scroll_sprite_materials,
+    mesh_head::{resolve_mesh_head_stubs, update_mesh_heads},
     sprite_head::{resolve_sprite_head_stubs, update_sprite_heads},
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
@@ -17,10 +17,10 @@ use bevy::prelude::*;
 pub mod animated;
 pub mod bordered_mesh;
 pub mod effects;
-pub mod hollow;
 pub mod layering;
 pub mod light;
 pub mod mesh;
+pub mod mesh_head;
 pub mod post_pixel;
 pub mod sprite_head;
 pub mod sprite_mat;
@@ -71,7 +71,7 @@ pub fn register_drawing(app: &mut App) {
     app.add_systems(Update, bordered_mesh_trickle_down);
 
     app.add_systems(Update, (resolve_sprite_head_stubs, update_sprite_heads));
+    app.add_systems(Update, (resolve_mesh_head_stubs, update_mesh_heads));
 
-    register_hollow_drawing(app);
     register_light(app);
 }

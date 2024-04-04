@@ -1,12 +1,6 @@
 use super::rock::Rock;
 use crate::{
-    drawing::{
-        hollow::{draw_hollow_polygon, HollowDrawable},
-        layering::sprite_layer,
-    },
-    hollow_drawable,
-    math::get_shell,
-    physics::collider::ColliderTriggerBundle,
+    drawing::layering::sprite_layer, math::get_shell, physics::collider::ColliderTriggerBundle,
 };
 use bevy::{prelude::*, render::view::RenderLayers};
 
@@ -17,11 +11,6 @@ pub struct Field {
     pub strength: f32,
     pub dir: Vec2,
     pub drag: f32,
-}
-impl HollowDrawable for Field {
-    fn draw_hollow(&self, base_pos: Vec2, gz: &mut Gizmos) {
-        draw_hollow_polygon(base_pos, &self.points, Color::YELLOW, gz);
-    }
 }
 impl Field {
     pub fn uniform_around_rock(rock: &Rock, reach: f32, strength: f32) -> Vec<Self> {
@@ -51,7 +40,6 @@ impl Field {
         regions
     }
 }
-hollow_drawable!(Field, draw_fields);
 
 #[derive(Bundle)]
 pub struct FieldBundle {
@@ -87,6 +75,4 @@ impl FieldBundle {
     }
 }
 
-pub fn register_fields(app: &mut App) {
-    app.add_systems(Update, draw_fields);
-}
+pub fn register_fields(app: &mut App) {}

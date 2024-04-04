@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
-        bordered_mesh::BorderedMesh, layering::sprite_layer, mesh::outline_points,
+        bordered_mesh::BorderedMesh,
+        layering::{sprite_layer, sprite_layer_u8},
+        mesh::outline_points,
+        mesh_head::{MeshHead, MeshHeadStub, MeshHeadStubs, MeshTextureKind},
         sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
@@ -16,7 +19,7 @@ use crate::{
     math::MathLine,
     meta::game_state::{EditingMode, GameState, SetGameState},
     physics::dyno::IntMoveable,
-    uid::{UId, UIdMarker, UIdTranslator},
+    uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
 use super::point::{EPoint, EPointBundle};
@@ -36,7 +39,7 @@ pub(super) struct EPlanetField {
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanet {
     pub rock_points: Vec<UId>,
-    pub rock_mesh_id: Option<Entity>,
+    pub rock_mesh_uid: UId,
     pub wild_points: Vec<UId>,
     pub fields: Vec<EPlanetField>,
 }
@@ -49,51 +52,36 @@ pub(super) struct PendingField {
 
 #[derive(Bundle, Default)]
 pub(super) struct EPlanetBundle {
+    uid: UIdMarker,
     eplanet: EPlanet,
     spatial: SpatialBundle,
     moveable: IntMoveable,
 }
 impl EPlanetBundle {
-    pub fn spawn(
-        commands: &mut Commands,
-        pos: IVec2,
-        asset_server: &Res<AssetServer>,
-        mats: &mut ResMut<Assets<SpriteMaterial>>,
-        meshes: &mut ResMut<Assets<Mesh>>,
-    ) -> Entity {
-        let mut rock_mesh_id = None;
-        let entity = commands
-            .spawn(EPlanetBundle::default())
-            .with_children(|parent| {
-                let new_rock_mesh_id = BorderedMesh::spawn_easy(
-                    parent,
-                    asset_server,
-                    meshes,
-                    mats,
-                    vec![],
-                    ("textures/play_inner.png", UVec2::new(36, 36)),
-                    Some(("textures/play_outer.png", UVec2::new(36, 36))),
-                    Some(3.0),
-                    sprite_layer(),
-                    0,
-                );
-                rock_mesh_id = Some(new_rock_mesh_id);
-            })
-            .id();
-        commands.entity(entity).remove::<EPlanetBundle>();
-        commands.entity(entity).insert(EPlanetBundle {
+    pub fn new(pos: IVec2) -> (Self, impl Bundle) {
+        let core_uid = fresh_uid();
+        let rock_mesh_uid = fresh_uid();
+        let mesh_head_stubs = MeshHeadStubs(vec![MeshHeadStub {
+            uid: rock_mesh_uid,
+            head: MeshHead {
+                path: "textures/play_inner.png".to_string(),
+                render_layers: vec![sprite_layer_u8()],
+                texture_kind: MeshTextureKind::Repeating(UVec2::new(36, 36)),
+                ..default()
+            },
+        }]);
+        let bund = EPlanetBundle {
+            uid: UIdMarker(core_uid),
             eplanet: EPlanet {
-                rock_mesh_id,
+                rock_mesh_uid,
                 ..default()
             },
-            spatial: SpatialBundle {
-                transform: Transform::from_translation(pos.as_vec2().extend(0.0)),
-                visibility: Visibility::Visible,
-                ..default()
-            },
+            spatial: SpatialBundle::from_transform(Transform::from_translation(
+                pos.as_vec2().extend(0.0),
+            )),
             moveable: IntMoveable::new(pos.extend(0)),
-        });
-        entity
+        };
+        (bund, mesh_head_stubs)
     }
 }
 
@@ -119,13 +107,8 @@ pub(super) fn planet_state_input(
     match mode {
         EditingMode::Free => {
             if keyboard.just_pressed(KeyCode::KeyP) {
-                let id = EPlanetBundle::spawn(
-                    &mut commands,
-                    mouse_state.world_pos,
-                    &asset_server,
-                    &mut mats,
-                    &mut meshes,
-                );
+                let bund = EPlanetBundle::new(mouse_state.world_pos);
+                let id = commands.spawn(bund).id();
                 gs_writer.send(SetGameState(
                     EditingMode::CreatingPlanet(id).to_game_state(),
                 ));
@@ -701,7 +684,7 @@ pub(super) fn update_field_gravity(
 pub(super) fn drive_planet_meshes(
     points: Query<(Entity, &UIdMarker, &EPoint, &IntMoveable, &Parent)>,
     eplanets: Query<&EPlanet>,
-    mut bms: Query<&mut BorderedMesh>,
+    mut mesh_heads: Query<&mut MeshHead>,
     ut: Res<UIdTranslator>,
 ) {
     for eplanet in eplanets.iter() {
@@ -715,9 +698,9 @@ pub(super) fn drive_planet_meshes(
                 mesh_points.push(mv.pos.truncate());
             }
         }
-        if let Some(id) = eplanet.rock_mesh_id {
-            if let Ok(mut bm) = bms.get_mut(id) {
-                bm.points = mesh_points;
+        if let Some(id) = ut.get_entity(eplanet.rock_mesh_uid) {
+            if let Ok(mut head) = mesh_heads.get_mut(id) {
+                head.points = mesh_points;
             }
         }
 
@@ -741,10 +724,10 @@ pub(super) fn drive_planet_meshes(
                     }
                 }
             }
-            if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
-                bm.points = mesh_points;
-                bm.scroll = field.dir / 4.0;
-            }
+            // if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
+            //     bm.points = mesh_points;
+            //     bm.scroll = field.dir / 4.0;
+            // }
         }
     }
 }
