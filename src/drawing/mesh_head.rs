@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     editor::save::SaveMarker,
-    uid::{UId, UIdMarker},
+    uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
 use super::{
-    mesh::{generate_new_sprite_mesh, uvec2_bound},
+    mesh::{generate_new_sprite_mesh, outline_int_points, uvec2_bound},
     sprite_mat::SpriteMaterial,
 };
 
@@ -133,6 +133,161 @@ pub(super) fn update_mesh_heads(
                 let bund = get_bund(head);
                 commands.entity(eid).with_children(|parent| {
                     parent.spawn(bund);
+                });
+            }
+        }
+    }
+}
+
+pub struct BorderedMeshHeadStub {
+    pub uid: UId,
+    pub head: BorderedMeshHead,
+}
+
+#[derive(Component, Default)]
+pub struct BorderedMeshHeadStubs(pub Vec<BorderedMeshHeadStub>);
+
+#[derive(Component, Debug, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct BorderedMeshHead {
+    pub inner_path: String,
+    pub inner_size: UVec2,
+    pub outer_path: String,
+    pub outer_size: UVec2,
+    pub points: Vec<IVec2>,
+    pub border_width: f32,
+    pub offset: Vec3,
+    pub render_layers: Vec<u8>,
+    pub scroll: Vec2,
+}
+
+#[derive(Bundle, Default)]
+pub struct BorderedMeshHeadBundle {
+    pub head: BorderedMeshHead,
+    spatial: SpatialBundle,
+    save: SaveMarker,
+}
+impl BorderedMeshHeadBundle {
+    pub fn from_head(head: BorderedMeshHead) -> Self {
+        Self { head, ..default() }
+    }
+}
+
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct BorderedMeshBody {
+    last_head: BorderedMeshHead,
+    inner_uid: UId,
+    outer_uid: UId,
+}
+
+pub(super) fn resolve_bordered_mesh_head_stubs(
+    mut commands: Commands,
+    stubs: Query<(Entity, &BorderedMeshHeadStubs)>,
+) {
+    for (eid, stubs) in stubs.iter() {
+        for stub in stubs.0.iter() {
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    UIdMarker(stub.uid),
+                    BorderedMeshHeadBundle::from_head(stub.head.clone()),
+                ));
+            });
+        }
+        commands.entity(eid).remove::<BorderedMeshHeadStubs>();
+    }
+}
+
+pub(super) fn update_bordered_mesh_heads(
+    mut commands: Commands,
+    heads: Query<(Entity, &BorderedMeshHead, Option<&Children>)>,
+    mut bodies: Query<&mut BorderedMeshBody>,
+    mut controlled: Query<&mut MeshHead>,
+    ut: Res<UIdTranslator>,
+) {
+    for (eid, head, children) in heads.iter() {
+        match children {
+            Some(children) => {
+                for child in children {
+                    let Ok(mut body) = bodies.get_mut(*child) else {
+                        commands.entity(eid).remove::<Children>();
+                        continue;
+                    };
+                    if &body.last_head == head {
+                        continue;
+                    }
+
+                    let inner_eid = ut.get_entity(body.inner_uid);
+                    let outer_eid = ut.get_entity(body.outer_uid);
+                    if inner_eid.is_none() || outer_eid.is_none() {
+                        continue;
+                    }
+                    let inner_eid = inner_eid.unwrap();
+                    let outer_eid = outer_eid.unwrap();
+
+                    let inner_head = controlled.get_mut(inner_eid);
+                    if let Ok(mut inner_head) = inner_head {
+                        inner_head.points = outline_int_points(&head.points, -head.border_width);
+                        inner_head.path = head.inner_path.clone();
+                        inner_head.texture_kind = MeshTextureKind::Repeating(head.inner_size);
+                        inner_head.render_layers = head.render_layers.clone();
+                        inner_head.scroll = head.scroll;
+                    }
+
+                    let outer_head = controlled.get_mut(outer_eid);
+                    if let Ok(mut outer_head) = outer_head {
+                        outer_head.points = head.points.clone();
+                        outer_head.path = head.outer_path.clone();
+                        outer_head.texture_kind = MeshTextureKind::Repeating(head.outer_size);
+                        outer_head.render_layers = head.render_layers.clone();
+                        outer_head.scroll = head.scroll;
+                    }
+
+                    body.last_head = head.clone();
+                }
+            }
+            None => {
+                // First make the mesh head stubs and group them
+                let inner_uid = fresh_uid();
+                let outer_uid = fresh_uid();
+                let inner_head = MeshHeadStub {
+                    uid: inner_uid,
+                    head: MeshHead {
+                        path: head.inner_path.clone(),
+                        points: outline_int_points(&head.points, -head.border_width),
+                        render_layers: head.render_layers.clone(),
+                        texture_kind: MeshTextureKind::Repeating(head.inner_size),
+                        ..default()
+                    },
+                };
+                let outer_head = MeshHeadStub {
+                    uid: outer_uid,
+                    head: MeshHead {
+                        path: head.outer_path.clone(),
+                        points: head.points.clone(),
+                        render_layers: head.render_layers.clone(),
+                        texture_kind: MeshTextureKind::Repeating(head.outer_size),
+                        offset: Vec3::new(0.0, 0.0, -0.5),
+                        ..default()
+                    },
+                };
+                let mesh_head_stubs = MeshHeadStubs(vec![inner_head, outer_head]);
+
+                // Then spawn the bordered body with the stubs
+                let mut bordered_body_eid = Entity::PLACEHOLDER;
+                commands.entity(eid).with_children(|parent| {
+                    bordered_body_eid = parent
+                        .spawn((
+                            SpatialBundle::from_transform(Transform::from_translation(head.offset)),
+                            BorderedMeshBody {
+                                last_head: head.clone(),
+                                inner_uid,
+                                outer_uid,
+                            },
+                            SaveMarker,
+                            mesh_head_stubs,
+                        ))
+                        .id();
                 });
             }
         }

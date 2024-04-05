@@ -11,7 +11,7 @@ use crate::{
         bordered_mesh::BorderedMesh,
         layering::{sprite_layer, sprite_layer_u8},
         mesh::outline_points,
-        mesh_head::{MeshHead, MeshHeadStub, MeshHeadStubs, MeshTextureKind},
+        mesh_head::{BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs},
         sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
@@ -42,7 +42,7 @@ pub(super) struct EPlanetField {
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanet {
     pub rock_points: Vec<UId>,
-    pub rock_mesh_uid: UId,
+    pub bordered_mesh_uid: UId,
     pub wild_points: Vec<UId>,
     pub fields: Vec<EPlanetField>,
 }
@@ -64,20 +64,23 @@ pub(super) struct EPlanetBundle {
 impl EPlanetBundle {
     pub fn new(pos: IVec2) -> (Self, impl Bundle) {
         let core_uid = fresh_uid();
-        let rock_mesh_uid = fresh_uid();
-        let mesh_head_stubs = MeshHeadStubs(vec![MeshHeadStub {
-            uid: rock_mesh_uid,
-            head: MeshHead {
-                path: "textures/play_inner.png".to_string(),
+        let bordered_mesh_uid = fresh_uid();
+        let bordered_mesh_head_stubs = BorderedMeshHeadStubs(vec![BorderedMeshHeadStub {
+            uid: bordered_mesh_uid,
+            head: BorderedMeshHead {
+                inner_path: "textures/play_inner.png".to_string(),
+                inner_size: UVec2::new(36, 36),
+                outer_path: "textures/play_outer.png".to_string(),
+                outer_size: UVec2::new(36, 36),
                 render_layers: vec![sprite_layer_u8()],
-                texture_kind: MeshTextureKind::Repeating(UVec2::new(36, 36)),
+                border_width: 6.0,
                 ..default()
             },
         }]);
         let bund = EPlanetBundle {
             uid: UIdMarker(core_uid),
             eplanet: EPlanet {
-                rock_mesh_uid,
+                bordered_mesh_uid,
                 ..default()
             },
             spatial: SpatialBundle::from_transform(Transform::from_translation(
@@ -86,7 +89,7 @@ impl EPlanetBundle {
             moveable: IntMoveable::new(pos.extend(0)),
             save: SaveMarker,
         };
-        (bund, mesh_head_stubs)
+        (bund, bordered_mesh_head_stubs)
     }
 }
 
@@ -509,9 +512,10 @@ pub(super) fn cleanup_degen_fields(
             let Some(eid) = ut.get_entity(uid) else {
                 continue;
             };
-            let point = points.get(eid).unwrap();
-            if point.1.kind == EPointKind::Field {
-                commands.entity(eid).insert(FeralEPoint);
+            if let Ok(point) = points.get(eid) {
+                if point.1.kind == EPointKind::Field {
+                    commands.entity(eid).insert(FeralEPoint);
+                }
             }
         }
     }
@@ -686,7 +690,7 @@ pub(super) fn update_field_gravity(
 pub(super) fn drive_planet_meshes(
     points: Query<(Entity, &UIdMarker, &EPoint, &IntMoveable, &Parent)>,
     eplanets: Query<&EPlanet>,
-    mut mesh_heads: Query<&mut MeshHead>,
+    mut bordered_mesh_heads: Query<&mut BorderedMeshHead>,
     ut: Res<UIdTranslator>,
 ) {
     for eplanet in eplanets.iter() {
@@ -700,8 +704,8 @@ pub(super) fn drive_planet_meshes(
                 mesh_points.push(mv.pos.truncate());
             }
         }
-        if let Some(id) = ut.get_entity(eplanet.rock_mesh_uid) {
-            if let Ok(mut head) = mesh_heads.get_mut(id) {
+        if let Some(id) = ut.get_entity(eplanet.bordered_mesh_uid) {
+            if let Ok(mut head) = bordered_mesh_heads.get_mut(id) {
                 head.points = mesh_points;
             }
         }

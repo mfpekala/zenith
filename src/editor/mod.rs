@@ -2,7 +2,7 @@ use crate::{
     drawing::{
         bordered_mesh::{BorderMeshType, BorderedMatData, BorderedMesh},
         mesh::{ScrollSprite, SpriteInfo},
-        mesh_head::MeshHead,
+        mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead},
         sprite_head::SpriteHead,
     },
     meta::{
@@ -146,6 +146,8 @@ impl Plugin for EditorPlugin {
         app.register_type::<IntMoveable>();
         app.register_type::<UIdMarker>();
         app.register_type::<SpriteHead>();
+        app.register_type::<BorderedMeshHead>();
+        app.register_type::<BorderedMeshBody>();
         app.register_type::<MeshHead>();
         app.register_type::<SaveMarker>();
 

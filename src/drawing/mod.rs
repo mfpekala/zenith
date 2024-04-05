@@ -7,7 +7,10 @@ use self::{
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
     mesh::scroll_sprite_materials,
-    mesh_head::{resolve_mesh_head_stubs, update_mesh_heads},
+    mesh_head::{
+        resolve_bordered_mesh_head_stubs, resolve_mesh_head_stubs, update_bordered_mesh_heads,
+        update_mesh_heads,
+    },
     sprite_head::{resolve_sprite_head_stubs, update_sprite_heads},
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
@@ -72,6 +75,10 @@ pub fn register_drawing(app: &mut App) {
 
     app.add_systems(Update, (resolve_sprite_head_stubs, update_sprite_heads));
     app.add_systems(Update, (resolve_mesh_head_stubs, update_mesh_heads));
+    app.add_systems(
+        Update,
+        (resolve_bordered_mesh_head_stubs, update_bordered_mesh_heads),
+    );
 
     register_light(app);
 }

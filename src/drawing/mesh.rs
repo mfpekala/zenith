@@ -101,7 +101,7 @@ pub fn uvec2_bound(points: &Vec<Vec2>) -> UVec2 {
     }
 }
 
-/// Given a list of points, return points that retain the same shape, but are produce an outline
+/// Given a list of points, return points that retain the same shape, but produce an outline
 pub fn outline_points(points: &Vec<Vec2>, width: f32) -> Vec<Vec2> {
     let mut new_points = vec![];
     for (ix, point) in points.iter().enumerate() {
@@ -114,6 +114,15 @@ pub fn outline_points(points: &Vec<Vec2>, width: f32) -> Vec<Vec2> {
         new_points.push(*point + perp * width);
     }
     new_points
+}
+
+/// Given a list of integer points, return points that retain the same shape, but produce an outline
+pub fn outline_int_points(points: &Vec<IVec2>, width: f32) -> Vec<IVec2> {
+    let fpoints: Vec<Vec2> = points.clone().into_iter().map(|p| p.as_vec2()).collect();
+    let fres = outline_points(&fpoints, width);
+    fres.into_iter()
+        .map(|p| IVec2::new(p.x.round() as i32, p.y.round() as i32))
+        .collect()
 }
 
 #[derive(Component)]
