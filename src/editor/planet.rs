@@ -14,7 +14,6 @@ use crate::{
             BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs, MeshHead, MeshHeadStub,
             MeshHeadStubs, MeshTextureKind,
         },
-        sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
     input::MouseState,

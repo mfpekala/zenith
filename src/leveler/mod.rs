@@ -5,10 +5,7 @@ use crate::{
         rock::{Rock, RockResources},
         starting_point::StartingPoint,
     },
-    meta::{
-        game_state::{entered_level, GameState, LevelState, MetaState, SetGameState},
-        level_data::LevelData,
-    },
+    meta::game_state::{entered_level, GameState, MetaState, SetGameState},
     ship::{Ship, SpawnShipId},
     when_becomes_true,
 };
@@ -30,12 +27,12 @@ pub fn is_level_not_won(gs: Res<GameState>) -> bool {
 when_becomes_true!(is_level_won_helper, entered_won_level);
 
 fn setup_helper(
-    level_id: String,
-    commands: &mut Commands,
-    rock_res: &Res<RockResources>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    gs_writer: &mut EventWriter<SetGameState>,
-    spawn_ship_id: SystemId<(IVec2, f32)>,
+    _level_id: String,
+    _commands: &mut Commands,
+    _rock_res: &Res<RockResources>,
+    _meshes: &mut ResMut<Assets<Mesh>>,
+    _gs_writer: &mut EventWriter<SetGameState>,
+    _spawn_ship_id: SystemId<(IVec2, f32)>,
 ) {
     // let level_data =
     //     LevelData::load(get_level_folder().join(format!("{}.zenith", level_id))).unwrap();

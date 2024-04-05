@@ -151,8 +151,8 @@ pub fn resolve_dynos(
                 continue;
             }
             if let Ok(field) = fields.get(parent.get()) {
-                diff += field.dir * field.strength * *mult;
-                slowdown *= (1.0 - field.drag).powf(*mult);
+                diff += field.dir * field.strength.to_f32() * *mult;
+                slowdown *= (1.0 - field.drag.to_f32()).powf(*mult);
             }
         }
         dyno.vel += diff;

@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{math::MathLine, meta::consts::MAX_COLLISIONS_PER_FRAME};
+use crate::{
+    math::MathLine,
+    meta::consts::MAX_COLLISIONS_PER_FRAME,
+    uid::{UId, UIdMarker},
+};
 
 use super::dyno::IntDyno;
 
@@ -92,24 +96,46 @@ impl ColliderStaticBundle {
     }
 }
 
-#[derive(Bundle)]
-pub struct ColliderTriggerBundle {
-    _trigger: ColliderTrigger,
-    boundary: ColliderBoundary,
-    active: ColliderActive,
+pub struct ColliderTriggerStub {
+    pub uid: UId,
+    pub points: Vec<IVec2>,
+    pub active: bool,
 }
-impl ColliderTriggerBundle {
-    pub fn new(boundary_points: Vec<IVec2>, active: bool) -> Self {
-        Self {
-            _trigger: ColliderTrigger,
-            boundary: ColliderBoundary::from_points(boundary_points),
-            active: ColliderActive(active),
+
+#[derive(Component)]
+pub struct ColliderTriggerStubs(pub Vec<ColliderTriggerStub>);
+
+#[derive(Bundle)]
+struct ColliderTriggerBundle {
+    pub trigger: ColliderTrigger,
+    pub boundary: ColliderBoundary,
+    pub active: ColliderActive,
+}
+
+/// Materialize the collider stubs, creating actual colliders
+pub(super) fn materialize_collider_stubs(
+    mut commands: Commands,
+    trigger_stubs: Query<(Entity, &ColliderTriggerStubs)>,
+) {
+    for (eid, stubs) in trigger_stubs.iter() {
+        for stub in stubs.0.iter() {
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    UIdMarker(stub),
+                    ColliderTriggerBundle {
+                        trigger: ColliderTrigger,
+                        boundary: ColliderBoundary::from_points(stub.points.clone()),
+                        active: ColliderActive(stub.active),
+                    },
+                ));
+            });
         }
+        commands.entity(eid).remove::<ColliderTriggerStubs>();
     }
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
-pub fn resolve_static_collisions(
+pub(super) fn resolve_static_collisions(
     dyno: &mut IntDyno,
     statics: &Query<(
         Entity,
@@ -182,7 +208,7 @@ pub fn resolve_static_collisions(
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
-pub fn resolve_trigger_collisions(
+pub(super) fn resolve_trigger_collisions(
     dyno: &mut IntDyno,
     triggers: &Query<(
         Entity,
@@ -210,7 +236,6 @@ pub fn resolve_trigger_collisions(
     }
 }
 
-/// TODO: A function to go through all the dynos and mark ids of trigger colliders they are in
 pub fn update_triggers(
     mut dynos: Query<&mut IntDyno>,
     triggers: Query<(
@@ -224,5 +249,3 @@ pub fn update_triggers(
         resolve_trigger_collisions(dyno.as_mut(), &triggers);
     }
 }
-
-pub fn register_colliders(_app: &mut App) {}

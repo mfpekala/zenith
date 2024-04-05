@@ -125,11 +125,14 @@ pub fn is_not_in_cutscene(res: Res<Cutscene>) -> bool {
     }
 }
 
+#[allow(unused)]
 #[derive(Component)]
 struct PlayDelay(pub Timer);
+#[allow(unused)]
 fn play_setup(mut commands: Commands) {
     commands.spawn(PlayDelay(Timer::from_seconds(0.2, TimerMode::Once)));
 }
+#[allow(unused)]
 fn play_update(
     mut commands: Commands,
     mut play_delay: Query<(Entity, &mut PlayDelay)>,

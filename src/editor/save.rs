@@ -3,7 +3,6 @@ use std::{fs, ops::Deref};
 use bevy::{
     ecs::{entity::EntityHashMap, system::SystemState},
     prelude::*,
-    sprite::Mesh2dHandle,
     utils::HashSet,
 };
 use rand::{thread_rng, Rng};
@@ -15,10 +14,7 @@ use super::{
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
-use crate::{
-    drawing::sprite_mat::SpriteMaterial,
-    meta::game_state::{EditingMode, SetGameState},
-};
+use crate::meta::game_state::{EditingMode, SetGameState};
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
