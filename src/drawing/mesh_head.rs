@@ -1,4 +1,7 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{
+    prelude::*,
+    render::{primitives::Aabb, view::RenderLayers},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -137,6 +140,7 @@ pub(super) fn update_mesh_heads(
                     }
                     let bund = get_bund(head);
                     commands.entity(cid).insert(bund);
+                    commands.entity(cid).remove::<Aabb>();
                 }
             }
             None => {

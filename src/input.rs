@@ -53,15 +53,15 @@ pub fn watch_mouse(
         // Camera not found, don't do anything
         return;
     };
-    let scale_down_to_screen =
-        (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32) * camera_marker.scale.to_f32();
+    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32);
     mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
     mouse_pos *= scale_down_to_screen;
     let fworld_pos = camera_tran.translation.truncate()
-        - Vec2 {
-            x: camera_marker.scale.to_f32() * (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
-            y: -camera_marker.scale.to_f32() * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
-        };
+        - camera_marker.scale.to_f32()
+            * Vec2 {
+                x: (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
+                y: -1.0 * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
+            };
     mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
 
     mouse_state.left_pressed = buttons.pressed(MouseButton::Left);

@@ -1,8 +1,10 @@
 use crate::{
+    camera::CameraMode,
     drawing::{
         mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead, ScrollSpriteMat},
         sprite_head::SpriteHead,
     },
+    input::{watch_camera_input, SetCameraModeEvent},
     meta::{
         game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
         level_data::LevelData,
@@ -84,7 +86,11 @@ struct LevelEditingHandle(pub Handle<LevelData>);
 #[derive(Resource, bevy::asset::Asset, bevy::reflect::TypePath)]
 struct LevelEditingData(pub LevelData);
 
-fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_editor(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut set_event: EventWriter<SetCameraModeEvent>,
+) {
     let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
     commands.spawn(LevelEditingHandle(handle));
     commands.spawn((
@@ -92,6 +98,9 @@ fn setup_editor(mut commands: Commands, asset_server: Res<AssetServer>) {
         SpatialBundle::default(),
         Name::new("EditingRoot"),
     ));
+    set_event.send(SetCameraModeEvent {
+        mode: CameraMode::Free,
+    });
 }
 
 fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {
@@ -111,7 +120,6 @@ fn watch_level_editing_asset(
     if let Some(data) = asset.get(handle.0.id()) {
         if *data != res.0 {
             res.0 = data.clone();
-            println!("updated data to: {:?}", data);
         }
     }
 }
@@ -162,7 +170,12 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, read_editor_help_output.run_if(in_editor));
         app.add_systems(Update, teardown_editor_help.run_if(left_editor));
         app.add_systems(Update, run_help_bar_command.run_if(in_editor));
-        app.add_systems(Update, editor_help_input.run_if(in_editor));
+        app.add_systems(
+            Update,
+            editor_help_input
+                .run_if(in_editor)
+                .before(watch_camera_input),
+        );
 
         // Points
         app.add_systems(

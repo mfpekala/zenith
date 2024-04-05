@@ -15,7 +15,10 @@ use super::{
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
-use crate::drawing::sprite_mat::SpriteMaterial;
+use crate::{
+    drawing::sprite_mat::SpriteMaterial,
+    meta::game_state::{EditingMode, SetGameState},
+};
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -245,15 +248,17 @@ pub(super) fn load_editor(
         EventReader<LoadEditorEvent>,
         Res<AssetServer>,
         ResMut<FuckySceneResource>,
+        EventWriter<SetGameState>,
     )>,
 ) {
-    let (mut loads, _, _) = params.get_mut(world);
+    let (mut loads, _, _, _) = params.get_mut(world);
     if loads.read().count() <= 0 {
         return;
     }
-    let (_, asset_server, mut fucky_scene) = params.get_mut(world);
+    let (_, asset_server, mut fucky_scene, mut set_gs) = params.get_mut(world);
     let scene_handle: Handle<DynamicScene> = asset_server.load("test.scn.ron");
     *fucky_scene = FuckySceneResource(Some(scene_handle));
+    set_gs.send(SetGameState(EditingMode::Free.to_game_state()));
 }
 
 pub(super) fn fix_after_load(

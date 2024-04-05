@@ -81,7 +81,6 @@ fn watch_level_editing_asset(
     if let Some(data) = asset.get(handle.0.id()) {
         if *data != res.0 {
             res.0 = data.clone();
-            println!("updated data to: {:?}", data);
         }
     }
 }
