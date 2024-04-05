@@ -8,10 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
-        bordered_mesh::BorderedMesh,
-        layering::{sprite_layer, sprite_layer_u8},
+        layering::sprite_layer_u8,
         mesh::outline_points,
-        mesh_head::{BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs},
+        mesh_head::{
+            BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs, MeshHead, MeshHeadStub,
+            MeshHeadStubs, MeshTextureKind,
+        },
         sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
@@ -34,7 +36,7 @@ pub(super) struct FeralEPoint;
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanetField {
     pub field_points: Vec<UId>,
-    pub mesh_id: Entity,
+    pub mesh_uid: UId,
     dir: Vec2,
 }
 
@@ -73,7 +75,7 @@ impl EPlanetBundle {
                 outer_path: "textures/play_outer.png".to_string(),
                 outer_size: UVec2::new(36, 36),
                 render_layers: vec![sprite_layer_u8()],
-                border_width: 6.0,
+                border_width: 7.0,
                 ..default()
             },
         }]);
@@ -173,7 +175,9 @@ pub(super) fn redo_fields(
                 .despawn_recursive();
             despawned.insert(*id);
         }
-        commands.entity(field.mesh_id).despawn_recursive();
+        commands
+            .entity(ut.get_entity(field.mesh_uid).unwrap())
+            .despawn_recursive();
     }
     eplanet.fields.clear();
     // Make the new points
@@ -236,9 +240,6 @@ pub(super) fn resolve_pending_fields(
         ),
         Without<EPlanet>,
     >,
-    asset_server: Res<AssetServer>,
-    mut mats: ResMut<Assets<SpriteMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     ut: Res<UIdTranslator>,
 ) {
     let planet_id = match gs.get_editing_mode() {
@@ -276,6 +277,7 @@ pub(super) fn resolve_pending_fields(
     }
 
     // Spawn a mesh for each field, and add it to the planet
+    let mut field_mesh_stubs: Vec<MeshHeadStub> = vec![];
     for (_, items) in group_map.into_iter() {
         let mut points_n_ids = vec![];
         let mut center = Vec2::ZERO;
@@ -321,27 +323,29 @@ pub(super) fn resolve_pending_fields(
         commands
             .entity(ut.get_entity(id_order[0]).unwrap())
             .insert(UpdateFieldGravity); // Triggers the field's gravity to update on the next frame
-        commands.entity(planet_id).with_children(|parent| {
-            let mesh_id = BorderedMesh::spawn_easy(
-                parent,
-                &asset_server,
-                &mut meshes,
-                &mut mats,
-                mesh_points,
-                ("sprites/field/field_bg.png", UVec2::new(12, 12)),
-                None,
-                None,
-                sprite_layer(),
-                -1,
-            );
-            let field = EPlanetField {
-                field_points: id_order,
-                mesh_id,
-                dir: Vec2::ZERO,
-            };
-            eplanet.0.fields.push(field);
+
+        let mesh_uid = fresh_uid();
+        field_mesh_stubs.push(MeshHeadStub {
+            uid: mesh_uid,
+            head: MeshHead {
+                path: "sprites/field/field_bg.png".to_string(),
+                points: mesh_points,
+                render_layers: vec![sprite_layer_u8()],
+                texture_kind: MeshTextureKind::Repeating(UVec2::new(12, 12)),
+                offset: Vec3::new(0.0, 0.0, -1.0),
+                ..default()
+            },
         });
+        let field = EPlanetField {
+            field_points: id_order,
+            mesh_uid,
+            dir: Vec2::ZERO,
+        };
+        eplanet.0.fields.push(field);
     }
+    commands
+        .entity(planet_id)
+        .insert(MeshHeadStubs(field_mesh_stubs));
 
     // Cleanup all the groups and turn wild points into field points
     for (id, mut point, mut mv, _, parent, eid) in points.iter_mut() {
@@ -441,17 +445,17 @@ pub(super) fn remove_field(
     let mut maybe_feral = HashSet::new();
     for field in eplanet.fields.iter_mut() {
         if selected_ids.iter().all(|p| field.field_points.contains(p)) {
-            commands.entity(field.mesh_id).despawn_recursive();
+            if let Some(eid) = ut.get_entity(field.mesh_uid) {
+                commands.entity(eid).despawn_recursive();
+            }
             for id in field.field_points.iter() {
                 maybe_feral.insert(*id);
             }
             // hackety hack
-            field.mesh_id = Entity::PLACEHOLDER;
+            field.mesh_uid = 0;
         }
     }
-    eplanet
-        .fields
-        .retain(|field| field.mesh_id != Entity::PLACEHOLDER);
+    eplanet.fields.retain(|field| field.mesh_uid != 0);
     for id in maybe_feral.into_iter() {
         let point = points.get(ut.get_entity(id).unwrap()).unwrap();
         if point.1.kind != EPointKind::Field {
@@ -503,11 +507,9 @@ pub(super) fn cleanup_degen_fields(
     }
     eplanet.fields.retain(|f| !should_purge_field(f));
     for field in purged_fields {
-        // TODO: Code below is going to be good
-        // if let Some(eid) = ut.get_entity(field.mesh_id) {
-        // commands.entity(eid).despawn_recursive();
-        // }
-        commands.entity(field.mesh_id).despawn_recursive();
+        if let Some(eid) = ut.get_entity(field.mesh_uid) {
+            commands.entity(eid).despawn_recursive();
+        }
         for uid in field.field_points {
             let Some(eid) = ut.get_entity(uid) else {
                 continue;
@@ -691,6 +693,7 @@ pub(super) fn drive_planet_meshes(
     points: Query<(Entity, &UIdMarker, &EPoint, &IntMoveable, &Parent)>,
     eplanets: Query<&EPlanet>,
     mut bordered_mesh_heads: Query<&mut BorderedMeshHead>,
+    mut mesh_heads: Query<&mut MeshHead>,
     ut: Res<UIdTranslator>,
 ) {
     for eplanet in eplanets.iter() {
@@ -730,10 +733,12 @@ pub(super) fn drive_planet_meshes(
                     }
                 }
             }
-            // if let Ok(mut bm) = bms.get_mut(field.mesh_id) {
-            //     bm.points = mesh_points;
-            //     bm.scroll = field.dir / 4.0;
-            // }
+            if let Some(eid) = ut.get_entity(field.mesh_uid) {
+                if let Ok(mut head) = mesh_heads.get_mut(eid) {
+                    head.points = mesh_points;
+                    head.scroll = field.dir / 4.0;
+                }
+            }
         }
     }
 }

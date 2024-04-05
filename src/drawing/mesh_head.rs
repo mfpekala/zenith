@@ -106,7 +106,17 @@ pub(super) fn update_mesh_heads(
         } else {
             Visibility::Inherited
         };
+        let scroll_basis = match head.texture_kind {
+            MeshTextureKind::Repeating(size) => size.as_vec2(),
+            _ => Vec2::ONE,
+        };
         (
+            ScrollSpriteMat {
+                vel: Vec2::new(
+                    head.scroll.x / scroll_basis.x,
+                    head.scroll.y / scroll_basis.y,
+                ),
+            },
             mesh,
             RenderLayers::from_layers(&head.render_layers),
             MeshBody {
@@ -291,5 +301,26 @@ pub(super) fn update_bordered_mesh_heads(
                 });
             }
         }
+    }
+}
+
+#[derive(Component, Debug, Clone, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct ScrollSpriteMat {
+    pub vel: Vec2,
+}
+
+pub(super) fn scroll_sprite_materials(
+    sprites_q: Query<(&ScrollSpriteMat, &Handle<SpriteMaterial>)>,
+    mut mats: ResMut<Assets<SpriteMaterial>>,
+) {
+    for (scroll, mat_hand) in sprites_q.iter() {
+        let Some(mat) = mats.get_mut(mat_hand.id()) else {
+            continue;
+        };
+        mat.x -= scroll.vel.x;
+        mat.y += scroll.vel.y;
+        mat.x = mat.x.rem_euclid(1.0);
+        mat.y = mat.y.rem_euclid(1.0);
     }
 }

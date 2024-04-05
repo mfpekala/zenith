@@ -15,10 +15,7 @@ use super::{
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
-use crate::drawing::{
-    bordered_mesh::{BorderMeshType, BorderedMesh},
-    sprite_mat::SpriteMaterial,
-};
+use crate::drawing::sprite_mat::SpriteMaterial;
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -316,29 +313,5 @@ pub(super) fn connect_parents(
         .chain(orphan_goal.iter())
     {
         commands.entity(eroot).push_children(&[id]);
-    }
-}
-
-pub(super) fn resolve_holes(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    bms: Query<&BorderedMesh>,
-    border_meshes: Query<
-        (Entity, &BorderMeshType, &Parent),
-        Or<(Without<Handle<SpriteMaterial>>, Without<Mesh2dHandle>)>,
-    >,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mats: ResMut<Assets<SpriteMaterial>>,
-) {
-    for (id, kind, parent) in border_meshes.iter() {
-        let bm = bms.get(parent.get()).unwrap();
-        let is_inner = &kind.0 == "inner";
-        let Some((new_mesh_handle, new_sprite_handle)) =
-            bm.regen(is_inner, &asset_server, &mut meshes, &mut mats)
-        else {
-            continue;
-        };
-        commands.entity(id).insert(new_mesh_handle);
-        commands.entity(id).insert(new_sprite_handle);
     }
 }

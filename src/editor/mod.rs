@@ -1,8 +1,6 @@
 use crate::{
     drawing::{
-        bordered_mesh::{BorderMeshType, BorderedMatData, BorderedMesh},
-        mesh::{ScrollSprite, SpriteInfo},
-        mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead},
+        mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead, ScrollSpriteMat},
         sprite_head::SpriteHead,
     },
     meta::{
@@ -33,8 +31,8 @@ use self::{
         spawn_points, update_point_sprites, EPoint,
     },
     save::{
-        cleanup_load, connect_parents, fix_after_load, load_editor, resolve_holes, save_editor,
-        CleanupLoadEvent, FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
+        cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
+        FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
     start_goal::{spawn_or_update_start_goal, start_goal_drag},
 };
@@ -137,7 +135,6 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, save_editor.run_if(in_editor));
         app.add_systems(Update, load_editor.run_if(in_editor));
         app.add_systems(Update, connect_parents.run_if(in_editor));
-        app.add_systems(Update, resolve_holes.run_if(in_editor));
         app.add_systems(Update, fix_after_load.run_if(in_editor));
         app.add_systems(Update, cleanup_load.run_if(in_editor));
         app.register_type::<EditingSceneRoot>();
@@ -149,6 +146,7 @@ impl Plugin for EditorPlugin {
         app.register_type::<BorderedMeshHead>();
         app.register_type::<BorderedMeshBody>();
         app.register_type::<MeshHead>();
+        app.register_type::<ScrollSpriteMat>();
         app.register_type::<SaveMarker>();
 
         // Help system

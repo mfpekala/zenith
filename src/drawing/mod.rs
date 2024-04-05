@@ -2,14 +2,12 @@ use crate::environment::background::BackgroundPlugin;
 
 use self::{
     animated::MyAnimationPlugin,
-    bordered_mesh::bordered_mesh_trickle_down,
     effects::EffectsPlugin,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
-    mesh::scroll_sprite_materials,
     mesh_head::{
-        resolve_bordered_mesh_head_stubs, resolve_mesh_head_stubs, update_bordered_mesh_heads,
-        update_mesh_heads,
+        resolve_bordered_mesh_head_stubs, resolve_mesh_head_stubs, scroll_sprite_materials,
+        update_bordered_mesh_heads, update_mesh_heads,
     },
     sprite_head::{resolve_sprite_head_stubs, update_sprite_heads},
     sprite_mat::SpriteMaterialPlugin,
@@ -18,7 +16,6 @@ use self::{
 use bevy::prelude::*;
 
 pub mod animated;
-pub mod bordered_mesh;
 pub mod effects;
 pub mod layering;
 pub mod light;
@@ -71,8 +68,6 @@ pub fn register_drawing(app: &mut App) {
     app.init_gizmo_group::<BgLightGizmoGroup>();
 
     app.add_systems(FixedUpdate, scroll_sprite_materials);
-    app.add_systems(Update, bordered_mesh_trickle_down);
-
     app.add_systems(Update, (resolve_sprite_head_stubs, update_sprite_heads));
     app.add_systems(Update, (resolve_mesh_head_stubs, update_mesh_heads));
     app.add_systems(
