@@ -1,7 +1,10 @@
 use crate::{
     add_hot_resource,
     drawing::layering::menu_layer,
-    meta::game_state::{EditingMode, EditorState, GameState, SetGameState},
+    meta::{
+        game_state::{EditingMode, EditorState, GameState, SetGameState},
+        level_data::LevelDataOneshots,
+    },
 };
 use bevy::{prelude::*, render::view::RenderLayers};
 use std::fmt;
@@ -408,6 +411,8 @@ pub(super) fn run_help_bar_command(
     mut load_editor_writer: EventWriter<LoadEditorEvent>,
     mut load_cleanup_writer: EventWriter<CleanupLoadEvent>,
     mut gs_writer: EventWriter<SetGameState>,
+    mut commands: Commands,
+    level_oneshots: Res<LevelDataOneshots>,
 ) {
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
@@ -435,6 +440,8 @@ pub(super) fn run_help_bar_command(
         gs_writer.send(SetGameState(EditorState::Testing.to_game_state()));
     } else if &help_bar.input == "edit" {
         gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+    } else if &help_bar.input == "export" {
+        commands.run_system(level_oneshots.export_level_id);
     } else {
         send_output(&format!("INVALID COMMAND: {}", help_bar.input));
     }

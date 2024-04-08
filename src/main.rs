@@ -25,6 +25,7 @@ use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
+    MetaPlugin,
 };
 use physics::PhysicsPlugin;
 use ship::register_ship;
@@ -61,6 +62,7 @@ fn main() {
     app.add_plugins(SoundPlugin);
     app.add_plugins(EditorPlugin);
     app.add_plugins(PhysicsPlugin);
+    app.add_plugins(MetaPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();

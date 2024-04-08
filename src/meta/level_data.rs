@@ -1,8 +1,14 @@
-use bevy::prelude::*;
+use bevy::{
+    ecs::system::{SystemId, SystemState},
+    prelude::*,
+};
 
-use crate::environment::{
-    field::{FieldDrag, FieldStrength},
-    rock::RockKind,
+use crate::{
+    editor::{planet::EPlanet, point::EPoint},
+    environment::{
+        field::{FieldDrag, FieldStrength},
+        rock::RockKind,
+    },
 };
 
 /// For rehydrating exported level data (saves, intermediate editor output) into spawnable things
@@ -66,3 +72,25 @@ pub struct LevelData {
     fields: Vec<ExportedField>,
 }
 impl LevelData {}
+
+/// A struct that contains SystemIds for systems relating to exporting/loading levels
+#[derive(Resource)]
+pub struct LevelDataOneshots {
+    pub export_level_id: SystemId,
+}
+
+pub(super) fn export_level(
+    world: &mut World,
+    params: &mut SystemState<(
+        Query<&GlobalTransform, With<EPoint>>,
+        Query<(&EPlanet, &GlobalTransform)>,
+    )>,
+) {
+    let (points_q, planets_q) = params.get(world);
+    for point in points_q.iter() {
+        println!("Point: {:?}", point);
+    }
+    for planet in planets_q.iter() {
+        println!("Planet: {:?}", planet);
+    }
+}
