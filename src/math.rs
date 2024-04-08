@@ -151,6 +151,22 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     points
 }
 
+pub fn icenter(points: &Vec<IVec2>) -> IVec2 {
+    if points.len() == 0 {
+        return IVec2::ZERO;
+    }
+    let mut center = Vec2::ZERO;
+    for point in points.iter() {
+        center += point.as_vec2();
+    }
+    center = center / points.len() as f32;
+    IVec2::new(center.x.round() as i32, center.y.round() as i32)
+}
+
+pub fn irecenter(points: Vec<IVec2>, center: &IVec2) -> Vec<IVec2> {
+    points.into_iter().map(|p| p - *center).collect()
+}
+
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
 }

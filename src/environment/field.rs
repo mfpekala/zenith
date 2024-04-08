@@ -1,10 +1,18 @@
 use crate::{
-    drawing::{layering::sprite_layer, mesh_head::MeshHeadStubs},
-    physics::collider::{ColliderTriggerBundle, ColliderTriggerStubs},
+    drawing::{
+        layering::sprite_layer_u8,
+        mesh_head::{MeshHead, MeshHeadStub, MeshHeadStubs, MeshTextureKind},
+    },
+    math::{icenter, irecenter},
+    meta::level_data::{ExportedField, Rehydrate},
+    physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
+    uid::fresh_uid,
 };
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Component, PartialEq, Debug, Clone, Copy, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub enum FieldStrength {
     #[default]
     Normal,
@@ -17,7 +25,8 @@ impl FieldStrength {
     }
 }
 
-#[derive(Default, Debug, Clone, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Component, PartialEq, Debug, Clone, Copy, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub enum FieldDrag {
     #[default]
     Normal,
@@ -44,4 +53,41 @@ pub struct FieldBundle {
     pub spatial: SpatialBundle,
     pub mesh_stubs: MeshHeadStubs,
     pub trigger_stubs: ColliderTriggerStubs,
+}
+
+impl Rehydrate<FieldBundle> for ExportedField {
+    fn rehydrate(self) -> FieldBundle {
+        let field = Field {
+            dir: self.dir,
+            strength: self.strength,
+            drag: self.drag,
+        };
+        let center = icenter(&self.points);
+        let new_points = irecenter(self.points, &center);
+        let spatial = SpatialBundle::from_transform(Transform::from_translation(
+            center.as_vec2().extend(0.0),
+        ));
+        let mesh = MeshHeadStub {
+            uid: fresh_uid(),
+            head: MeshHead {
+                path: "sprites/field/field_bg.png".to_string(),
+                points: new_points.clone(),
+                render_layers: vec![sprite_layer_u8()],
+                texture_kind: MeshTextureKind::Repeating(UVec2::new(12, 12)),
+                scroll: self.dir,
+                ..default()
+            },
+        };
+        let trigger = ColliderTriggerStub {
+            uid: fresh_uid(),
+            points: new_points,
+            active: true,
+        };
+        FieldBundle {
+            field,
+            spatial,
+            mesh_stubs: MeshHeadStubs(vec![mesh]),
+            trigger_stubs: ColliderTriggerStubs(vec![trigger]),
+        }
+    }
 }

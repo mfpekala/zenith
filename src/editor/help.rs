@@ -1,7 +1,7 @@
 use crate::{
     add_hot_resource,
     drawing::layering::menu_layer,
-    meta::game_state::{EditingMode, GameState},
+    meta::game_state::{EditingMode, EditorState, GameState, SetGameState},
 };
 use bevy::{prelude::*, render::view::RenderLayers};
 use std::fmt;
@@ -223,7 +223,7 @@ pub(super) fn update_editor_help_box(
     for (mut kv, mut text) in kvs.iter_mut() {
         if &kv.key == "Mode" {
             let mode_string = match mode {
-                None => "None".to_string(),
+                None => "TESTING".to_string(),
                 Some(thing) => match thing {
                     EditingMode::Free => "free".to_string(),
                     EditingMode::CreatingPlanet(id) => format!("create({:?})", id),
@@ -407,6 +407,7 @@ pub(super) fn run_help_bar_command(
     mut save_editor_writer: EventWriter<SaveEditorEvent>,
     mut load_editor_writer: EventWriter<LoadEditorEvent>,
     mut load_cleanup_writer: EventWriter<CleanupLoadEvent>,
+    mut gs_writer: EventWriter<SetGameState>,
 ) {
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
@@ -430,6 +431,10 @@ pub(super) fn run_help_bar_command(
         load_editor_writer.send(LoadEditorEvent);
     } else if &help_bar.input == "cleanup_load" {
         load_cleanup_writer.send(CleanupLoadEvent);
+    } else if &help_bar.input == "test" {
+        gs_writer.send(SetGameState(EditorState::Testing.to_game_state()));
+    } else if &help_bar.input == "edit" {
+        gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
     } else {
         send_output(&format!("INVALID COMMAND: {}", help_bar.input));
     }

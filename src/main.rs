@@ -4,11 +4,9 @@ pub mod drawing;
 pub mod editor;
 pub mod environment;
 pub mod input;
-pub mod leveler;
 pub mod math;
 pub mod menu;
 pub mod meta;
-// pub mod old_editor;
 pub mod physics;
 pub mod ship;
 pub mod sound;
@@ -23,13 +21,12 @@ use drawing::register_drawing;
 use editor::EditorPlugin;
 use environment::register_environment;
 use input::register_input;
-use leveler::register_leveler;
 use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
 };
-use physics::register_physics;
+use physics::PhysicsPlugin;
 use ship::register_ship;
 use sound::SoundPlugin;
 use uid::UIdPlugin;
@@ -63,6 +60,7 @@ fn main() {
     app.add_plugins(WorldInspectorPlugin::new());
     app.add_plugins(SoundPlugin);
     app.add_plugins(EditorPlugin);
+    app.add_plugins(PhysicsPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();
@@ -77,9 +75,7 @@ fn main() {
     register_drawing(&mut app);
     register_environment(&mut app);
     register_input(&mut app);
-    register_leveler(&mut app);
     register_menus(&mut app);
-    register_physics(&mut app);
     register_ship(&mut app);
     app.run();
 }

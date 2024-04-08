@@ -80,20 +80,22 @@ pub struct ColliderTrigger;
 #[derive(Component, Debug)]
 pub struct ColliderActive(pub bool);
 
+pub struct ColliderStaticStub {
+    pub uid: UId,
+    pub points: Vec<IVec2>,
+    pub active: bool,
+    pub bounciness: f32,
+    pub friction: f32,
+}
+
+#[derive(Component)]
+pub struct ColliderStaticStubs(pub Vec<ColliderStaticStub>);
+
 #[derive(Bundle)]
 pub struct ColliderStaticBundle {
     _static: ColliderStatic,
     boundary: ColliderBoundary,
     active: ColliderActive,
-}
-impl ColliderStaticBundle {
-    pub fn new(stat: ColliderStatic, boundary_points: Vec<IVec2>, active: bool) -> Self {
-        Self {
-            _static: stat,
-            boundary: ColliderBoundary::from_points(boundary_points),
-            active: ColliderActive(active),
-        }
-    }
 }
 
 pub struct ColliderTriggerStub {
@@ -106,7 +108,7 @@ pub struct ColliderTriggerStub {
 pub struct ColliderTriggerStubs(pub Vec<ColliderTriggerStub>);
 
 #[derive(Bundle)]
-struct ColliderTriggerBundle {
+pub struct ColliderTriggerBundle {
     pub trigger: ColliderTrigger,
     pub boundary: ColliderBoundary,
     pub active: ColliderActive,
@@ -115,18 +117,40 @@ struct ColliderTriggerBundle {
 /// Materialize the collider stubs, creating actual colliders
 pub(super) fn materialize_collider_stubs(
     mut commands: Commands,
+    static_stubs: Query<(Entity, &ColliderStaticStubs)>,
     trigger_stubs: Query<(Entity, &ColliderTriggerStubs)>,
 ) {
+    // Statics
+    for (eid, stubs) in static_stubs.iter() {
+        for stub in stubs.0.iter() {
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    UIdMarker(stub.uid),
+                    ColliderStaticBundle {
+                        _static: ColliderStatic {
+                            bounciness: stub.bounciness,
+                            friction: stub.friction,
+                        },
+                        boundary: ColliderBoundary::from_points(stub.points.clone()),
+                        active: ColliderActive(stub.active),
+                    },
+                ));
+            });
+        }
+        commands.entity(eid).remove::<ColliderStaticStubs>();
+    }
+    // Triggers
     for (eid, stubs) in trigger_stubs.iter() {
         for stub in stubs.0.iter() {
             commands.entity(eid).with_children(|parent| {
                 parent.spawn((
-                    UIdMarker(stub),
+                    UIdMarker(stub.uid),
                     ColliderTriggerBundle {
                         trigger: ColliderTrigger,
                         boundary: ColliderBoundary::from_points(stub.points.clone()),
                         active: ColliderActive(stub.active),
                     },
+                    Name::new("ColliderTrigger"),
                 ));
             });
         }

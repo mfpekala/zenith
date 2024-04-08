@@ -16,6 +16,7 @@ use crate::{
         },
     },
     editor::point::EPointKind,
+    environment::rock::RockKind,
     input::MouseState,
     math::MathLine,
     meta::game_state::{EditingMode, GameState, SetGameState},
@@ -43,6 +44,7 @@ pub(super) struct EPlanetField {
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EPlanet {
     pub rock_points: Vec<UId>,
+    pub rock_kind: RockKind,
     pub bordered_mesh_uid: UId,
     pub wild_points: Vec<UId>,
     pub fields: Vec<EPlanetField>,

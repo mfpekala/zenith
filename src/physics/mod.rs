@@ -1,4 +1,4 @@
-use self::{collider::register_colliders, dyno::register_int_dynos};
+use self::{collider::materialize_collider_stubs, dyno::register_int_dynos};
 use crate::meta::game_state::{EditorState, GameState, MetaState};
 use bevy::prelude::*;
 
@@ -16,7 +16,10 @@ pub fn should_apply_physics(gs: Res<GameState>) -> bool {
     }
 }
 
-pub fn register_physics(app: &mut App) {
-    register_colliders(app);
-    register_int_dynos(app);
+pub struct PhysicsPlugin;
+impl Plugin for PhysicsPlugin {
+    fn build(&self, app: &mut App) {
+        register_int_dynos(app);
+        app.add_systems(Update, materialize_collider_stubs);
+    }
 }
