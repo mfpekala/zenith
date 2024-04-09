@@ -296,7 +296,6 @@ mod math_nerd {
     fn linear_regression_test() {
         let xs: Vec<f64> = vec![1.0, 2.0, 3.0];
         let ys: Vec<f64> = vec![0.0, 1.0, 2.0];
-        let out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
-        println!("out: {:?}", out);
+        let _out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
     }
 }

@@ -2,7 +2,11 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::{animated::AnimationBundleStub, layering::sprite_layer},
+    drawing::{animated::AnimationStubs, layering::sprite_layer},
+    environment::{
+        goal::{GoalSize, GoalStrength},
+        start::StartSize,
+    },
     input::MouseState,
     physics::dyno::IntMoveable,
 };
@@ -18,105 +22,18 @@ pub(super) struct EStartGoalDragOffset(pub Option<IVec2>);
 #[reflect(Component, Serialize, Deserialize)]
 pub(super) struct EStartGoalDiameter(pub u32);
 
-#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Serialize, Deserialize)]
-pub(super) enum EGoalSize {
-    #[default]
-    Medium,
-}
-impl EGoalSize {
-    pub fn to_diameter(&self) -> u32 {
-        match *self {
-            Self::Medium => 18,
-        }
-    }
-
-    pub fn to_path(&self) -> String {
-        match *self {
-            Self::Medium => "sprites/start_goal/goal18.png".to_string(),
-        }
-    }
-
-    pub fn length(&self) -> u8 {
-        match *self {
-            Self::Medium => 10,
-        }
-    }
-
-    pub fn to_animation_bundle_stub(&self) -> AnimationBundleStub {
-        let size = UVec2::new(self.to_diameter(), self.to_diameter());
-        AnimationBundleStub::single_repeating(
-            "shrinking",
-            &self.to_path(),
-            size,
-            self.length(),
-            None,
-        )
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Serialize, Deserialize)]
-pub(super) enum EStartSize {
-    #[default]
-    Medium,
-}
-impl EStartSize {
-    pub fn to_diameter(&self) -> u32 {
-        match *self {
-            Self::Medium => 18,
-        }
-    }
-
-    pub fn to_path(&self) -> String {
-        match *self {
-            Self::Medium => "sprites/start_goal/start18.png".to_string(),
-        }
-    }
-
-    pub fn length(&self) -> u8 {
-        match *self {
-            Self::Medium => 10,
-        }
-    }
-
-    pub fn to_animation_bundle_stub(&self) -> AnimationBundleStub {
-        let size = UVec2::new(self.to_diameter(), self.to_diameter());
-        AnimationBundleStub::single_repeating(
-            "shrinking",
-            &self.to_path(),
-            size,
-            self.length(),
-            None,
-        )
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Serialize, Deserialize)]
-pub(super) enum EGoalStrength {
-    #[default]
-    Medium,
-}
-impl EGoalStrength {
-    pub fn to_f32(&self) -> f32 {
-        match *self {
-            Self::Medium => 1.0,
-        }
-    }
-}
-
 #[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub(super) struct EGoal {
-    pub size: EGoalSize,
-    pub strength: EGoalStrength,
+pub struct EGoal {
+    pub size: GoalSize,
+    pub strength: GoalStrength,
 }
 
 #[derive(Bundle)]
 pub(super) struct EGoalBundle {
     pub egoal: EGoal,
-    pub animation: AnimationBundleStub,
+    pub animation: AnimationStubs,
+    pub spatial: SpatialBundle,
     pub mv: IntMoveable,
     pub render_layers: RenderLayers,
     pub offset: EStartGoalDragOffset,
@@ -125,14 +42,15 @@ pub(super) struct EGoalBundle {
 
 #[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub(super) struct EStart {
-    pub size: EStartSize,
+pub struct EStart {
+    pub size: StartSize,
 }
 
 #[derive(Bundle)]
 pub(super) struct EStartBundle {
     pub estart: EStart,
-    pub animation: AnimationBundleStub,
+    pub animation: AnimationStubs,
+    pub spatial: SpatialBundle,
     pub mv: IntMoveable,
     pub render_layers: RenderLayers,
     pub offset: EStartGoalDragOffset,
@@ -156,7 +74,8 @@ pub(super) fn spawn_or_update_start_goal(
                 commands.spawn(EGoalBundle {
                     egoal: EGoal::default(),
                     diameter: EStartGoalDiameter(EGoal::default().size.to_diameter()),
-                    animation: EGoalSize::Medium.to_animation_bundle_stub(),
+                    animation: AnimationStubs(vec![GoalSize::Medium.to_animation_bundle_stub()]),
+                    spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
                     offset: EStartGoalDragOffset(None),
@@ -175,7 +94,8 @@ pub(super) fn spawn_or_update_start_goal(
                 commands.spawn(EStartBundle {
                     estart: EStart::default(),
                     diameter: EStartGoalDiameter(EStart::default().size.to_diameter()),
-                    animation: EStartSize::Medium.to_animation_bundle_stub(),
+                    animation: AnimationStubs(vec![StartSize::Medium.to_animation_bundle_stub()]),
+                    spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
                     offset: EStartGoalDragOffset(None),

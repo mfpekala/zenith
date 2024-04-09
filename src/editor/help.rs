@@ -1,15 +1,15 @@
 use crate::{
     add_hot_resource,
     drawing::layering::menu_layer,
-    meta::{
-        game_state::{EditingMode, EditorState, GameState, SetGameState},
-        level_data::LevelDataOneshots,
-    },
+    meta::game_state::{EditingMode, EditorState, GameState, SetGameState},
 };
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
 use std::fmt;
 
-use super::save::{CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent};
+use super::{
+    save::{CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent},
+    start_goal::{EGoal, EStart},
+};
 
 #[derive(Component)]
 pub(super) struct EditorHelpBox;
@@ -405,15 +405,28 @@ pub(super) fn read_editor_help_output(
 }
 
 pub(super) fn run_help_bar_command(
-    mut help_bar: Query<&mut HelpBarData>,
-    mut event: EventWriter<HelpBarEvent>,
-    mut save_editor_writer: EventWriter<SaveEditorEvent>,
-    mut load_editor_writer: EventWriter<LoadEditorEvent>,
-    mut load_cleanup_writer: EventWriter<CleanupLoadEvent>,
-    mut gs_writer: EventWriter<SetGameState>,
-    mut commands: Commands,
-    level_oneshots: Res<LevelDataOneshots>,
+    world: &mut World,
+    params: &mut SystemState<(
+        Query<&mut HelpBarData>,
+        EventWriter<HelpBarEvent>,
+        EventWriter<SaveEditorEvent>,
+        EventWriter<LoadEditorEvent>,
+        EventWriter<CleanupLoadEvent>,
+        EventWriter<SetGameState>,
+        Query<&EStart>,
+        Query<&EGoal>,
+    )>,
 ) {
+    let (
+        mut help_bar,
+        mut event,
+        mut save_editor_writer,
+        mut load_editor_writer,
+        mut load_cleanup_writer,
+        mut gs_writer,
+        estart_q,
+        egoal_q,
+    ) = params.get_mut(world);
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
     };
@@ -424,30 +437,35 @@ pub(super) fn run_help_bar_command(
         event.send(HelpBarEvent(msg.to_string()));
     };
 
-    if &help_bar.input == "print out" {
+    let input = help_bar.input.clone();
+    help_bar.submitted = false;
+    help_bar.input = String::new();
+
+    if &input == "print out" {
         println!("Output:");
         for thing in help_bar.output.iter() {
             println!("{}", thing);
         }
         send_output("HelpBar output printed to terminal");
-    } else if &help_bar.input == "save" {
+    } else if &input == "save" {
         save_editor_writer.send(SaveEditorEvent);
-    } else if &help_bar.input == "load" {
+    } else if &input == "load" {
         load_editor_writer.send(LoadEditorEvent);
-    } else if &help_bar.input == "cleanup_load" {
+    } else if &input == "cleanup_load" {
         load_cleanup_writer.send(CleanupLoadEvent);
-    } else if &help_bar.input == "test" {
-        gs_writer.send(SetGameState(EditorState::Testing.to_game_state()));
-    } else if &help_bar.input == "edit" {
+    } else if &input == "test" {
+        if estart_q.iter().len() == 0 {
+            send_output("You must spawn a start position before testing");
+        } else if egoal_q.iter().len() == 0 {
+            send_output("You must spawn a goal position before testing");
+        } else {
+            gs_writer.send(SetGameState(EditorState::Testing.to_game_state()));
+        }
+    } else if &input == "edit" {
         gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
-    } else if &help_bar.input == "export" {
-        commands.run_system(level_oneshots.export_level_id);
     } else {
-        send_output(&format!("INVALID COMMAND: {}", help_bar.input));
+        send_output(&format!("INVALID COMMAND: {}", input));
     }
-
-    help_bar.submitted = false;
-    help_bar.input = String::new();
 }
 
 pub(super) fn teardown_editor_help(

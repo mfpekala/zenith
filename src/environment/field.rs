@@ -53,6 +53,7 @@ pub struct FieldBundle {
     pub spatial: SpatialBundle,
     pub mesh_stubs: MeshHeadStubs,
     pub trigger_stubs: ColliderTriggerStubs,
+    pub name: Name,
 }
 
 impl Rehydrate<FieldBundle> for ExportedField {
@@ -65,7 +66,7 @@ impl Rehydrate<FieldBundle> for ExportedField {
         let center = icenter(&self.points);
         let new_points = irecenter(self.points, &center);
         let spatial = SpatialBundle::from_transform(Transform::from_translation(
-            center.as_vec2().extend(0.0),
+            center.as_vec2().extend(-1.0),
         ));
         let mesh = MeshHeadStub {
             uid: fresh_uid(),
@@ -74,7 +75,7 @@ impl Rehydrate<FieldBundle> for ExportedField {
                 points: new_points.clone(),
                 render_layers: vec![sprite_layer_u8()],
                 texture_kind: MeshTextureKind::Repeating(UVec2::new(12, 12)),
-                scroll: self.dir,
+                scroll: self.dir / 4.0,
                 ..default()
             },
         };
@@ -88,6 +89,7 @@ impl Rehydrate<FieldBundle> for ExportedField {
             spatial,
             mesh_stubs: MeshHeadStubs(vec![mesh]),
             trigger_stubs: ColliderTriggerStubs(vec![trigger]),
+            name: Name::new("Field"),
         }
     }
 }

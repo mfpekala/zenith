@@ -19,7 +19,7 @@ use camera::register_camera;
 use cutscenes::CutscenesPlugin;
 use drawing::register_drawing;
 use editor::EditorPlugin;
-use environment::register_environment;
+use environment::EnvironmentPlugin;
 use input::register_input;
 use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
@@ -63,6 +63,7 @@ fn main() {
     app.add_plugins(EditorPlugin);
     app.add_plugins(PhysicsPlugin);
     app.add_plugins(MetaPlugin);
+    app.add_plugins(EnvironmentPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();
@@ -75,7 +76,6 @@ fn main() {
     // Then we can register everything else
     register_camera(&mut app);
     register_drawing(&mut app);
-    register_environment(&mut app);
     register_input(&mut app);
     register_menus(&mut app);
     register_ship(&mut app);

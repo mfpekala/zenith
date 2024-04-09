@@ -37,12 +37,12 @@ impl RockKind {
         let ((inner_path, inner_size), (outer_path, outer_size)) = match *self {
             Self::Normal => {
                 let inner = ("textures/play_inner.png".to_string(), UVec2::new(36, 36));
-                let outer = ("textures/play_inner.png".to_string(), UVec2::new(36, 36));
+                let outer = ("textures/play_outer.png".to_string(), UVec2::new(36, 36));
                 (inner, outer)
             }
             Self::SimpleKill => {
-                let inner = ("textures/play_outer.png".to_string(), UVec2::new(36, 36));
-                let outer = ("textures/play_outer.png".to_string(), UVec2::new(36, 36));
+                let inner = ("textures/lava.png".to_string(), UVec2::new(36, 36));
+                let outer = ("textures/lava.png".to_string(), UVec2::new(36, 36));
                 (inner, outer)
             }
         };
@@ -52,7 +52,7 @@ impl RockKind {
             inner_size,
             outer_size,
             points,
-            border_width: 6.0,
+            border_width: 7.0,
             render_layers: vec![sprite_layer_u8()],
             ..default()
         }
@@ -81,6 +81,7 @@ pub struct RockBundle {
     pub spatial: SpatialBundle,
     pub bm_mesh_stubs: BorderedMeshHeadStubs,
     pub static_stubs: ColliderStaticStubs,
+    pub name: Name,
 }
 
 impl Rehydrate<RockBundle> for ExportedRock {
@@ -101,6 +102,7 @@ impl Rehydrate<RockBundle> for ExportedRock {
             spatial,
             bm_mesh_stubs: BorderedMeshHeadStubs(vec![bm_mesh]),
             static_stubs: ColliderStaticStubs(vec![collider]),
+            name: Name::new("Rock"),
         }
     }
 }

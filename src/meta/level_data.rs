@@ -4,11 +4,18 @@ use bevy::{
 };
 
 use crate::{
-    editor::{planet::EPlanet, point::EPoint},
+    editor::{
+        planet::EPlanet,
+        point::EPoint,
+        start_goal::{EGoal, EStart},
+    },
     environment::{
         field::{FieldDrag, FieldStrength},
+        goal::{GoalBundle, GoalSize},
         rock::RockKind,
+        start::{StartBundle, StartSize},
     },
+    uid::{UId, UIdMarker, UIdTranslator},
 };
 
 /// For rehydrating exported level data (saves, intermediate editor output) into spawnable things
@@ -74,23 +81,101 @@ pub struct LevelData {
 impl LevelData {}
 
 /// A struct that contains SystemIds for systems relating to exporting/loading levels
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct LevelDataOneshots {
-    pub export_level_id: SystemId,
+    pub crystallize_level_data_id: SystemId<(), LevelData>,
+    pub spawn_level_id: SystemId<(u64, LevelData, IVec2)>,
 }
 
-pub(super) fn export_level(
+pub(super) fn crystallize_level_data(
     world: &mut World,
     params: &mut SystemState<(
         Query<&GlobalTransform, With<EPoint>>,
-        Query<(&EPlanet, &GlobalTransform)>,
+        Query<&EPlanet>,
+        Query<&GlobalTransform, With<EStart>>,
+        Query<&GlobalTransform, With<EGoal>>,
+        Res<UIdTranslator>,
     )>,
-) {
-    let (points_q, planets_q) = params.get(world);
-    for point in points_q.iter() {
-        println!("Point: {:?}", point);
-    }
+) -> LevelData {
+    let (points_q, planets_q, estart, egoal, ut) = params.get(world);
+    let start = match estart.get_single() {
+        Ok(gt) => IVec2::new(
+            gt.translation().x.round() as i32,
+            gt.translation().y.round() as i32,
+        ),
+        _ => IVec2::ZERO,
+    };
+    let goal = match egoal.get_single() {
+        Ok(gt) => IVec2::new(
+            gt.translation().x.round() as i32,
+            gt.translation().y.round() as i32,
+        ),
+        _ => IVec2::ZERO,
+    };
+    let rocks = planets_q
+        .iter()
+        .map(|planet| ExportedRock {
+            kind: planet.rock_kind,
+            points: planet
+                .rock_points
+                .iter()
+                .map(|uid| {
+                    let eid = ut.get_entity(*uid).unwrap();
+                    let pos = points_q.get(eid).unwrap();
+                    let pos = pos.translation().truncate();
+                    IVec2::new(pos.x.round() as i32, pos.y.round() as i32)
+                })
+                .collect(),
+            z: 0,
+        })
+        .collect();
+    let mut fields = vec![];
     for planet in planets_q.iter() {
-        println!("Planet: {:?}", planet);
+        for field in planet.fields.iter() {
+            let points = field
+                .field_points
+                .iter()
+                .map(|uid| {
+                    let eid = ut.get_entity(*uid).unwrap();
+                    let pos = points_q.get(eid).unwrap();
+                    let pos = pos.translation().truncate();
+                    IVec2::new(pos.x.round() as i32, pos.y.round() as i32)
+                })
+                .collect();
+            fields.push(ExportedField {
+                points,
+                dir: field.dir,
+                strength: FieldStrength::Normal,
+                drag: FieldDrag::Normal,
+            })
+        }
     }
+    LevelData {
+        start,
+        goal,
+        rocks,
+        fields,
+    }
+}
+
+pub(super) fn spawn_level(
+    In((uid, level_data, home)): In<(UId, LevelData, IVec2)>,
+    mut commands: Commands,
+) {
+    commands
+        .spawn((
+            UIdMarker(uid),
+            SpatialBundle::from_transform(Transform::from_translation(home.as_vec2().extend(0.0))),
+            Name::new(format!("LevelRoot({})", uid)),
+        ))
+        .with_children(|parent| {
+            parent.spawn(StartBundle::new(StartSize::Medium, level_data.start));
+            parent.spawn(GoalBundle::new(GoalSize::Medium, level_data.goal));
+            for rock in level_data.rocks {
+                parent.spawn(rock.rehydrate());
+            }
+            for field in level_data.fields {
+                parent.spawn(field.rehydrate());
+            }
+        });
 }

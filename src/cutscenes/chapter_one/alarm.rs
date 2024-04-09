@@ -8,9 +8,6 @@ use crate::cutscenes::CutsceneMarker;
 use crate::cutscenes::DurableCutsceneMarker;
 use crate::cutscenes::StartCutscene;
 use crate::cutscenes::StopCutscene;
-use crate::drawing::animated::AnimatedNode;
-use crate::drawing::animated::AnimationBundle;
-use crate::drawing::animated::AnimationManager;
 use crate::drawing::layering::bg_light_layer;
 use crate::drawing::layering::bg_sprite_layer;
 use crate::drawing::layering::light_layer;
@@ -151,91 +148,91 @@ pub(super) fn setup_alarm_cutscene(
     ));
 
     // Add in the alarm clock
-    let clock_node = AnimatedNode::from_path(
-        &asset_server,
-        &mut atlases,
-        "sprites/cutscenes/alarm/clock.png",
-        UVec2::new(40, 24),
-        2,
-        Some(24),
-        None,
-    );
-    let clock_l_node = AnimatedNode::from_path(
-        &asset_server,
-        &mut atlases,
-        "sprites/cutscenes/alarm/clockL.png",
-        UVec2::new(40, 24),
-        2,
-        Some(24),
-        None,
-    );
-    let mut clock_map = HashMap::new();
-    clock_map.insert("clock".to_string(), clock_node);
-    let clock_manager = AnimationManager::from_map(clock_map);
-    let mut clock_l_map = HashMap::new();
-    clock_l_map.insert("clock".to_string(), clock_l_node);
-    let clock_l_manager = AnimationManager::from_map(clock_l_map);
-    let clock_bundle = AnimationBundle::new("clock", clock_manager);
-    let clock_l_bundle = AnimationBundle::new("clock", clock_l_manager);
-    commands
-        .spawn((
-            ClockMarker,
-            CutsceneMarker,
-            SpatialBundle {
-                transform: Transform::from_translation(
-                    (ALARM_CAM_HOME.as_vec2() - Vec2::new(0.0, 36.0)).extend(2.0),
-                ),
-                visibility: Visibility::Hidden,
-                ..default()
-            },
-        ))
-        .with_children(|parent| {
-            parent.spawn((clock_bundle, sprite_layer()));
-            parent.spawn((clock_l_bundle, light_layer()));
-        });
+    // let clock_node = AnimatedNode::from_path(
+    //     &asset_server,
+    //     &mut atlases,
+    //     "sprites/cutscenes/alarm/clock.png",
+    //     UVec2::new(40, 24),
+    //     2,
+    //     Some(24),
+    //     None,
+    // );
+    // let clock_l_node = AnimatedNode::from_path(
+    //     &asset_server,
+    //     &mut atlases,
+    //     "sprites/cutscenes/alarm/clockL.png",
+    //     UVec2::new(40, 24),
+    //     2,
+    //     Some(24),
+    //     None,
+    // );
+    // let mut clock_map = HashMap::new();
+    // clock_map.insert("clock".to_string(), clock_node);
+    // let clock_manager = AnimationManager::from_map(clock_map);
+    // let mut clock_l_map = HashMap::new();
+    // clock_l_map.insert("clock".to_string(), clock_l_node);
+    // let clock_l_manager = AnimationManager::from_map(clock_l_map);
+    // let clock_bundle = AnimationBundle::new("clock", clock_manager);
+    // let clock_l_bundle = AnimationBundle::new("clock", clock_l_manager);
+    // commands
+    //     .spawn((
+    //         ClockMarker,
+    //         CutsceneMarker,
+    //         SpatialBundle {
+    //             transform: Transform::from_translation(
+    //                 (ALARM_CAM_HOME.as_vec2() - Vec2::new(0.0, 36.0)).extend(2.0),
+    //             ),
+    //             visibility: Visibility::Hidden,
+    //             ..default()
+    //         },
+    //     ))
+    //     .with_children(|parent| {
+    //         parent.spawn((clock_bundle, sprite_layer()));
+    //         parent.spawn((clock_l_bundle, light_layer()));
+    //     });
 
-    // Add in the eyes
-    let eye_node = AnimatedNode::from_path(
-        &asset_server,
-        &mut atlases,
-        "sprites/cutscenes/alarm/eyes.png",
-        UVec2::new(64, 64),
-        33,
-        Some(3),
-        Some("eyeEnd".to_string()),
-    );
-    let eye_end_node = AnimatedNode::from_path(
-        &asset_server,
-        &mut atlases,
-        "sprites/cutscenes/alarm/eyesEnd.png",
-        UVec2::new(64, 64),
-        1,
-        None,
-        None,
-    );
-    let mut eye_map = HashMap::new();
-    eye_map.insert("eye".to_string(), eye_node);
-    eye_map.insert("eyeEnd".to_string(), eye_end_node);
-    let mut eye_manager = AnimationManager::from_map(eye_map);
-    eye_manager.paused = true;
-    let mut eye_bundle = AnimationBundle::new("eye", eye_manager);
-    eye_bundle.sprite_sheet.visibility = Visibility::Hidden;
-    commands
-        .spawn((
-            EyeMarker,
-            CutsceneMarker,
-            SpatialBundle {
-                transform: Transform {
-                    translation: (ALARM_CAM_HOME.as_vec2().extend(2.0)),
-                    scale: Vec3::ONE * 3.0,
-                    ..default()
-                },
-                ..default()
-            },
-        ))
-        .with_children(|parent| {
-            parent.spawn((eye_bundle, sprite_layer(), EyeMarker));
-        });
+    // // Add in the eyes
+    // let eye_node = AnimatedNode::from_path(
+    //     &asset_server,
+    //     &mut atlases,
+    //     "sprites/cutscenes/alarm/eyes.png",
+    //     UVec2::new(64, 64),
+    //     33,
+    //     Some(3),
+    //     Some("eyeEnd".to_string()),
+    // );
+    // let eye_end_node = AnimatedNode::from_path(
+    //     &asset_server,
+    //     &mut atlases,
+    //     "sprites/cutscenes/alarm/eyesEnd.png",
+    //     UVec2::new(64, 64),
+    //     1,
+    //     None,
+    //     None,
+    // );
+    // let mut eye_map = HashMap::new();
+    // eye_map.insert("eye".to_string(), eye_node);
+    // eye_map.insert("eyeEnd".to_string(), eye_end_node);
+    // let mut eye_manager = AnimationManager::from_map(eye_map);
+    // eye_manager.paused = true;
+    // let mut eye_bundle = AnimationBundle::new("eye", eye_manager);
+    // eye_bundle.sprite_sheet.visibility = Visibility::Hidden;
+    // commands
+    //     .spawn((
+    //         EyeMarker,
+    //         CutsceneMarker,
+    //         SpatialBundle {
+    //             transform: Transform {
+    //                 translation: (ALARM_CAM_HOME.as_vec2().extend(2.0)),
+    //                 scale: Vec3::ONE * 3.0,
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         },
+    //     ))
+    //     .with_children(|parent| {
+    //         parent.spawn((eye_bundle, sprite_layer(), EyeMarker));
+    //     });
 
     // Bird sounds!
     commands.spawn((
@@ -273,10 +270,10 @@ pub(super) fn update_alarm_cutscene(
     mut stars: Query<&mut Sprite, With<BgMarker>>,
     mut window: Query<&mut Transform, With<WindowMarker>>,
     mut clock: Query<(Entity, &mut Visibility), With<ClockMarker>>,
-    mut eyes: Query<
-        (&mut Visibility, &mut AnimationManager),
-        (With<EyeMarker>, Without<ClockMarker>),
-    >,
+    // mut eyes: Query<
+    //     (&mut Visibility, &mut AnimationManager),
+    //     (With<EyeMarker>, Without<ClockMarker>),
+    // >,
     killer: Query<&CutsceneFadeKiller>,
 ) {
     let Ok(mut data) = cutscene_data.get_single_mut() else {
@@ -339,19 +336,19 @@ pub(super) fn update_alarm_cutscene(
             }
         }
     }
-    if alarm_eye_delay < data.time {
-        // Show the eyes
-        if let Ok((mut visibility, mut manager)) = eyes.get_single_mut() {
-            if *visibility != Visibility::Visible {
-                *visibility = Visibility::Visible;
-                manager.paused = false;
-            }
-        }
-        // Hide the clock
-        if let Ok((id, _)) = clock.get_single_mut() {
-            commands.entity(id).despawn_recursive();
-        }
-    }
+    // if alarm_eye_delay < data.time {
+    //     // Show the eyes
+    //     if let Ok((mut visibility, mut manager)) = eyes.get_single_mut() {
+    //         if *visibility != Visibility::Visible {
+    //             *visibility = Visibility::Visible;
+    //             manager.paused = false;
+    //         }
+    //     }
+    //     // Hide the clock
+    //     if let Ok((id, _)) = clock.get_single_mut() {
+    //         commands.entity(id).despawn_recursive();
+    //     }
+    // }
 
     if alarm_eye_delay + 5.0 < data.time && killer.is_empty() {
         commands.spawn(CutsceneFadeKiller::new(Cutscene::One(

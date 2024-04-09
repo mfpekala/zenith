@@ -1,4 +1,6 @@
-use bevy::{prelude::*, utils::hashbrown::HashMap};
+use bevy::{prelude::*, render::view::RenderLayers, utils::hashbrown::HashMap};
+
+use crate::uid::{fresh_uid, UId, UIdMarker};
 
 /// If you don't need to spawn it right away, you can spawn this stub
 /// in an AnimatedManagerStub and a system will clean it up to spawn
@@ -11,7 +13,7 @@ pub struct AnimatedNodeStub {
     pub pace: Option<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Reflect)]
 /// Information about a specific animation state that an object can be in
 pub struct AnimatedNode {
     pub handle: Handle<Image>,
@@ -48,7 +50,6 @@ impl AnimatedNode {
     }
 }
 
-#[derive(Component, Debug, Default)]
 pub struct AnimationManagerStub {
     pub map: HashMap<String, AnimatedNodeStub>,
 }
@@ -98,7 +99,7 @@ impl AnimationManagerStub {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct AnimationManager {
     pub map: HashMap<String, AnimatedNode>,
     pub idx: u8,
@@ -140,77 +141,70 @@ impl AnimationManager {
 #[derive(Component)]
 pub struct AnimationKey(pub String);
 
-#[derive(Bundle)]
-pub struct AnimationBundleStub {
+pub struct AnimationStub {
+    pub uid: UId,
     pub manager: AnimationManagerStub,
-    pub val: AnimationKey,
+    pub key: String,
+    pub render_layers: Vec<u8>,
 }
-impl AnimationBundleStub {
+impl AnimationStub {
     pub fn single_repeating(
         key: &str,
         path: &str,
         size: UVec2,
         length: u8,
         pace: Option<u8>,
+        render_layer: u8,
     ) -> Self {
         Self {
+            uid: fresh_uid(),
             manager: AnimationManagerStub::single_repeating(key, path, size, length, pace),
-            val: AnimationKey(key.to_string()),
+            key: key.to_string(),
+            render_layers: vec![render_layer],
         }
     }
 }
 
+#[derive(Component)]
+pub struct AnimationStubs(pub Vec<AnimationStub>);
+
 #[derive(Bundle)]
-pub struct AnimationBundle {
+struct AnimationBundle {
+    pub uid: UIdMarker,
     pub sprite_sheet: SpriteSheetBundle,
     pub manager: AnimationManager,
     pub val: AnimationKey,
 }
-impl AnimationBundle {
-    pub fn new(initial_key: &str, manager: AnimationManager) -> Self {
-        let initial_node = manager.map.get(initial_key).unwrap();
-        Self {
-            sprite_sheet: SpriteSheetBundle {
+
+pub(super) fn materialize_animation_stubs(
+    mut commands: Commands,
+    stubs_q: Query<(Entity, &AnimationStubs)>,
+    asset_server: Res<AssetServer>,
+    mut atlases: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    for (id, stubs) in stubs_q.iter() {
+        for stub in stubs.0.iter() {
+            let full_manager = stub.manager.unstub(&asset_server, &mut atlases);
+            let initial_node = full_manager.map.get(&stub.key).unwrap();
+            let sprite_sheet = SpriteSheetBundle {
                 texture: initial_node.handle.clone(),
                 atlas: TextureAtlas {
                     layout: initial_node.layout.clone(),
                     index: 0,
                 },
                 ..default()
-            },
-            manager,
-            val: AnimationKey(initial_key.to_string()),
+            };
+            commands.entity(id).with_children(|parent| {
+                parent.spawn((
+                    full_manager,
+                    AnimationKey(stub.key.clone()),
+                    sprite_sheet,
+                    UIdMarker(stub.uid),
+                    RenderLayers::from_layers(&stub.render_layers),
+                ));
+            });
         }
-    }
-
-    pub fn from_single_node(key: &str, node: AnimatedNode) -> Self {
-        let mut map = HashMap::new();
-        map.insert(key.to_string(), node);
-        let walk_manager = AnimationManager::from_map(map);
-        Self::new(key, walk_manager)
-    }
-}
-
-pub fn materialize_stubs(
-    mut commands: Commands,
-    stubs: Query<(Entity, &AnimationManagerStub, &AnimationKey)>,
-    asset_server: Res<AssetServer>,
-    mut atlases: ResMut<Assets<TextureAtlasLayout>>,
-) {
-    for (id, stub, key) in stubs.iter() {
-        let full_manager = stub.unstub(&asset_server, &mut atlases);
-        let initial_node = full_manager.map.get(&key.0).unwrap();
-        let sprite_sheet = SpriteSheetBundle {
-            texture: initial_node.handle.clone(),
-            atlas: TextureAtlas {
-                layout: initial_node.layout.clone(),
-                index: 0,
-            },
-            ..default()
-        };
-        commands.entity(id).insert(full_manager);
-        commands.entity(id).insert(sprite_sheet);
-        commands.entity(id).remove::<AnimationManagerStub>();
+        commands.entity(id).remove::<AnimationStubs>();
     }
 }
 
@@ -274,7 +268,8 @@ pub struct MyAnimationPlugin;
 
 impl Plugin for MyAnimationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, materialize_stubs);
+        app.register_type::<AnimationManager>();
+        app.add_systems(FixedUpdate, materialize_animation_stubs);
         app.add_systems(FixedUpdate, update_animations);
     }
 }

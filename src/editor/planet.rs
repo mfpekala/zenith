@@ -37,7 +37,7 @@ pub(super) struct FeralEPoint;
 pub struct EPlanetField {
     pub field_points: Vec<UId>,
     pub mesh_uid: UId,
-    dir: Vec2,
+    pub dir: Vec2,
 }
 
 #[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
