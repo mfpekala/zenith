@@ -171,11 +171,11 @@ pub(super) fn resolve_static_collisions(
     let mut min_point: Option<Vec2> = None;
     let mut min_id: Option<Entity> = None;
     for (id, boundary, _, active) in statics.iter() {
-        if active.is_some() && !active.unwrap().0 {
+        if active.is_none() || !active.unwrap().0 {
             continue;
         }
         // We use bounding circles to cut down on the number of checks we actually have to do
-        let prune_dist = fpos.distance_squared(boundary.center) - dyno.radius.powi(2);
+        let prune_dist = fpos.distance_squared(boundary.center) - dyno.radius.powi(2) * 16.0;
         if prune_dist > boundary.bound_squared {
             continue;
         }
@@ -206,15 +206,12 @@ pub(super) fn resolve_static_collisions(
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
     if normal.dot(dyno.vel) >= 0.0 {
-        println!("exiting here");
         return false;
     }
-    println!("not exiting here");
 
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
     let new_vel =
         pure_parr * (1.0 - stat.friction) - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness;
-    println!("new_vel.length(): {:?}", new_vel.length());
     dyno.vel = new_vel;
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
