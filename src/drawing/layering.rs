@@ -66,6 +66,9 @@ pub struct LightCameraMarker;
 pub fn light_layer() -> RenderLayers {
     RenderLayers::from_layers(CAMERA_LAYER_LIGHT)
 }
+pub fn light_layer_u8() -> u8 {
+    CAMERA_LAYER_LIGHT[0]
+}
 
 #[derive(Component)]
 struct ReducedCameraMarker;
@@ -95,7 +98,7 @@ impl Default for LayeringPluginSettings {
                 blue: 0.1,
                 alpha: 0.05,
             }),
-            ambient_light: Color::rgb(0.5, 0.5, 0.5),
+            ambient_light: Color::rgb(0.7, 0.7, 0.7),
         }
     }
 }

@@ -763,3 +763,44 @@ pub(super) fn draw_field_parents(
         }
     }
 }
+
+pub(super) fn change_planet_rock_kind(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut eplanets: Query<&mut EPlanet>,
+    gs: Res<GameState>,
+    ut: Res<UIdTranslator>,
+    mut bms: Query<&mut BorderedMeshHead>,
+) {
+    let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
+        return;
+    };
+    let Ok(mut eplanet) = eplanets.get_mut(planet_id) else {
+        return;
+    };
+    let mut new_kind = None;
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        new_kind = Some(RockKind::Normal);
+    } else if keyboard.just_pressed(KeyCode::Digit2) {
+        new_kind = Some(RockKind::SimpleKill);
+    } else if keyboard.just_pressed(KeyCode::Digit3) {
+        new_kind = Some(RockKind::MagLev);
+    }
+    let Some(new_kind) = new_kind else {
+        return;
+    };
+    if new_kind == eplanet.rock_kind {
+        return;
+    }
+    let Some(bm_eid) = ut.get_entity(eplanet.bordered_mesh_uid) else {
+        return;
+    };
+    let Ok(mut bm) = bms.get_mut(bm_eid) else {
+        return;
+    };
+    let new_head = new_kind.to_bm_head(vec![]);
+    bm.inner_path = new_head.inner_path;
+    bm.inner_size = new_head.inner_size;
+    bm.outer_path = new_head.outer_path;
+    bm.outer_size = new_head.outer_size;
+    eplanet.rock_kind = new_kind;
+}

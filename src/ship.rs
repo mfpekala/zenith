@@ -1,6 +1,6 @@
 use crate::cutscenes::is_not_in_cutscene;
 use crate::drawing::animated::{AnimationStub, AnimationStubs};
-use crate::drawing::layering::sprite_layer_u8;
+use crate::drawing::layering::{light_layer_u8, sprite_layer_u8};
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
@@ -42,14 +42,24 @@ impl ShipBundle {
             spatial: SpatialBundle::from_transform(Transform::from_translation(
                 pos.as_vec2().extend(100.0),
             )),
-            animation: AnimationStubs(vec![AnimationStub::single_repeating(
-                "ship",
-                "sprites/ship.png",
-                UVec2::new(8, 8),
-                1,
-                None,
-                sprite_layer_u8(),
-            )]),
+            animation: AnimationStubs(vec![
+                AnimationStub::single_repeating(
+                    "ship",
+                    "sprites/ship.png",
+                    UVec2::new(8, 8),
+                    1,
+                    None,
+                    sprite_layer_u8(),
+                ),
+                AnimationStub::single_repeating(
+                    "shipL",
+                    "sprites/shipL.png",
+                    UVec2::new(64, 64),
+                    1,
+                    None,
+                    light_layer_u8(),
+                ),
+            ]),
             name: Name::new("Ship"),
         }
     }

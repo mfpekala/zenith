@@ -77,21 +77,22 @@ pub fn move_int_dyno_helper(
         Option<&ColliderActive>,
     )>,
 ) {
-    let true_start = dyno.fpos;
-    let true_dir = dyno.vel.normalize_or_zero();
-    let inch_by = |dyno: &mut IntDyno, amt: f32| -> bool {
-        dyno.fpos = true_start + true_dir.extend(0.0) * amt;
-        resolve_static_collisions(dyno, statics)
-    };
-    let total_amt = dyno.vel.length().floor() as u32;
-    for amt in 1..=total_amt {
-        if inch_by(dyno, amt as f32) {
-            break;
-        }
+    let mut amt_travlled = 0.0;
+    while amt_travlled < dyno.vel.length() {
+        let this_step = if dyno.vel.length() - amt_travlled > 1.0 {
+            1.0
+        } else {
+            if dyno.vel.length() - amt_travlled > 0.1 {
+                dyno.vel.length().rem_euclid(1.0)
+            } else {
+                break;
+            }
+        };
+        dyno.fpos += dyno.vel.normalize_or_zero().extend(0.0) * this_step;
+        resolve_static_collisions(dyno, statics);
+        amt_travlled += this_step;
     }
-    if dyno.statics.len() == 0 {
-        inch_by(dyno, dyno.vel.length());
-    }
+
     dyno.ipos = IVec3::new(
         dyno.fpos.x.round() as i32,
         dyno.fpos.y.round() as i32,

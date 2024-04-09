@@ -3,7 +3,6 @@ use crate::{
         layering::sprite_layer_u8,
         mesh_head::{BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs},
     },
-    math::{icenter, irecenter},
     meta::level_data::{ExportedRock, Rehydrate},
     physics::collider::{ColliderStaticStub, ColliderStaticStubs},
     uid::fresh_uid,
@@ -17,12 +16,14 @@ pub enum RockKind {
     #[default]
     Normal,
     SimpleKill,
+    MagLev,
 }
 impl RockKind {
     fn bounciness(&self) -> f32 {
         match *self {
             Self::Normal => 0.8,
             Self::SimpleKill => 0.1,
+            Self::MagLev => 0.0,
         }
     }
 
@@ -30,19 +31,37 @@ impl RockKind {
         match *self {
             Self::Normal => 0.3,
             Self::SimpleKill => 0.9,
+            Self::MagLev => 0.0,
         }
     }
 
     pub fn to_bm_head(&self, points: Vec<IVec2>) -> BorderedMeshHead {
         let ((inner_path, inner_size), (outer_path, outer_size)) = match *self {
             Self::Normal => {
-                let inner = ("textures/play_inner.png".to_string(), UVec2::new(36, 36));
-                let outer = ("textures/play_outer.png".to_string(), UVec2::new(36, 36));
+                let inner = (
+                    "textures/rock/normal_inner.png".to_string(),
+                    UVec2::new(36, 36),
+                );
+                let outer = (
+                    "textures/rock/normal_outer.png".to_string(),
+                    UVec2::new(36, 36),
+                );
                 (inner, outer)
             }
             Self::SimpleKill => {
-                let inner = ("textures/lava.png".to_string(), UVec2::new(36, 36));
-                let outer = ("textures/lava.png".to_string(), UVec2::new(36, 36));
+                let inner = ("textures/rock/kill_inner.png".to_string(), UVec2::new(36, 36));
+                let outer = ("textures/rock/kill_outer.png".to_string(), UVec2::new(36, 36));
+                (inner, outer)
+            }
+            Self::MagLev => {
+                let inner = (
+                    "textures/rock/maglev_inner.png".to_string(),
+                    UVec2::new(36, 36),
+                );
+                let outer = (
+                    "textures/rock/maglev_outer.png".to_string(),
+                    UVec2::new(36, 36),
+                );
                 (inner, outer)
             }
         };
