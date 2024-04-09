@@ -51,8 +51,8 @@ pub fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable
 #[reflect(Component, Serialize, Deserialize)]
 pub struct IntDyno {
     pub vel: Vec2,
-    pub pos: IVec3,
-    pub rem: Vec2,
+    pub fpos: Vec3,
+    pub ipos: IVec3,
     pub radius: f32,
     pub statics: Vec<Entity>,
     pub triggers: Vec<(Entity, f32)>,
@@ -60,7 +60,8 @@ pub struct IntDyno {
 impl IntDyno {
     pub fn new(pos: IVec3, radius: f32) -> Self {
         Self {
-            pos,
+            fpos: pos.as_vec3(),
+            ipos: pos,
             radius,
             ..default()
         }
@@ -76,74 +77,26 @@ pub fn move_int_dyno_helper(
         Option<&ColliderActive>,
     )>,
 ) {
-    let true_start = dyno.pos.as_vec3() + dyno.rem.extend(0.0);
+    let true_start = dyno.fpos;
     let true_dir = dyno.vel.normalize_or_zero();
-    let inch_by = |dyno: &mut IntDyno, amt: u32| -> bool {
-        let fpos = true_start + true_dir.extend(0.0) * amt as f32;
-        dyno.pos.x = fpos.x.round() as i32;
-        dyno.pos.y = fpos.y.round() as i32;
+    let inch_by = |dyno: &mut IntDyno, amt: f32| -> bool {
+        dyno.fpos = true_start + true_dir.extend(0.0) * amt;
         resolve_static_collisions(dyno, statics)
     };
-    let total_amt = dyno.vel.length().round() as u32;
+    let total_amt = dyno.vel.length().floor() as u32;
     for amt in 1..=total_amt {
-        if inch_by(dyno, amt) {
+        if inch_by(dyno, amt as f32) {
             break;
         }
     }
-    let true_end = true_start + dyno.vel.extend(0.0);
     if dyno.statics.len() == 0 {
-        dyno.rem = true_end.truncate() - dyno.pos.truncate().as_vec2();
+        inch_by(dyno, dyno.vel.length());
     }
-
-    // We'll be "inching" and checking for collisions in both directions (like Celeste),
-    // so best to keep that logic in a helper function
-    // let resolve_inching = |dyno: &mut IntDyno, diff: IVec2, num_steps: u32| -> bool {
-    //     for _ in 0..num_steps {
-    //         dyno.pos.x += diff.x;
-    //         dyno.pos.y += diff.y;
-    //         if resolve_static_collisions(dyno, statics) {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // };
-
-    // // We want to only move in integer amounts, but keep track of remainders so fractional velocities make sense
-    // let would_move = dyno.vel + dyno.rem;
-    // let move_x = would_move.x.round() as i32;
-    // let move_y = would_move.y.round() as i32;
-
-    // if move_x != 0 {
-    //     // There's horizontal motion to resolve
-    //     resolve_inching(
-    //         dyno,
-    //         IVec2 {
-    //             x: move_x.signum(),
-    //             y: 0,
-    //         },
-    //         move_x.abs() as u32,
-    //     );
-    //     dyno.rem.x = would_move.x - move_x as f32;
-    // } else {
-    //     // No horizontal motion, but remember our "progress" in the remainder for next frame
-    //     dyno.rem.x = would_move.x;
-    // }
-
-    // if move_y != 0 {
-    //     // There's vertical motion to resolve
-    //     resolve_inching(
-    //         dyno,
-    //         IVec2 {
-    //             x: 0,
-    //             y: move_y.signum(),
-    //         },
-    //         move_y.abs() as u32,
-    //     );
-    //     dyno.rem.y = would_move.y - move_y as f32;
-    // } else {
-    //     // No vertical motion, but remember our "progress" in the remainder for next frame
-    //     dyno.rem.y = would_move.y;
-    // }
+    dyno.ipos = IVec3::new(
+        dyno.fpos.x.round() as i32,
+        dyno.fpos.y.round() as i32,
+        dyno.fpos.z.round() as i32,
+    );
 }
 
 pub fn move_int_dynos(
@@ -159,8 +112,8 @@ pub fn move_int_dynos(
         // Clear the old static collisions
         dyno.statics = vec![];
         move_int_dyno_helper(dyno.as_mut(), &statics);
-        tran.translation.x = dyno.pos.x as f32;
-        tran.translation.y = dyno.pos.y as f32;
+        tran.translation.x = dyno.ipos.x as f32;
+        tran.translation.y = dyno.ipos.y as f32;
     }
 }
 
