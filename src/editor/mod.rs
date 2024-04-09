@@ -4,6 +4,10 @@ use crate::{
         mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead, ScrollSpriteMat},
         sprite_head::SpriteHead,
     },
+    environment::{
+        field::{FieldDrag, FieldStrength},
+        rock::RockKind,
+    },
     input::{watch_camera_input, SetCameraModeEvent},
     meta::{
         game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
@@ -36,7 +40,11 @@ use self::{
         cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
         FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
-    start_goal::{spawn_or_update_start_goal, start_goal_drag},
+    start_goal::{
+        spawn_or_update_start_goal, start_goal_drag, EGoal, EStart, EStartGoalDiameter,
+        EStartGoalDragOffset,
+    },
+    testing::{start_testing, stop_testing},
 };
 
 pub mod help;
@@ -45,6 +53,7 @@ pub mod planet;
 pub mod point;
 pub mod save;
 pub mod start_goal;
+pub mod testing;
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -148,6 +157,13 @@ impl Plugin for EditorPlugin {
         app.register_type::<EditingSceneRoot>();
         app.register_type::<EPlanet>();
         app.register_type::<EPoint>();
+        app.register_type::<EStart>();
+        app.register_type::<EGoal>();
+        app.register_type::<EStartGoalDragOffset>();
+        app.register_type::<EStartGoalDiameter>();
+        app.register_type::<RockKind>();
+        app.register_type::<FieldStrength>();
+        app.register_type::<FieldDrag>();
         app.register_type::<IntMoveable>();
         app.register_type::<UIdMarker>();
         app.register_type::<SpriteHead>();
@@ -223,5 +239,9 @@ impl Plugin for EditorPlugin {
                 .run_if(is_editing)
                 .after(draw_field_parents),
         );
+
+        // Testing
+        app.add_systems(Update, start_testing.run_if(entered_testing));
+        app.add_systems(Update, stop_testing.run_if(left_testing));
     }
 }

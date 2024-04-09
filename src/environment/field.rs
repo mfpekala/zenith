@@ -1,78 +1,92 @@
-use super::rock::Rock;
 use crate::{
-    drawing::layering::sprite_layer, math::get_shell, physics::collider::ColliderTriggerBundle,
+    drawing::{
+        layering::sprite_layer_u8,
+        mesh_head::{MeshHead, MeshHeadStub, MeshHeadStubs, MeshTextureKind},
+    },
+    meta::level_data::{ExportedField, Rehydrate},
+    physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
+    uid::fresh_uid,
 };
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Component, PartialEq, Debug, Clone, Copy, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub enum FieldStrength {
+    #[default]
+    Normal,
+}
+impl FieldStrength {
+    pub fn to_f32(&self) -> f32 {
+        match *self {
+            Self::Normal => 0.3,
+        }
+    }
+}
+
+#[derive(Component, PartialEq, Debug, Clone, Copy, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub enum FieldDrag {
+    #[default]
+    Normal,
+}
+impl FieldDrag {
+    pub fn to_f32(&self) -> f32 {
+        match *self {
+            Self::Normal => 0.0003,
+        }
+    }
+}
 
 /// NOTE: Points MUST be in clockwise order
 #[derive(Component, Clone, Debug)]
 pub struct Field {
-    pub points: Vec<Vec2>,
-    pub strength: f32,
     pub dir: Vec2,
-    pub drag: f32,
-}
-impl Field {
-    pub fn uniform_around_rock(rock: &Rock, reach: f32, strength: f32) -> Vec<Self> {
-        let shell = get_shell(&rock.points, reach);
-        let mut regions: Vec<Field> = vec![];
-        for ix in 0..rock.points.len() {
-            let p1 = shell[ix];
-            let p2 = shell[(ix + 1) % shell.len()];
-            let diff = (p2 - p1).normalize();
-            let points = vec![
-                p1,
-                p2,
-                rock.points[(ix + 1) % rock.points.len()],
-                rock.points[ix],
-            ];
-            let region = Field {
-                points,
-                strength,
-                dir: Vec2 {
-                    x: diff.y,
-                    y: -diff.x,
-                },
-                drag: 0.0003,
-            };
-            regions.push(region);
-        }
-        regions
-    }
+    pub strength: FieldStrength,
+    pub drag: FieldDrag,
 }
 
 #[derive(Bundle)]
 pub struct FieldBundle {
     pub field: Field,
     pub spatial: SpatialBundle,
-    pub render_layers: RenderLayers,
-}
-impl FieldBundle {
-    pub fn spawn(commands: &mut Commands, base_pos: Vec2, field: Field) {
-        commands
-            .spawn(Self {
-                field: field.clone(),
-                spatial: SpatialBundle::from_transform(Transform::from_translation(
-                    base_pos.extend(0.0),
-                )),
-                render_layers: sprite_layer(),
-            })
-            .with_children(|parent| {
-                let points = field
-                    .points
-                    .iter()
-                    .map(|p| {
-                        let r = (base_pos + *p).round();
-                        IVec2 {
-                            x: r.x as i32,
-                            y: r.y as i32,
-                        }
-                    })
-                    .collect();
-                let cs = ColliderTriggerBundle::new(points, true);
-                parent.spawn(cs);
-            });
-    }
+    pub mesh_stubs: MeshHeadStubs,
+    pub trigger_stubs: ColliderTriggerStubs,
+    pub name: Name,
 }
 
-pub fn register_fields(app: &mut App) {}
+impl Rehydrate<FieldBundle> for ExportedField {
+    fn rehydrate(self) -> FieldBundle {
+        let field = Field {
+            dir: self.dir,
+            strength: self.strength,
+            drag: self.drag,
+        };
+        // let center = icenter(&self.points);
+        let mut spatial = SpatialBundle::default();
+        spatial.transform.translation.z = -10.0;
+        let mesh = MeshHeadStub {
+            uid: fresh_uid(),
+            head: MeshHead {
+                path: "sprites/field/field_bg.png".to_string(),
+                points: self.points.clone(),
+                render_layers: vec![sprite_layer_u8()],
+                texture_kind: MeshTextureKind::Repeating(UVec2::new(12, 12)),
+                scroll: self.dir / 4.0,
+                ..default()
+            },
+        };
+        let trigger = ColliderTriggerStub {
+            uid: fresh_uid(),
+            points: self.points.clone(),
+            active: true,
+        };
+        FieldBundle {
+            field,
+            spatial,
+            mesh_stubs: MeshHeadStubs(vec![mesh]),
+            trigger_stubs: ColliderTriggerStubs(vec![trigger]),
+            name: Name::new("Field"),
+        }
+    }
+}

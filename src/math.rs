@@ -151,6 +151,22 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     points
 }
 
+pub fn icenter(points: &Vec<IVec2>) -> IVec2 {
+    if points.len() == 0 {
+        return IVec2::ZERO;
+    }
+    let mut center = Vec2::ZERO;
+    for point in points.iter() {
+        center += point.as_vec2();
+    }
+    center = center / points.len() as f32;
+    IVec2::new(center.x.round() as i32, center.y.round() as i32)
+}
+
+pub fn irecenter(points: Vec<IVec2>, center: &IVec2) -> Vec<IVec2> {
+    points.into_iter().map(|p| p - *center).collect()
+}
+
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
 }
@@ -280,7 +296,6 @@ mod math_nerd {
     fn linear_regression_test() {
         let xs: Vec<f64> = vec![1.0, 2.0, 3.0];
         let ys: Vec<f64> = vec![0.0, 1.0, 2.0];
-        let out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
-        println!("out: {:?}", out);
+        let _out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
     }
 }

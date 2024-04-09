@@ -46,7 +46,6 @@ fn render_menu_asset(
     mut commands: Commands,
     mut comp_q: Query<(Entity, &mut MenuAssetComponent)>,
     menu_assets: Res<Assets<MenuAsset>>,
-    asset_server: Res<AssetServer>,
 ) {
     let Ok((id, mut comp)) = comp_q.get_single_mut() else {
         return;

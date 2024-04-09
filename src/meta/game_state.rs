@@ -55,6 +55,12 @@ impl EditorState {
             _ => None,
         }
     }
+
+    pub fn to_game_state(&self) -> GameState {
+        GameState {
+            meta: MetaState::Editor(self.clone()),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

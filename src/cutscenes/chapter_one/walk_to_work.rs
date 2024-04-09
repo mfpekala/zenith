@@ -5,7 +5,6 @@ use crate::{
         DurableCutsceneMarker, StartCutscene, StopCutscene,
     },
     drawing::{
-        animated::{AnimatedNode, AnimationBundle},
         layering::{bg_sprite_layer, light_layer, sprite_layer},
         mesh::{generate_new_sprite_mesh, MeshOutline},
         sprite_mat::SpriteMaterial,
@@ -100,20 +99,20 @@ pub(super) fn setup_walk_to_work_cutscene(
     let walk_size = UVec2::new(24, 24);
     let walk_grow = hot_walk.walk_grow;
     let calc_walk_size = walk_size.as_vec2() * walk_grow;
-    let walk_node = AnimatedNode::from_path(
-        &asset_server,
-        &mut atlases,
-        "sprites/narf_limp.png",
-        UVec2::new(24, 24),
-        11,
-        None,
-        None,
-    );
-    let mut walk_bund = AnimationBundle::from_single_node("walk", walk_node);
-    walk_bund.sprite_sheet.transform.scale = Vec3::ONE * walk_grow;
+    // let walk_node = AnimatedNode::from_path(
+    //     &asset_server,
+    //     &mut atlases,
+    //     "sprites/narf_limp.png",
+    //     UVec2::new(24, 24),
+    //     11,
+    //     None,
+    //     None,
+    // );
+    // let mut walk_bund = AnimationBundle::from_single_node("walk", walk_node);
+    // walk_bund.sprite_sheet.transform.scale = Vec3::ONE * walk_grow;
     commands.spawn((
         Name::new("narf-walking"),
-        walk_bund,
+        // walk_bund,
         IntMoveable {
             pos: WALK2WORK_CAM_HOME.extend(0)
                 + IVec3 {

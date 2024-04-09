@@ -97,7 +97,7 @@ pub struct DynamicCameraBundle {
 }
 
 pub fn update_camera(
-    dynos: Query<&IntDyno, Without<CameraMarker>>,
+    dynos: Query<&GlobalTransform, (With<IntDyno>, Without<CameraMarker>)>,
     mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
     control_state: Res<CameraControlState>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
@@ -130,7 +130,9 @@ pub fn update_camera(
             let Ok(dyno) = dynos.get_single() else {
                 return;
             };
-            let diff = dyno.pos - moveable.pos.truncate();
+            let ipos = dyno.translation().truncate();
+            let ipos = IVec2::new(ipos.x.round() as i32, ipos.y.round() as i32);
+            let diff = ipos - moveable.pos.truncate();
             let hor_wiggle = 8;
             if diff.x.abs() > SCREEN_WIDTH as i32 / hor_wiggle {
                 moveable.pos.x +=

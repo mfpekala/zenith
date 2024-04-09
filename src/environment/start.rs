@@ -11,11 +11,11 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
-pub enum GoalSize {
+pub enum StartSize {
     #[default]
     Medium,
 }
-impl GoalSize {
+impl StartSize {
     pub fn to_diameter(&self) -> u32 {
         match *self {
             Self::Medium => 18,
@@ -24,7 +24,7 @@ impl GoalSize {
 
     pub fn to_path(&self) -> String {
         match *self {
-            Self::Medium => "sprites/start_goal/goal18.png".to_string(),
+            Self::Medium => "sprites/start_goal/start18.png".to_string(),
         }
     }
 
@@ -47,34 +47,20 @@ impl GoalSize {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Serialize, Deserialize)]
-pub enum GoalStrength {
-    #[default]
-    Medium,
-}
-impl GoalStrength {
-    pub fn to_f32(&self) -> f32 {
-        match *self {
-            Self::Medium => 1.0,
-        }
-    }
-}
-
 #[derive(Component)]
-pub struct GoalMarker;
+pub struct StartMarker;
 
 #[derive(Bundle)]
-pub struct GoalBundle {
-    goal: GoalMarker,
+pub struct StartBundle {
+    start: StartMarker,
     animation: AnimationStubs,
     mv: IntMoveable,
     spatial: SpatialBundle,
 }
-impl GoalBundle {
-    pub fn new(size: GoalSize, pos: IVec2) -> Self {
+impl StartBundle {
+    pub fn new(size: StartSize, pos: IVec2) -> Self {
         Self {
-            goal: GoalMarker,
+            start: StartMarker,
             animation: AnimationStubs(vec![size.to_animation_bundle_stub()]),
             mv: IntMoveable::new(pos.extend(-1)),
             spatial: SpatialBundle::from_transform(Transform::from_translation(

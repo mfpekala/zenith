@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{math::MathLine, meta::consts::MAX_COLLISIONS_PER_FRAME};
+use crate::{
+    math::MathLine,
+    meta::consts::MAX_COLLISIONS_PER_FRAME,
+    uid::{UId, UIdMarker},
+};
 
 use super::dyno::IntDyno;
 
@@ -76,40 +80,86 @@ pub struct ColliderTrigger;
 #[derive(Component, Debug)]
 pub struct ColliderActive(pub bool);
 
+pub struct ColliderStaticStub {
+    pub uid: UId,
+    pub points: Vec<IVec2>,
+    pub active: bool,
+    pub bounciness: f32,
+    pub friction: f32,
+}
+
+#[derive(Component)]
+pub struct ColliderStaticStubs(pub Vec<ColliderStaticStub>);
+
 #[derive(Bundle)]
 pub struct ColliderStaticBundle {
     _static: ColliderStatic,
     boundary: ColliderBoundary,
     active: ColliderActive,
 }
-impl ColliderStaticBundle {
-    pub fn new(stat: ColliderStatic, boundary_points: Vec<IVec2>, active: bool) -> Self {
-        Self {
-            _static: stat,
-            boundary: ColliderBoundary::from_points(boundary_points),
-            active: ColliderActive(active),
-        }
-    }
+
+pub struct ColliderTriggerStub {
+    pub uid: UId,
+    pub points: Vec<IVec2>,
+    pub active: bool,
 }
+
+#[derive(Component)]
+pub struct ColliderTriggerStubs(pub Vec<ColliderTriggerStub>);
 
 #[derive(Bundle)]
 pub struct ColliderTriggerBundle {
-    _trigger: ColliderTrigger,
-    boundary: ColliderBoundary,
-    active: ColliderActive,
+    pub trigger: ColliderTrigger,
+    pub boundary: ColliderBoundary,
+    pub active: ColliderActive,
 }
-impl ColliderTriggerBundle {
-    pub fn new(boundary_points: Vec<IVec2>, active: bool) -> Self {
-        Self {
-            _trigger: ColliderTrigger,
-            boundary: ColliderBoundary::from_points(boundary_points),
-            active: ColliderActive(active),
+
+/// Materialize the collider stubs, creating actual colliders
+pub(super) fn materialize_collider_stubs(
+    mut commands: Commands,
+    static_stubs: Query<(Entity, &ColliderStaticStubs)>,
+    trigger_stubs: Query<(Entity, &ColliderTriggerStubs)>,
+) {
+    // Statics
+    for (eid, stubs) in static_stubs.iter() {
+        for stub in stubs.0.iter() {
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    UIdMarker(stub.uid),
+                    ColliderStaticBundle {
+                        _static: ColliderStatic {
+                            bounciness: stub.bounciness,
+                            friction: stub.friction,
+                        },
+                        boundary: ColliderBoundary::from_points(stub.points.clone()),
+                        active: ColliderActive(stub.active),
+                    },
+                ));
+            });
         }
+        commands.entity(eid).remove::<ColliderStaticStubs>();
+    }
+    // Triggers
+    for (eid, stubs) in trigger_stubs.iter() {
+        for stub in stubs.0.iter() {
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    UIdMarker(stub.uid),
+                    ColliderTriggerBundle {
+                        trigger: ColliderTrigger,
+                        boundary: ColliderBoundary::from_points(stub.points.clone()),
+                        active: ColliderActive(stub.active),
+                    },
+                    Name::new("ColliderTrigger"),
+                ));
+            });
+        }
+        commands.entity(eid).remove::<ColliderTriggerStubs>();
     }
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
-pub fn resolve_static_collisions(
+pub(super) fn resolve_static_collisions(
     dyno: &mut IntDyno,
     statics: &Query<(
         Entity,
@@ -118,7 +168,7 @@ pub fn resolve_static_collisions(
         Option<&ColliderActive>,
     )>,
 ) -> bool {
-    let mut fpos = dyno.pos.as_vec2();
+    let mut fpos = dyno.pos.as_vec3().truncate();
     let mut min_dist_sq: Option<f32> = None;
     let mut min_point: Option<Vec2> = None;
     let mut min_id: Option<Entity> = None;
@@ -131,7 +181,7 @@ pub fn resolve_static_collisions(
         if prune_dist > boundary.bound_squared {
             continue;
         }
-        let closest_point = boundary.closest_point(&dyno.pos);
+        let closest_point = boundary.closest_point(&dyno.pos.truncate());
         let dist_sq = fpos.distance_squared(closest_point);
         if min_dist_sq.is_none() || min_dist_sq.unwrap() > dist_sq {
             min_dist_sq = Some(dist_sq);
@@ -153,17 +203,16 @@ pub fn resolve_static_collisions(
     };
     // We want to move the dyno out of the rock, but also snap it to an integer position
     let diff = fpos - min_point;
-    let normal = diff.normalize();
-    let mut rounded = fpos.round();
-    while rounded.distance(min_point) < dyno.radius + 0.1 {
+    let normal = diff.normalize_or_zero();
+    let mut rounded = fpos;
+    // let mut rounded = fpos.round();
+    while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius + 0.1 {
         fpos += normal;
         rounded = fpos.round();
     }
     fpos = rounded;
-    dyno.pos = IVec2 {
-        x: fpos.x.round() as i32,
-        y: fpos.y.round() as i32,
-    };
+    dyno.pos.x = fpos.x.round() as i32;
+    dyno.pos.y = fpos.y.round() as i32;
     dyno.rem = Vec2::ZERO;
     // Now we apply forces to the velocity
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
@@ -182,7 +231,7 @@ pub fn resolve_static_collisions(
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
-pub fn resolve_trigger_collisions(
+pub(super) fn resolve_trigger_collisions(
     dyno: &mut IntDyno,
     triggers: &Query<(
         Entity,
@@ -191,7 +240,7 @@ pub fn resolve_trigger_collisions(
         Option<&ColliderActive>,
     )>,
 ) {
-    let fpos = dyno.pos.as_vec2();
+    let fpos = dyno.pos.as_vec3().truncate();
     for (id, boundary, _, active) in triggers.iter() {
         if active.is_some() && !active.unwrap().0 {
             continue;
@@ -201,7 +250,7 @@ pub fn resolve_trigger_collisions(
         if prune_dist > boundary.bound_squared {
             continue;
         }
-        let em = boundary.effective_mult(&dyno.pos, dyno.radius);
+        let em = boundary.effective_mult(&dyno.pos.truncate(), dyno.radius);
         if em > 0.001 {
             if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME {
                 dyno.triggers.push((id, em));
@@ -210,7 +259,6 @@ pub fn resolve_trigger_collisions(
     }
 }
 
-/// TODO: A function to go through all the dynos and mark ids of trigger colliders they are in
 pub fn update_triggers(
     mut dynos: Query<&mut IntDyno>,
     triggers: Query<(
@@ -224,5 +272,3 @@ pub fn update_triggers(
         resolve_trigger_collisions(dyno.as_mut(), &triggers);
     }
 }
-
-pub fn register_colliders(_app: &mut App) {}

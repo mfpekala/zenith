@@ -14,9 +14,9 @@ use crate::{
             BorderedMeshHead, BorderedMeshHeadStub, BorderedMeshHeadStubs, MeshHead, MeshHeadStub,
             MeshHeadStubs, MeshTextureKind,
         },
-        sprite_mat::SpriteMaterial,
     },
     editor::point::EPointKind,
+    environment::rock::RockKind,
     input::MouseState,
     math::MathLine,
     meta::game_state::{EditingMode, GameState, SetGameState},
@@ -32,18 +32,19 @@ use super::{
 #[derive(Component)]
 pub(super) struct FeralEPoint;
 
-#[derive(Component, Clone, Reflect, Serialize, Deserialize)]
+#[derive(Component, Debug, Clone, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub(super) struct EPlanetField {
+pub struct EPlanetField {
     pub field_points: Vec<UId>,
     pub mesh_uid: UId,
-    dir: Vec2,
+    pub dir: Vec2,
 }
 
-#[derive(Component, Default, Reflect, Serialize, Deserialize)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub(super) struct EPlanet {
+pub struct EPlanet {
     pub rock_points: Vec<UId>,
+    pub rock_kind: RockKind,
     pub bordered_mesh_uid: UId,
     pub wild_points: Vec<UId>,
     pub fields: Vec<EPlanetField>,

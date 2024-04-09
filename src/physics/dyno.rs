@@ -47,14 +47,24 @@ pub fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct IntDyno {
     pub vel: Vec2,
-    pub pos: IVec2,
+    pub pos: IVec3,
     pub rem: Vec2,
     pub radius: f32,
     pub statics: Vec<Entity>,
     pub triggers: Vec<(Entity, f32)>,
+}
+impl IntDyno {
+    pub fn new(pos: IVec3, radius: f32) -> Self {
+        Self {
+            pos,
+            radius,
+            ..default()
+        }
+    }
 }
 
 pub fn move_int_dyno_helper(
@@ -70,7 +80,8 @@ pub fn move_int_dyno_helper(
     // so best to keep that logic in a helper function
     let resolve_inching = |dyno: &mut IntDyno, diff: IVec2, num_steps: u32| -> bool {
         for _ in 0..num_steps {
-            dyno.pos += diff;
+            dyno.pos.x += diff.x;
+            dyno.pos.y += diff.y;
             if resolve_static_collisions(dyno, statics) {
                 return true;
             }
@@ -151,8 +162,8 @@ pub fn resolve_dynos(
                 continue;
             }
             if let Ok(field) = fields.get(parent.get()) {
-                diff += field.dir * field.strength * *mult;
-                slowdown *= (1.0 - field.drag).powf(*mult);
+                diff += field.dir * field.strength.to_f32() * *mult;
+                slowdown *= (1.0 - field.drag.to_f32()).powf(*mult);
             }
         }
         dyno.vel += diff;
