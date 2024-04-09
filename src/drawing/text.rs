@@ -16,12 +16,6 @@ pub enum TextWeight {
 }
 impl TextWeight {
     pub fn to_handle(&self, asset_server: &Res<AssetServer>) -> Handle<Font> {
-        // let filename = match *self {
-        //     Self::Bold => "PixelifySans-Bold.ttf",
-        //     Self::Medium => "PixelifySans-Medium.ttf",
-        //     Self::Regular => "PixelifySans-Regular.ttf",
-        //     Self::SemiBold => "PixelifySans-SemiBold.ttf",
-        // };
         let filename = match *self {
             Self::Bold => "monogram.ttf",
             Self::Medium => "monogram.ttf",

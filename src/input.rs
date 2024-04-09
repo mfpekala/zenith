@@ -73,7 +73,8 @@ pub fn watch_mouse(
         if let Some(start_pos) = mouse_state.pending_launch_start {
             let mut almost_vel = (mouse_state.pos - start_pos).as_vec2();
             almost_vel.x *= -1.0;
-            mouse_state.pending_launch_vel = Some(almost_vel);
+            mouse_state.pending_launch_vel =
+                Some(almost_vel / almost_vel.length() * almost_vel.length().sqrt() * 0.3);
         }
     } else {
         match mouse_state.pending_launch_vel {

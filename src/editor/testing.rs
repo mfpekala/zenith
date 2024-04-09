@@ -1,7 +1,10 @@
 use bevy::{ecs::system::SystemState, prelude::*};
 
 use crate::{
-    camera::CameraMarker, meta::level_data::LevelDataOneshots, physics::dyno::IntMoveable,
+    camera::{CameraMarker, CameraMode},
+    input::SetCameraModeEvent,
+    meta::level_data::LevelDataOneshots,
+    physics::dyno::IntMoveable,
     uid::UIdTranslator,
 };
 
@@ -45,10 +48,14 @@ pub(super) fn stop_testing(
     mut camera_q: Query<&mut IntMoveable, With<CameraMarker>>,
     ut: Res<UIdTranslator>,
     mut commands: Commands,
+    mut set_event: EventWriter<SetCameraModeEvent>,
 ) {
     let Ok(mut camera) = camera_q.get_single_mut() else {
         return;
     };
+    set_event.send(SetCameraModeEvent {
+        mode: CameraMode::Free,
+    });
     camera.pos = EDITING_HOME.extend(0);
     let Some(eid) = ut.get_entity(1) else {
         return;

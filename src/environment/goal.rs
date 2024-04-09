@@ -76,9 +76,9 @@ impl GoalBundle {
         Self {
             goal: GoalMarker,
             animation: AnimationStubs(vec![size.to_animation_bundle_stub()]),
-            mv: IntMoveable::new(pos.extend(0)),
+            mv: IntMoveable::new(pos.extend(-1)),
             spatial: SpatialBundle::from_transform(Transform::from_translation(
-                pos.as_vec2().extend(0.0),
+                pos.as_vec2().extend(-1.0),
             )),
         }
     }

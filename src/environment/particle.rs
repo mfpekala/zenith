@@ -135,7 +135,7 @@ impl ParticleBundle {
                     ..default()
                 },
                 transform: Transform {
-                    translation: body.pos.extend(0.0),
+                    translation: body.pos.extend(-1.0),
                     scale: Vec3::ONE * body.size,
                     ..default()
                 },
@@ -198,7 +198,7 @@ fn update_particles(
         }
         let vel = body.vel;
         body.pos += vel;
-        tran.translation = body.pos.extend(0.0);
+        tran.translation = body.pos.extend(1.0);
     }
 }
 

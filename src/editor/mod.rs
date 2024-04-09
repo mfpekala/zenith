@@ -40,7 +40,10 @@ use self::{
         cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
         FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
-    start_goal::{spawn_or_update_start_goal, start_goal_drag},
+    start_goal::{
+        spawn_or_update_start_goal, start_goal_drag, EGoal, EStart, EStartGoalDiameter,
+        EStartGoalDragOffset,
+    },
     testing::{start_testing, stop_testing},
 };
 
@@ -154,6 +157,10 @@ impl Plugin for EditorPlugin {
         app.register_type::<EditingSceneRoot>();
         app.register_type::<EPlanet>();
         app.register_type::<EPoint>();
+        app.register_type::<EStart>();
+        app.register_type::<EGoal>();
+        app.register_type::<EStartGoalDragOffset>();
+        app.register_type::<EStartGoalDiameter>();
         app.register_type::<RockKind>();
         app.register_type::<FieldStrength>();
         app.register_type::<FieldDrag>();

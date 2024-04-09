@@ -87,16 +87,12 @@ pub struct RockBundle {
 impl Rehydrate<RockBundle> for ExportedRock {
     fn rehydrate(self) -> RockBundle {
         let rock = Rock { kind: self.kind };
-        let center = icenter(&self.points);
-        let new_points = irecenter(self.points, &center);
-        let spatial = SpatialBundle::from_transform(Transform::from_translation(
-            center.as_vec2().extend(0.0),
-        ));
+        let spatial = SpatialBundle::default();
         let bm_mesh = BorderedMeshHeadStub {
             uid: fresh_uid(),
-            head: self.kind.to_bm_head(new_points.clone()),
+            head: self.kind.to_bm_head(self.points.clone()),
         };
-        let collider = self.kind.to_collider_stub(new_points);
+        let collider = self.kind.to_collider_stub(self.points.clone());
         RockBundle {
             rock,
             spatial,

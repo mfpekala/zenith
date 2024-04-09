@@ -11,6 +11,8 @@ use crate::{
     physics::dyno::IntMoveable,
 };
 
+use super::save::SaveMarker;
+
 /// This is hard to make shared with point. At least share it between start/end
 /// (or I'm just challenged)
 #[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
@@ -38,6 +40,7 @@ pub(super) struct EGoalBundle {
     pub render_layers: RenderLayers,
     pub offset: EStartGoalDragOffset,
     pub diameter: EStartGoalDiameter, // NOTE: This is just to make the drag function less wordy. Will need a system to update if size changes later, doesn't exist yet, so not worrying
+    pub save: SaveMarker,
 }
 
 #[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
@@ -55,6 +58,7 @@ pub(super) struct EStartBundle {
     pub render_layers: RenderLayers,
     pub offset: EStartGoalDragOffset,
     pub diameter: EStartGoalDiameter,
+    pub save: SaveMarker,
 }
 
 pub(super) fn spawn_or_update_start_goal(
@@ -79,6 +83,7 @@ pub(super) fn spawn_or_update_start_goal(
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
                     offset: EStartGoalDragOffset(None),
+                    save: SaveMarker,
                 });
             }
         }
@@ -99,6 +104,7 @@ pub(super) fn spawn_or_update_start_goal(
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
                     offset: EStartGoalDragOffset(None),
+                    save: SaveMarker,
                 });
             }
         }

@@ -15,6 +15,7 @@ use crate::{
         rock::RockKind,
         start::{StartBundle, StartSize},
     },
+    ship::ShipBundle,
     uid::{UId, UIdMarker, UIdTranslator},
 };
 
@@ -78,7 +79,6 @@ pub struct LevelData {
     rocks: Vec<ExportedRock>,
     fields: Vec<ExportedField>,
 }
-impl LevelData {}
 
 /// A struct that contains SystemIds for systems relating to exporting/loading levels
 #[derive(Resource, Clone)]
@@ -158,6 +158,9 @@ pub(super) fn crystallize_level_data(
     }
 }
 
+#[derive(Component)]
+pub struct LevelRoot;
+
 pub(super) fn spawn_level(
     In((uid, level_data, home)): In<(UId, LevelData, IVec2)>,
     mut commands: Commands,
@@ -167,8 +170,11 @@ pub(super) fn spawn_level(
             UIdMarker(uid),
             SpatialBundle::from_transform(Transform::from_translation(home.as_vec2().extend(0.0))),
             Name::new(format!("LevelRoot({})", uid)),
+            LevelRoot,
         ))
         .with_children(|parent| {
+            // TODO: Sexier level entrance
+            parent.spawn(ShipBundle::new(level_data.start));
             parent.spawn(StartBundle::new(StartSize::Medium, level_data.start));
             parent.spawn(GoalBundle::new(GoalSize::Medium, level_data.goal));
             for rock in level_data.rocks {

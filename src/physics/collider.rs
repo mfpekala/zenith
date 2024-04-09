@@ -168,7 +168,7 @@ pub(super) fn resolve_static_collisions(
         Option<&ColliderActive>,
     )>,
 ) -> bool {
-    let mut fpos = dyno.pos.as_vec2();
+    let mut fpos = dyno.pos.as_vec3().truncate();
     let mut min_dist_sq: Option<f32> = None;
     let mut min_point: Option<Vec2> = None;
     let mut min_id: Option<Entity> = None;
@@ -181,7 +181,7 @@ pub(super) fn resolve_static_collisions(
         if prune_dist > boundary.bound_squared {
             continue;
         }
-        let closest_point = boundary.closest_point(&dyno.pos);
+        let closest_point = boundary.closest_point(&dyno.pos.truncate());
         let dist_sq = fpos.distance_squared(closest_point);
         if min_dist_sq.is_none() || min_dist_sq.unwrap() > dist_sq {
             min_dist_sq = Some(dist_sq);
@@ -210,10 +210,8 @@ pub(super) fn resolve_static_collisions(
         rounded = fpos.round();
     }
     fpos = rounded;
-    dyno.pos = IVec2 {
-        x: fpos.x.round() as i32,
-        y: fpos.y.round() as i32,
-    };
+    dyno.pos.x = fpos.x.round() as i32;
+    dyno.pos.y = fpos.y.round() as i32;
     dyno.rem = Vec2::ZERO;
     // Now we apply forces to the velocity
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
@@ -241,7 +239,7 @@ pub(super) fn resolve_trigger_collisions(
         Option<&ColliderActive>,
     )>,
 ) {
-    let fpos = dyno.pos.as_vec2();
+    let fpos = dyno.pos.as_vec3().truncate();
     for (id, boundary, _, active) in triggers.iter() {
         if active.is_some() && !active.unwrap().0 {
             continue;
@@ -251,7 +249,7 @@ pub(super) fn resolve_trigger_collisions(
         if prune_dist > boundary.bound_squared {
             continue;
         }
-        let em = boundary.effective_mult(&dyno.pos, dyno.radius);
+        let em = boundary.effective_mult(&dyno.pos.truncate(), dyno.radius);
         if em > 0.001 {
             if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME {
                 dyno.triggers.push((id, em));
