@@ -203,9 +203,10 @@ pub(super) fn resolve_static_collisions(
     };
     // We want to move the dyno out of the rock, but also snap it to an integer position
     let diff = fpos - min_point;
-    let normal = diff.normalize();
-    let mut rounded = fpos.round();
-    while rounded.distance(min_point) < dyno.radius + 0.1 {
+    let normal = diff.normalize_or_zero();
+    let mut rounded = fpos;
+    // let mut rounded = fpos.round();
+    while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius + 0.1 {
         fpos += normal;
         rounded = fpos.round();
     }

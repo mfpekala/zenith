@@ -1,4 +1,7 @@
-use self::{collider::materialize_collider_stubs, dyno::register_int_dynos};
+use self::{
+    collider::materialize_collider_stubs,
+    dyno::{register_int_dynos, IntDyno},
+};
 use crate::meta::game_state::{EditorState, GameState, MetaState};
 use bevy::prelude::*;
 
@@ -20,6 +23,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         register_int_dynos(app);
+        app.register_type::<IntDyno>();
         app.add_systems(Update, materialize_collider_stubs);
     }
 }

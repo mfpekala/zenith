@@ -1,10 +1,16 @@
 use bevy::{prelude::*, render::view::RenderLayers, utils::hashbrown::HashMap};
+use serde::{Deserialize, Serialize};
 
-use crate::uid::{fresh_uid, UId, UIdMarker};
+use crate::{
+    editor::save::SaveMarker,
+    uid::{fresh_uid, UId, UIdMarker},
+};
 
 /// If you don't need to spawn it right away, you can spawn this stub
 /// in an AnimatedManagerStub and a system will clean it up to spawn
-#[derive(Debug)]
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+
 pub struct AnimatedNodeStub {
     pub path: String,
     pub size: UVec2,
@@ -13,8 +19,8 @@ pub struct AnimatedNodeStub {
     pub pace: Option<u8>,
 }
 
-#[derive(Debug, Clone, Reflect)]
 /// Information about a specific animation state that an object can be in
+#[derive(Debug, Clone, Component)]
 pub struct AnimatedNode {
     pub handle: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
@@ -50,6 +56,8 @@ impl AnimatedNode {
     }
 }
 
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct AnimationManagerStub {
     pub map: HashMap<String, AnimatedNodeStub>,
 }
@@ -99,7 +107,7 @@ impl AnimationManagerStub {
     }
 }
 
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone)]
 pub struct AnimationManager {
     pub map: HashMap<String, AnimatedNode>,
     pub idx: u8,
@@ -141,6 +149,20 @@ impl AnimationManager {
 #[derive(Component)]
 pub struct AnimationKey(pub String);
 
+#[derive(Component)]
+pub struct AnimationHeadStub {
+    pub uid: UId,
+    pub head: AnimationHead,
+}
+
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct AnimationHead {
+    pub stubs: Vec<AnimationStub>,
+}
+
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct AnimationStub {
     pub uid: UId,
     pub manager: AnimationManagerStub,
@@ -174,6 +196,50 @@ struct AnimationBundle {
     pub sprite_sheet: SpriteSheetBundle,
     pub manager: AnimationManager,
     pub val: AnimationKey,
+}
+
+pub(super) fn resolve_animation_head_stubs(
+    mut commands: Commands,
+    stubs: Query<(Entity, &AnimationHeadStub)>,
+) {
+    for (eid, stub) in stubs.iter() {
+        commands.entity(eid).with_children(|parent| {
+            parent.spawn((
+                UIdMarker(stub.uid),
+                AnimationHead {
+                    stubs: stub.head.stubs.clone(),
+                },
+                SpatialBundle::default(),
+                SaveMarker,
+            ));
+        });
+        commands.entity(eid).remove::<AnimationHeadStub>();
+    }
+}
+
+pub(super) fn update_animation_heads(
+    mut commands: Commands,
+    heads: Query<(Entity, &AnimationHead, Option<&Children>)>,
+    managers: Query<Entity>,
+) {
+    for (eid, head, children) in heads.iter() {
+        match children {
+            None => {
+                commands
+                    .entity(eid)
+                    .insert(AnimationStubs(head.stubs.clone()));
+            }
+            Some(children) => {
+                for child in children {
+                    let Ok(_) = managers.get(*child) else {
+                        commands.entity(eid).remove::<Children>();
+                        continue;
+                    };
+                }
+                // TODO: Update animation to follow head
+            }
+        }
+    }
 }
 
 pub(super) fn materialize_animation_stubs(
@@ -268,8 +334,16 @@ pub struct MyAnimationPlugin;
 
 impl Plugin for MyAnimationPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<AnimationManager>();
-        app.add_systems(FixedUpdate, materialize_animation_stubs);
+        app.register_type::<AnimationHead>();
+        app.add_systems(
+            FixedUpdate,
+            (
+                resolve_animation_head_stubs,
+                update_animation_heads,
+                materialize_animation_stubs,
+            )
+                .chain(),
+        );
         app.add_systems(FixedUpdate, update_animations);
     }
 }

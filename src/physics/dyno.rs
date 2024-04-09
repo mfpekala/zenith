@@ -47,7 +47,8 @@ pub fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable
     }
 }
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct IntDyno {
     pub vel: Vec2,
     pub pos: IVec3,
