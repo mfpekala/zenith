@@ -191,6 +191,7 @@ pub(super) fn resolve_static_collisions(
     }
     // Early exit when there's no collision
     if min_dist_sq.unwrap_or(f32::MAX) > dyno.radius.powi(2) {
+        println!("NO COLLISION");
         return false;
     }
     let (_, Some(min_point), Some(min_id)) = (min_dist_sq, min_point, min_id) else {
@@ -201,12 +202,34 @@ pub(super) fn resolve_static_collisions(
         error!("Weird stuff2 happened in resolving static collisions...");
         return false;
     };
-    // We want to move the dyno out of the rock, but also snap it to an integer position
+    println!("min_dist_sq: {:?}", min_dist_sq);
+
+    if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
+        dyno.statics.push(min_id);
+    }
+    let diff = fpos - min_point;
+    let normal = diff.normalize_or_zero();
+    if normal.length() < 0.1 {
+        return false;
+    }
+    if normal.dot(dyno.vel) > 0.0 {
+        println!("exiting here");
+        return false;
+    }
+    println!("not exiting here");
+    let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
+    let mut new_vel =
+        pure_parr * (1.0 - stat.friction) - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness;
+    if new_vel.length() < 0.9 {
+        new_vel = Vec2::ZERO;
+    }
+    println!("new_vel.length(): {:?}", new_vel.length());
+    dyno.vel = new_vel;
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
     let mut rounded = fpos;
     // let mut rounded = fpos.round();
-    while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius + 0.1 {
+    while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius {
         fpos += normal;
         rounded = fpos.round();
     }
@@ -214,20 +237,35 @@ pub(super) fn resolve_static_collisions(
     dyno.pos.x = fpos.x.round() as i32;
     dyno.pos.y = fpos.y.round() as i32;
     dyno.rem = Vec2::ZERO;
-    // Now we apply forces to the velocity
-    let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
-    let fixed_normal = if dyno.vel.dot(normal) < 0.0 {
-        normal
-    } else {
-        -normal
-    };
-    let new_vel = pure_parr * (1.0 - stat.friction)
-        - 1.0 * dyno.vel.dot(fixed_normal) * normal * stat.bounciness;
-    dyno.vel = new_vel;
-    if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-        dyno.statics.push(min_id);
-    }
     true
+
+    // // We want to move the dyno out of the rock, but also snap it to an integer position
+    // let diff = fpos - min_point;
+    // let normal = diff.normalize_or_zero();
+    // let mut rounded = fpos;
+    // // let mut rounded = fpos.round();
+    // while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius + 0.1 {
+    //     fpos += normal;
+    //     rounded = fpos.round();
+    // }
+    // fpos = rounded;
+    // dyno.pos.x = fpos.x.round() as i32;
+    // dyno.pos.y = fpos.y.round() as i32;
+    // dyno.rem = Vec2::ZERO;
+    // // Now we apply forces to the velocity
+    // let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
+    // let fixed_normal = if dyno.vel.dot(normal) < 0.0 {
+    //     normal
+    // } else {
+    //     -normal
+    // };
+    // let new_vel = pure_parr * (1.0 - stat.friction)
+    //     - 1.0 * dyno.vel.dot(fixed_normal) * normal * stat.bounciness;
+    // dyno.vel = new_vel;
+    // if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
+    //     dyno.statics.push(min_id);
+    // }
+    // true
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic

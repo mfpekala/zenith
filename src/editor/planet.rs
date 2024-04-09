@@ -171,10 +171,12 @@ pub(super) fn redo_fields(
             if despawned.contains(id) {
                 continue;
             }
-            commands
-                .entity(ut.get_entity(*id).unwrap())
-                .despawn_recursive();
-            despawned.insert(*id);
+            if let Some(eid) = ut.get_entity(*id) {
+                if points.get(eid).is_ok() {
+                    commands.entity(eid).despawn_recursive();
+                    despawned.insert(*id);
+                }
+            }
         }
         commands
             .entity(ut.get_entity(field.mesh_uid).unwrap())

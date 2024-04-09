@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{cutscenes::is_not_in_cutscene, environment::field::Field, ship::launch_ship};
+use crate::environment::field::Field;
 
 use super::collider::{
     resolve_static_collisions, update_triggers, ColliderActive, ColliderBoundary, ColliderStatic,
@@ -169,29 +169,14 @@ pub fn resolve_dynos(
         dyno.vel += diff;
         dyno.vel *= slowdown;
         dyno.triggers = vec![];
-        let quantize = 12.0;
-        dyno.vel *= quantize;
-        dyno.vel = dyno.vel.round();
-        dyno.vel /= quantize;
     }
 }
 
 pub fn register_int_dynos(app: &mut App) {
     app.add_systems(
         FixedUpdate,
-        move_int_dynos.after(launch_ship).run_if(is_not_in_cutscene),
+        (move_int_dynos, update_triggers, resolve_dynos).chain(),
     );
-    app.add_systems(
-        FixedUpdate,
-        update_triggers
-            .after(move_int_dynos)
-            .run_if(is_not_in_cutscene),
-    );
-    app.add_systems(
-        FixedUpdate,
-        resolve_dynos
-            .after(update_triggers)
-            .run_if(is_not_in_cutscene),
-    );
+
     app.add_systems(FixedUpdate, move_int_moveables);
 }
