@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use bevy::{prelude::*, render::view::RenderLayers};
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +8,7 @@ use crate::{
         animation::{AnimationManager, SpriteInfo},
         layering::sprite_layer,
     },
+    math::irect,
     meta::game_state::{EditingMode, GameState},
     uid::{UId, UIdMarker, UIdTranslator},
 };
@@ -41,7 +44,9 @@ pub(super) fn create_segment(
     mut commands: Commands,
     ut: Res<UIdTranslator>,
     mut help_writer: EventWriter<HelpBarEvent>,
+    existing_segments: Query<(Entity, &SegmentParents)>,
 ) {
+    // Basic validation
     if !keyboard.any_just_pressed([KeyCode::KeyK]) {
         return;
     }
@@ -60,7 +65,8 @@ pub(super) fn create_segment(
         )));
         return;
     }
-    // TODO: way to order selection
+
+    // Order the points
     let mut ordered_uids = vec![];
     for uid in selected_ids.iter() {
         let Some(eid) = ut.get_entity(*uid) else {
@@ -81,21 +87,44 @@ pub(super) fn create_segment(
             )));
             return;
         }
-        ordered_uids.push(*uid);
+        ordered_uids.push((*uid, epoint.selection_order.unwrap_or(0)));
+    }
+    ordered_uids.sort_by(|a, b| {
+        if a.1 < b.1 {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+    let ordered_uids: Vec<UId> = ordered_uids.into_iter().map(|pair| pair.0).collect();
+
+    // See if we're toggling off (any segments already exist with these two points)
+    let mut toggling_off = false;
+    for (eid, segment) in existing_segments.iter() {
+        if segment.left_uid == ordered_uids[0] && segment.right_uid == ordered_uids[1] {
+            commands.entity(eid).despawn_recursive();
+            toggling_off = true;
+        }
+    }
+    if toggling_off {
+        return;
     }
 
+    // We're not! Spawn a new segment
     commands.entity(planet_id).with_children(|parent| {
-        // Commands
         parent.spawn(SegmentBundle {
             name: Name::new("Segment"),
             parents: SegmentParents {
                 left_uid: ordered_uids[0],
                 right_uid: ordered_uids[1],
             },
-            animation: AnimationManager::single_static(SpriteInfo {
-                path: "sprites/goodies/spike.png".to_string(),
-                size: UVec2::new(5, 5),
-            }),
+            animation: AnimationManager::single_repeating(
+                SpriteInfo {
+                    path: "sprites/goodies/spike.png".to_string(),
+                    size: UVec2::new(7, 7),
+                },
+                2,
+            ),
             render_layers: sprite_layer(),
             spatial: SpatialBundle::default(),
             save: SaveMarker,
@@ -128,11 +157,11 @@ pub(super) fn kill_segments(
 
 /// Positions segments to be in the middle of their parents with the correct rotation
 pub(super) fn position_segments(
-    mut segments: Query<(&SegmentParents, &mut Transform), Without<EPoint>>,
+    mut segments: Query<(&SegmentParents, &mut Transform, &mut AnimationManager), Without<EPoint>>,
     points: Query<&Transform, With<EPoint>>,
     ut: Res<UIdTranslator>,
 ) {
-    for (parents, mut tran) in segments.iter_mut() {
+    for (parents, mut tran, mut anim) in segments.iter_mut() {
         let Some(left_eid) = ut.get_entity(parents.left_uid) else {
             continue;
         };
@@ -145,11 +174,17 @@ pub(super) fn position_segments(
         let Ok(right_tran) = points.get(right_eid) else {
             continue;
         };
-        let center = (left_tran.translation + right_tran.translation) / 2.0;
+        let current_node = anim.current_node();
+        let diff = (right_tran.translation - left_tran.translation).truncate();
+        let diff_norm = diff.normalize_or_zero();
+        let mut center = (left_tran.translation + right_tran.translation) / 2.0;
+        let norm = Vec2::new(-diff_norm.y, diff_norm.x) * 0.9;
+        center += (current_node.sprite.size.y as f32 * norm / 2.0).extend(0.0);
         tran.translation = center;
-        let diff = (right_tran.translation - left_tran.translation)
-            .truncate()
-            .normalize_or_zero();
-        tran.rotation = Quat::from_rotation_arc_2d(Vec2::X, diff);
+        tran.rotation = Quat::from_rotation_arc_2d(Vec2::X, diff.normalize_or_zero());
+        anim.set_points(irect(
+            (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
+            current_node.sprite.size.y,
+        ));
     }
 }

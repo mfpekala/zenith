@@ -50,6 +50,6 @@ impl AnimationMaterial {
 
 impl Material2d for AnimationMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/animated_mat.wgsl".into()
+        "shaders/animation_mat.wgsl".into()
     }
 }

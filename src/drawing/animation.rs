@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     render::{primitives::Aabb, view::RenderLayers},
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::Mesh2dHandle,
     utils::hashbrown::{HashMap, HashSet},
 };
 use serde::{Deserialize, Serialize};
@@ -45,12 +45,24 @@ pub struct AnimationManager {
     points: Vec<IVec2>,
     scale: AnimationScale,
     offset: IVec3,
-    angle: f32,
     is_changed: bool,
 }
 impl AnimationManager {
+    pub fn current_node(&self) -> AnimationNode {
+        self.map.get(&self.key).unwrap().clone()
+    }
+
     pub fn change_key(&mut self, key: String) {
         self.key = key;
+        self.is_changed = true;
+    }
+
+    pub fn set_points(&mut self, points: Vec<IVec2>) {
+        if points == self.points {
+            // Do nothing
+            return;
+        }
+        self.points = points;
         self.is_changed = true;
     }
 
@@ -58,6 +70,22 @@ impl AnimationManager {
         let node = AnimationNode {
             sprite: sprite.clone(),
             length: 1,
+            ..default()
+        };
+        let mut map = HashMap::new();
+        map.insert(sprite.path.clone(), node);
+        Self {
+            key: sprite.path.clone(),
+            map,
+            points: irect(sprite.size.x, sprite.size.y),
+            ..default()
+        }
+    }
+
+    pub fn single_repeating(sprite: SpriteInfo, length: u32) -> Self {
+        let node = AnimationNode {
+            sprite: sprite.clone(),
+            length,
             ..default()
         };
         let mut map = HashMap::new();
@@ -78,7 +106,6 @@ impl Default for AnimationManager {
             points: vec![],
             scale: AnimationScale::Repeat,
             offset: IVec3::ZERO,
-            angle: 0.0,
             is_changed: true,
         }
     }
@@ -120,10 +147,11 @@ struct AnimationBundle {
 /// Looks for AnimationManagers that don't have AnimationBody and spawns them
 fn materialize_animation_bodies(
     mut commands: Commands,
-    managers: Query<(Entity, Option<&Children>), With<AnimationManager>>,
+    mut managers: Query<(Entity, Option<&Children>, &mut AnimationManager)>,
     bodies: Query<&AnimationBody>,
+    all_ents: Query<Entity>,
 ) {
-    for (eid, children) in managers.iter() {
+    for (eid, children, mut manager) in managers.iter_mut() {
         let is_materialized = match children {
             None => false,
             Some(eids) => eids.iter().any(|eid| bodies.get(*eid).is_ok()),
@@ -131,9 +159,23 @@ fn materialize_animation_bodies(
         if is_materialized {
             continue;
         }
+        match children {
+            Some(ceids) => {
+                // Helper logic to make sure there are no dangling children
+                let good_eids: Vec<Entity> = ceids
+                    .iter()
+                    .filter(|id| all_ents.get(**id).is_ok())
+                    .map(|r| *r)
+                    .collect();
+                commands.entity(eid).remove::<Children>();
+                commands.entity(eid).push_children(&good_eids);
+            }
+            None => (),
+        };
         commands.entity(eid).with_children(|parent| {
             parent.spawn(AnimationBundle::default());
         });
+        manager.is_changed = true;
     }
 }
 
@@ -196,23 +238,16 @@ fn update_animation_bodies(
 
         // Redo the mesh
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
-        let mat = AnimationMaterial::from_handle(image_handle, 0, Vec2::ZERO);
+        let mat = AnimationMaterial::from_handle(image_handle, 0, Vec2::ONE);
         let mat_ass = mats.add(mat);
         let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh = points_to_mesh(&fpoints, &mut meshes);
-        let bund = MaterialMesh2dBundle {
-            mesh,
-            material: mat_ass,
-            ..default()
-        };
-        // commands.entity(eid).insert(mat_ass);
-        // commands.entity(eid).insert(mesh);
-        commands.entity(eid).insert(bund);
+        commands.entity(eid).insert(mat_ass);
+        commands.entity(eid).insert(mesh);
         commands.entity(eid).remove::<Aabb>(); // Makes the engine recalculate the Aabb so culling is right
 
         // Update the translation
         tran.translation = manager.offset.as_vec3();
-        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.angle);
     }
 }
 
@@ -262,7 +297,7 @@ fn play_animations(
             index.ix += 1;
             index.steps = 0;
         }
-        if index.ix > length.0 {
+        if index.ix >= length.0 {
             index.ix = 0;
             if current_node.next.is_some() {
                 manager.change_key(current_node.next.unwrap());

@@ -34,13 +34,13 @@ use self::{
     },
     point::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
-        spawn_points, update_point_sprites, EPoint,
+        set_point_selection_order, spawn_points, update_point_sprites, EPoint,
     },
     save::{
         cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
         FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
-    segment::{create_segment, kill_segments, position_segments},
+    segment::{create_segment, kill_segments, position_segments, SegmentParents},
     start_goal::{
         spawn_or_update_start_goal, start_goal_drag, EGoal, EStart, EStartGoalDiameter,
         EStartGoalDragOffset,
@@ -166,6 +166,7 @@ impl Plugin for EditorPlugin {
         app.register_type::<RockKind>();
         app.register_type::<FieldStrength>();
         app.register_type::<FieldDrag>();
+        app.register_type::<SegmentParents>();
         app.register_type::<IntMoveable>();
         app.register_type::<UIdMarker>();
         app.register_type::<SpriteHead>();
@@ -203,6 +204,7 @@ impl Plugin for EditorPlugin {
                 spawn_points,
                 select_points,
                 point_select_shortcuts,
+                set_point_selection_order,
                 delete_points,
                 move_points,
                 update_point_sprites,

@@ -43,6 +43,7 @@ pub struct EPoint {
     pub is_hovered: bool,
     pub is_selected: bool,
     pub drag_offset: Option<IVec2>,
+    pub selection_order: Option<u32>,
 }
 impl EPoint {
     pub fn new(kind: EPointKind, core_uid: UId, highlight_uid: UId) -> Self {
@@ -54,6 +55,7 @@ impl EPoint {
             is_hovered: false,
             is_selected: false,
             drag_offset: None,
+            selection_order: None,
         }
     }
 }
@@ -385,6 +387,28 @@ pub(super) fn point_select_shortcuts(
         let all_ids: Vec<Entity> = points.iter().map(|thing| thing.0).collect();
         for id in all_ids {
             deselect_point(id, &mut points);
+        }
+    }
+}
+
+pub(super) fn set_point_selection_order(mut points: Query<&mut EPoint>) {
+    let mut highest_selection_order = 0;
+    for mut point in points.iter_mut() {
+        if point.is_selected {
+            match point.selection_order {
+                Some(order) => highest_selection_order = highest_selection_order.max(order),
+                None => {
+                    // Will be handled later
+                }
+            }
+        } else {
+            point.selection_order = None;
+        }
+    }
+    for mut point in points.iter_mut() {
+        if point.is_selected && point.selection_order.is_none() {
+            highest_selection_order += 1;
+            point.selection_order = Some(highest_selection_order);
         }
     }
 }
