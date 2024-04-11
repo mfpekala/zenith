@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
-        animated::{AnimationHead, AnimationHeadStub},
+        old_animated::{AnimationHead, AnimationHeadStub},
         layering::sprite_layer,
     },
     environment::{

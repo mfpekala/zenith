@@ -4,13 +4,18 @@ use serde::{Deserialize, Serialize};
 
 pub type UId = u64;
 
-#[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
+#[derive(Component, Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct UIdMarker(pub UId);
 impl std::ops::Deref for UIdMarker {
     type Target = u64;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+impl Default for UIdMarker {
+    fn default() -> Self {
+        Self(fresh_uid())
     }
 }
 

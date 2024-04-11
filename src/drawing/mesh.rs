@@ -9,7 +9,7 @@ use crate::meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::sprite_mat::SpriteMaterial;
 
-fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHandle {
+pub fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHandle {
     let mut points_vec: Vec<f32> = vec![];
     let mut top_left = Vec2::new(f32::MAX, f32::MAX);
     let mut bot_right = Vec2::new(f32::MIN, f32::MIN);

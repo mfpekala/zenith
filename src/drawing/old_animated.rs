@@ -10,7 +10,6 @@ use crate::{
 /// in an AnimatedManagerStub and a system will clean it up to spawn
 #[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-
 pub struct AnimatedNodeStub {
     pub path: String,
     pub size: UVec2,
@@ -154,6 +153,21 @@ pub struct AnimationHeadStub {
     pub uid: UId,
     pub head: AnimationHead,
 }
+impl AnimationHeadStub {
+    pub fn from_single_stub(stub: AnimationStub) -> Self {
+        Self {
+            uid: fresh_uid(),
+            head: AnimationHead { stubs: vec![stub] },
+        }
+    }
+
+    pub fn from_stubs(stubs: Vec<AnimationStub>) -> Self {
+        Self {
+            uid: fresh_uid(),
+            head: AnimationHead { stubs },
+        }
+    }
+}
 
 #[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -168,8 +182,21 @@ pub struct AnimationStub {
     pub manager: AnimationManagerStub,
     pub key: String,
     pub render_layers: Vec<u8>,
+    pub offset: Vec3,
 }
 impl AnimationStub {
+    /// Basically just a sprite. Abusing notation to reuse this hehe.
+    pub fn single_static(path: &str, size: UVec2, render_layer: u8) -> Self {
+        Self {
+            uid: fresh_uid(),
+            manager: AnimationManagerStub::single_repeating(path, path, size, 1, None),
+            key: path.to_string(),
+            render_layers: vec![render_layer],
+            offset: Vec3::ZERO,
+        }
+    }
+
+    /// An animation stub containing a single repeating animation
     pub fn single_repeating(
         key: &str,
         path: &str,
@@ -183,6 +210,7 @@ impl AnimationStub {
             manager: AnimationManagerStub::single_repeating(key, path, size, length, pace),
             key: key.to_string(),
             render_layers: vec![render_layer],
+            offset: Vec3::ZERO,
         }
     }
 }
@@ -258,6 +286,7 @@ pub(super) fn materialize_animation_stubs(
                     layout: initial_node.layout.clone(),
                     index: 0,
                 },
+                transform: Transform::from_translation(stub.offset),
                 ..default()
             };
             commands.entity(id).with_children(|parent| {

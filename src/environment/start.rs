@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::{
-        animated::{AnimationStub, AnimationStubs},
+        old_animated::{AnimationStub, AnimationStubs},
         layering::sprite_layer_u8,
     },
     physics::dyno::IntMoveable,

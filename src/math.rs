@@ -167,6 +167,20 @@ pub fn irecenter(points: Vec<IVec2>, center: &IVec2) -> Vec<IVec2> {
     points.into_iter().map(|p| p - *center).collect()
 }
 
+/// Returns a rectangle with the given width and height centered at the origin (integer)
+pub fn irect(width: u32, height: u32) -> Vec<IVec2> {
+    let width = width as i32;
+    let height = height as i32;
+    let bl_x = -(width / 2);
+    let bl_y = -(height / 2);
+    vec![
+        IVec2::new(bl_x, bl_y),
+        IVec2::new(bl_x, bl_y + height),
+        IVec2::new(bl_x + width, bl_y + height),
+        IVec2::new(bl_x + width, bl_y),
+    ]
+}
+
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
 }

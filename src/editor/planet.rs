@@ -651,7 +651,9 @@ pub(super) fn update_field_gravity(
             if point.1.kind == EPointKind::Rock {
                 rock_points.push((point.2.pos.truncate()).as_vec2());
             } else {
-                let parent = points.get(point.4.get()).unwrap();
+                let Ok(parent) = points.get(point.4.get()) else {
+                    continue;
+                };
                 field_points.push((parent.2.pos.truncate() + point.2.pos.truncate()).as_vec2());
             }
         }

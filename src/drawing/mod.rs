@@ -1,7 +1,7 @@
 use crate::environment::background::BackgroundPlugin;
 
 use self::{
-    animated::MyAnimationPlugin,
+    animation::GoatedAnimationPlugin,
     effects::EffectsPlugin,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
     light::register_light,
@@ -9,18 +9,21 @@ use self::{
         resolve_bordered_mesh_head_stubs, resolve_mesh_head_stubs, scroll_sprite_materials,
         update_bordered_mesh_heads, update_mesh_heads,
     },
+    old_animated::MyAnimationPlugin,
     sprite_head::{resolve_sprite_head_stubs, update_sprite_heads},
     sprite_mat::SpriteMaterialPlugin,
     text::ZenithTextPlugin,
 };
 use bevy::prelude::*;
 
-pub mod animated;
+pub mod animation;
+pub mod animation_mat;
 pub mod effects;
 pub mod layering;
 pub mod light;
 pub mod mesh;
 pub mod mesh_head;
+pub mod old_animated;
 pub mod post_pixel;
 pub mod sprite_head;
 pub mod sprite_mat;
@@ -58,6 +61,7 @@ pub fn register_drawing(app: &mut App) {
     app.add_plugins(BackgroundPlugin);
     app.add_plugins(EffectsPlugin);
     app.add_plugins(MyAnimationPlugin);
+    app.add_plugins(GoatedAnimationPlugin);
     app.add_plugins(SpriteMaterialPlugin);
     app.add_plugins(ZenithTextPlugin);
 

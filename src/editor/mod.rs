@@ -40,6 +40,7 @@ use self::{
         cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
         FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
+    segment::{create_segment, kill_segments, position_segments},
     start_goal::{
         spawn_or_update_start_goal, start_goal_drag, EGoal, EStart, EStartGoalDiameter,
         EStartGoalDragOffset,
@@ -52,6 +53,7 @@ pub mod input;
 pub mod planet;
 pub mod point;
 pub mod save;
+pub mod segment;
 pub mod start_goal;
 pub mod testing;
 
@@ -239,6 +241,12 @@ impl Plugin for EditorPlugin {
                 .chain()
                 .run_if(is_editing)
                 .after(draw_field_parents),
+        );
+
+        // Segments
+        app.add_systems(
+            Update,
+            (create_segment, kill_segments, position_segments).run_if(is_editing),
         );
 
         // Testing
