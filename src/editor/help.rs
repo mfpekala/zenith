@@ -7,7 +7,7 @@ use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
 use std::fmt;
 
 use super::{
-    save::{CleanupLoadEvent, LoadEditorEvent, SaveEditorEvent},
+    save::{LoadEditorEvent, SaveEditorEvent},
     start_goal::{EGoal, EStart},
 };
 
@@ -411,7 +411,6 @@ pub(super) fn run_help_bar_command(
         EventWriter<HelpBarEvent>,
         EventWriter<SaveEditorEvent>,
         EventWriter<LoadEditorEvent>,
-        EventWriter<CleanupLoadEvent>,
         EventWriter<SetGameState>,
         Query<&EStart>,
         Query<&EGoal>,
@@ -422,7 +421,6 @@ pub(super) fn run_help_bar_command(
         mut event,
         mut save_editor_writer,
         mut load_editor_writer,
-        mut load_cleanup_writer,
         mut gs_writer,
         estart_q,
         egoal_q,
@@ -451,8 +449,6 @@ pub(super) fn run_help_bar_command(
         save_editor_writer.send(SaveEditorEvent);
     } else if &input == "load" {
         load_editor_writer.send(LoadEditorEvent);
-    } else if &input == "cleanup_load" {
-        load_cleanup_writer.send(CleanupLoadEvent);
     } else if &input == "test" {
         if estart_q.iter().len() == 0 {
             send_output("You must spawn a start position before testing");

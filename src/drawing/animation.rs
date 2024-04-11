@@ -10,6 +10,7 @@ use crate::math::irect;
 
 use super::{
     animation_mat::{AnimationMaterial, AnimationMaterialPlugin},
+    layering::sprite_layer_u8,
     mesh::{points_to_mesh, uvec2_bound},
 };
 
@@ -45,6 +46,9 @@ pub struct AnimationManager {
     points: Vec<IVec2>,
     scale: AnimationScale,
     offset: IVec3,
+    angle: f32,
+    render_layers_u8: Vec<u8>,
+    hidden: bool,
     is_changed: bool,
 }
 impl AnimationManager {
@@ -52,8 +56,17 @@ impl AnimationManager {
         self.map.get(&self.key).unwrap().clone()
     }
 
-    pub fn change_key(&mut self, key: String) {
-        self.key = key;
+    pub fn set_key(&mut self, key: &str) {
+        if key == &self.key {
+            // Do nothing. Use reset_key if you want this to reset the sprite even if the key is the same
+            return;
+        }
+        self.key = key.to_string();
+        self.is_changed = true;
+    }
+
+    pub fn reset_key(&mut self, key: &str) {
+        self.key = key.to_string();
         self.is_changed = true;
     }
 
@@ -63,6 +76,24 @@ impl AnimationManager {
             return;
         }
         self.points = points;
+        self.is_changed = true;
+    }
+
+    pub fn set_angle(&mut self, angle: f32) {
+        if (self.angle - angle).abs() < 0.001 {
+            // Do nothing
+            return;
+        }
+        self.angle = angle;
+        self.is_changed = true;
+    }
+
+    pub fn set_hidden(&mut self, hidden: bool) {
+        if self.hidden == hidden {
+            // Do nothing
+            return;
+        }
+        self.hidden = hidden;
         self.is_changed = true;
     }
 
@@ -78,6 +109,28 @@ impl AnimationManager {
             key: sprite.path.clone(),
             map,
             points: irect(sprite.size.x, sprite.size.y),
+            ..default()
+        }
+    }
+
+    /// Creates a basic animation manager with multiple nodes. The initial node is the first one in the list
+    pub fn from_static_pairs(pairs: Vec<(&str, SpriteInfo)>) -> Self {
+        let mut map = HashMap::new();
+        let first_key = pairs[0].0.to_string();
+        for (key, sprite) in pairs {
+            let node = AnimationNode {
+                sprite,
+                length: 1,
+                ..default()
+            };
+            map.insert(key.to_string(), node);
+        }
+        let first = map.get(&first_key).unwrap();
+        let points = irect(first.sprite.size.x, first.sprite.size.y);
+        Self {
+            key: first_key,
+            map,
+            points,
             ..default()
         }
     }
@@ -106,8 +159,30 @@ impl Default for AnimationManager {
             points: vec![],
             scale: AnimationScale::Repeat,
             offset: IVec3::ZERO,
+            angle: 0.0,
+            render_layers_u8: vec![sprite_layer_u8()],
+            hidden: false,
             is_changed: true,
         }
+    }
+}
+
+#[derive(Component, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+struct MultiBodyMarker(String);
+
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct MultiAnimationManager {
+    pub map: HashMap<String, AnimationManager>,
+}
+impl MultiAnimationManager {
+    pub fn from_pairs(pairs: Vec<(&str, AnimationManager)>) -> Self {
+        let mut map = HashMap::new();
+        for (key, manager) in pairs {
+            map.insert(key.to_string(), manager);
+        }
+        Self { map }
     }
 }
 
@@ -134,6 +209,7 @@ struct AnimationLength(u32);
 
 #[derive(Bundle, Default)]
 struct AnimationBundle {
+    name: Name,
     body: AnimationBody,
     index: AnimationIndex,
     pace: AnimationPace,
@@ -147,10 +223,17 @@ struct AnimationBundle {
 /// Looks for AnimationManagers that don't have AnimationBody and spawns them
 fn materialize_animation_bodies(
     mut commands: Commands,
-    mut managers: Query<(Entity, Option<&Children>, &mut AnimationManager)>,
-    bodies: Query<&AnimationBody>,
-    all_ents: Query<Entity>,
+    mut managers: Query<
+        (Entity, Option<&Children>, &mut AnimationManager),
+        Without<MultiAnimationManager>,
+    >,
+    mut multis: Query<
+        (Entity, Option<&Children>, &mut MultiAnimationManager),
+        Without<AnimationManager>,
+    >,
+    bodies: Query<Option<&MultiBodyMarker>, With<AnimationBody>>,
 ) {
+    // Handle the single cases
     for (eid, children, mut manager) in managers.iter_mut() {
         let is_materialized = match children {
             None => false,
@@ -159,23 +242,41 @@ fn materialize_animation_bodies(
         if is_materialized {
             continue;
         }
-        match children {
-            Some(ceids) => {
-                // Helper logic to make sure there are no dangling children
-                let good_eids: Vec<Entity> = ceids
-                    .iter()
-                    .filter(|id| all_ents.get(**id).is_ok())
-                    .map(|r| *r)
-                    .collect();
-                commands.entity(eid).remove::<Children>();
-                commands.entity(eid).push_children(&good_eids);
-            }
-            None => (),
-        };
         commands.entity(eid).with_children(|parent| {
-            parent.spawn(AnimationBundle::default());
+            parent.spawn(AnimationBundle {
+                name: Name::new("AnimationBody"),
+                ..default()
+            });
         });
         manager.is_changed = true;
+    }
+    // Handle the multi cases
+    for (eid, children, mut multi) in multis.iter_mut() {
+        for (key, manager) in multi.map.iter_mut() {
+            let is_materialized = match children {
+                None => false,
+                Some(eids) => eids.iter().any(|eid| {
+                    // Yoo
+                    match bodies.get(*eid) {
+                        Ok(Some(bm)) => &bm.0 == key,
+                        _ => false,
+                    }
+                }),
+            };
+            if is_materialized {
+                continue;
+            }
+            commands.entity(eid).with_children(|parent| {
+                parent.spawn((
+                    AnimationBundle {
+                        name: Name::new("AnimationBody"),
+                        ..default()
+                    },
+                    MultiBodyMarker(key.clone()),
+                ));
+            });
+            manager.is_changed = true;
+        }
     }
 }
 
@@ -184,7 +285,8 @@ fn materialize_animation_bodies(
 /// It happens in Update so we can have these changes reflected as soon as possible
 fn update_animation_bodies(
     mut commands: Commands,
-    mut managers: Query<(&mut AnimationManager, &RenderLayers)>,
+    mut managers: Query<&mut AnimationManager, Without<MultiAnimationManager>>,
+    mut multis: Query<&mut MultiAnimationManager, Without<AnimationManager>>,
     mut bodies: Query<(
         Entity,
         &Parent,
@@ -192,39 +294,62 @@ fn update_animation_bodies(
         &mut AnimationPace,
         &mut AnimationLength,
         &mut Transform,
+        &mut Visibility,
+        Option<&MultiBodyMarker>,
     )>,
     asset_server: Res<AssetServer>,
     mut mats: ResMut<Assets<AnimationMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (eid, parent, mut body, mut pace, mut length, mut tran) in bodies.iter_mut() {
+    for (eid, parent, mut body, mut pace, mut length, mut tran, mut vis, multi_marker) in
+        bodies.iter_mut()
+    {
         // See if we need to update
-        let Ok((mut manager, render_layers)) = managers.get_mut(parent.get()) else {
-            continue;
+        let (manager, current_node) = match multi_marker {
+            Some(mbm) => {
+                let Ok(mut multi) = multis.get_mut(parent.get()) else {
+                    continue;
+                };
+                let Some(manager) = multi.map.get_mut(&mbm.0) else {
+                    continue;
+                };
+                if !manager.is_changed {
+                    continue;
+                }
+                manager.is_changed = false;
+                let crystal_manager = manager.clone();
+                let current_node = manager.current_node();
+                (crystal_manager, current_node)
+            }
+            None => {
+                let Ok(mut manager) = managers.get_mut(parent.get()) else {
+                    continue;
+                };
+                if !manager.is_changed {
+                    continue;
+                }
+                manager.is_changed = false;
+                let crystal_manager = manager.clone();
+                let current_node = manager.current_node();
+                (crystal_manager, current_node)
+            }
         };
-        let Some(current_node) = manager.map.get(&manager.key) else {
-            continue;
-        };
-        let current_node = current_node.clone();
-        if !manager.is_changed {
-            continue;
-        }
-        manager.is_changed = false;
 
         // Add the render layers
-        commands.entity(eid).insert(render_layers.clone());
+        let render_layers = RenderLayers::from_layers(&manager.render_layers_u8);
+        commands.entity(eid).insert(render_layers);
 
         // Update the body's handle map
-        for animation_path in manager.map.keys() {
-            if body.handle_map.get(animation_path).is_none() {
-                let handle = asset_server.load(animation_path);
-                body.handle_map.insert(animation_path.clone(), handle);
+        for (key, node) in manager.map.iter() {
+            if body.handle_map.get(key).is_none() {
+                let handle = asset_server.load(&node.sprite.path);
+                body.handle_map.insert(key.clone(), handle);
             }
         }
         let mut killing = HashSet::new();
-        for animation_path in body.handle_map.keys() {
-            if !manager.map.contains_key(animation_path) {
-                killing.insert(animation_path.clone());
+        for key in body.handle_map.keys() {
+            if !manager.map.contains_key(key) {
+                killing.insert(key.clone());
             }
         }
         for key in killing {
@@ -238,7 +363,7 @@ fn update_animation_bodies(
 
         // Redo the mesh
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
-        let mat = AnimationMaterial::from_handle(image_handle, 0, Vec2::ONE);
+        let mat = AnimationMaterial::from_handle(image_handle, length.0, Vec2::ONE);
         let mat_ass = mats.add(mat);
         let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh = points_to_mesh(&fpoints, &mut meshes);
@@ -246,8 +371,14 @@ fn update_animation_bodies(
         commands.entity(eid).insert(mesh);
         commands.entity(eid).remove::<Aabb>(); // Makes the engine recalculate the Aabb so culling is right
 
-        // Update the translation
+        // Update the translation/visibility
+        *vis = if manager.hidden {
+            Visibility::Hidden
+        } else {
+            Visibility::Inherited
+        };
         tran.translation = manager.offset.as_vec3();
+        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.angle);
     }
 }
 
@@ -300,7 +431,7 @@ fn play_animations(
         if index.ix >= length.0 {
             index.ix = 0;
             if current_node.next.is_some() {
-                manager.change_key(current_node.next.unwrap());
+                manager.set_key(&current_node.next.unwrap());
             }
         }
     }
@@ -317,6 +448,7 @@ impl Plugin for GoatedAnimationPlugin {
         app.add_systems(FixedUpdate, play_animations);
 
         app.register_type::<AnimationManager>();
+        app.register_type::<MultiAnimationManager>();
         app.register_type::<AnimationIndex>();
         app.register_type::<AnimationLength>();
         app.register_type::<AnimationPace>();

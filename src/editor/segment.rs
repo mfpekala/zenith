@@ -1,13 +1,10 @@
 use std::cmp::Ordering;
 
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::{
-        animation::{AnimationManager, SpriteInfo},
-        layering::sprite_layer,
-    },
+    drawing::animation::{AnimationManager, SpriteInfo},
     math::irect,
     meta::game_state::{EditingMode, GameState},
     uid::{UId, UIdMarker, UIdTranslator},
@@ -31,7 +28,6 @@ pub struct SegmentBundle {
     pub name: Name,
     pub parents: SegmentParents,
     pub animation: AnimationManager,
-    pub render_layers: RenderLayers,
     pub spatial: SpatialBundle,
     pub save: SaveMarker,
 }
@@ -125,7 +121,6 @@ pub(super) fn create_segment(
                 },
                 2,
             ),
-            render_layers: sprite_layer(),
             spatial: SpatialBundle::default(),
             save: SaveMarker,
         });
@@ -181,7 +176,8 @@ pub(super) fn position_segments(
         let norm = Vec2::new(-diff_norm.y, diff_norm.x) * 0.9;
         center += (current_node.sprite.size.y as f32 * norm / 2.0).extend(0.0);
         tran.translation = center;
-        tran.rotation = Quat::from_rotation_arc_2d(Vec2::X, diff.normalize_or_zero());
+        let angle = diff_norm.y.atan2(diff_norm.x);
+        anim.set_angle(angle);
         anim.set_points(irect(
             (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
             current_node.sprite.size.y,

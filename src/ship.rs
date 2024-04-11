@@ -1,6 +1,6 @@
 use crate::cutscenes::is_not_in_cutscene;
-use crate::drawing::old_animated::{AnimationStub, AnimationStubs};
 use crate::drawing::layering::{light_layer_u8, sprite_layer_u8};
+use crate::drawing::old_animated::{AnimationStub, AnimationStubs};
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };

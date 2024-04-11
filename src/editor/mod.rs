@@ -37,8 +37,8 @@ use self::{
         set_point_selection_order, spawn_points, update_point_sprites, EPoint,
     },
     save::{
-        cleanup_load, connect_parents, fix_after_load, load_editor, save_editor, CleanupLoadEvent,
-        FuckySceneResource, LoadEditorEvent, SaveEditorEvent, SaveMarker,
+        connect_parents, fix_after_load, load_editor, save_editor, FuckySceneResource,
+        LoadEditorEvent, SaveEditorEvent, SaveMarker,
     },
     segment::{create_segment, kill_segments, position_segments, SegmentParents},
     start_goal::{
@@ -150,12 +150,10 @@ impl Plugin for EditorPlugin {
         app.insert_resource(FuckySceneResource::default());
         app.add_event::<SaveEditorEvent>();
         app.add_event::<LoadEditorEvent>();
-        app.add_event::<CleanupLoadEvent>();
         app.add_systems(Update, save_editor.run_if(in_editor));
         app.add_systems(Update, load_editor.run_if(in_editor));
         app.add_systems(Update, connect_parents.run_if(in_editor));
         app.add_systems(Update, fix_after_load.run_if(in_editor));
-        app.add_systems(Update, cleanup_load.run_if(in_editor));
         app.register_type::<EditingSceneRoot>();
         app.register_type::<EPlanet>();
         app.register_type::<EPoint>();

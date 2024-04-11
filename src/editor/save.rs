@@ -3,9 +3,8 @@ use std::{fs, ops::Deref};
 use bevy::{
     ecs::{entity::EntityHashMap, system::SystemState},
     prelude::*,
-    utils::HashSet,
+    utils::{HashMap, HashSet},
 };
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -14,7 +13,10 @@ use super::{
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
-use crate::meta::game_state::{EditingMode, SetGameState};
+use crate::{
+    drawing::animation_mat::AnimationMaterial,
+    meta::game_state::{EditingMode, SetGameState},
+};
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -262,39 +264,53 @@ pub(super) fn fix_after_load(
     params: &mut SystemState<(
         ResMut<FuckySceneResource>,
         ResMut<Assets<DynamicScene>>,
+        ResMut<Assets<Mesh>>,
+        ResMut<Assets<AnimationMaterial>>,
         Query<Entity, With<EditingSceneRoot>>,
+        Query<(Entity, &Children)>,
+        Query<Entity>,
     )>,
 ) {
-    if thread_rng().gen_bool(0.1) {
-        let (mut fucky_scene, mut scenes, root_q) = params.get_mut(world);
-        let roots: Vec<Entity> = root_q.iter().collect();
-        let Some(scene_handle) = fucky_scene.0.clone() else {
-            return;
-        };
-        let Some(scene) = scenes.remove(scene_handle.id()) else {
-            return;
-        };
-        *fucky_scene = FuckySceneResource(None);
-        let mut entity_map = EntityHashMap::default();
-        for root in roots {
-            world.entity_mut(root).despawn_recursive();
-        }
-        scene.write_to_world(world, &mut entity_map).unwrap();
+    let (mut fucky_scene, mut scenes, mut meshes, mut anim_mats, root_q, _, _) =
+        params.get_mut(world);
+    let roots: Vec<Entity> = root_q.iter().collect();
+    let Some(scene_handle) = fucky_scene.0.clone() else {
+        return;
+    };
+    let Some(scene) = scenes.remove(scene_handle.id()) else {
+        return;
+    };
+    // We have to clear the mesh and material resources to avoid some fucky behavior
+    let ids: Vec<AssetId<Mesh>> = meshes.ids().into_iter().collect();
+    for id in ids {
+        meshes.remove(id);
     }
-}
-
-#[derive(Event)]
-pub struct CleanupLoadEvent;
-
-pub(super) fn cleanup_load(
-    mut commands: Commands,
-    dynamic: Query<(Entity, &Handle<DynamicScene>)>,
-    mut reader: EventReader<CleanupLoadEvent>,
-) {
-    if reader.read().count() > 0 {
-        for thing in dynamic.iter() {
-            commands.entity(thing.0).despawn_recursive();
+    let ids: Vec<AssetId<AnimationMaterial>> = anim_mats.ids().into_iter().collect();
+    for id in ids {
+        anim_mats.remove(id);
+    }
+    // We have to keep track of all this fuckery
+    *fucky_scene = FuckySceneResource(None);
+    let mut entity_map = EntityHashMap::default();
+    for root in roots {
+        world.entity_mut(root).despawn_recursive();
+    }
+    scene.write_to_world(world, &mut entity_map).unwrap();
+    // Guess what? Secret fuckery we need to deal with
+    let (_, _, _, _, _, children_q, all_q) = params.get_mut(world);
+    let mut unfucked_children = HashMap::new();
+    for (eid, children) in children_q.iter() {
+        let mut all_good = vec![];
+        for child in children.iter() {
+            if all_q.get(*child).is_ok() {
+                all_good.push(*child);
+            }
         }
+        unfucked_children.insert(eid, all_good);
+    }
+    for (eid, all_good) in unfucked_children.into_iter() {
+        world.entity_mut(eid).remove::<Children>();
+        world.entity_mut(eid).push_children(&all_good);
     }
 }
 

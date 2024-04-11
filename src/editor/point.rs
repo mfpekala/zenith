@@ -2,10 +2,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::{
-        layering::sprite_layer_u8,
-        sprite_head::{SpriteHead, SpriteHeadStub, SpriteHeadStubs},
-    },
+    drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
     input::MouseState,
     meta::game_state::{
         EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
@@ -25,10 +22,16 @@ pub enum EPointKind {
     Wild,
 }
 impl EPointKind {
-    pub fn to_path(&self) -> String {
+    pub fn to_sprite_info(&self) -> SpriteInfo {
         match *self {
-            Self::Field | Self::Rock => "sprites/editor/point.png".to_string(),
-            Self::Wild => "sprites/editor/point_wild.png".to_string(),
+            Self::Field | Self::Rock => SpriteInfo {
+                path: "sprites/editor/point.png".to_string(),
+                size: UVec2::new(6, 6),
+            },
+            Self::Wild => SpriteInfo {
+                path: "sprites/editor/point_wild.png".to_string(),
+                size: UVec2::new(10, 10),
+            },
         }
     }
 }
@@ -37,8 +40,6 @@ impl EPointKind {
 #[reflect(Component, Serialize, Deserialize)]
 pub struct EPoint {
     pub kind: EPointKind,
-    pub core_uid: UId,
-    pub highlight_uid: UId,
     pub size: u32,
     pub is_hovered: bool,
     pub is_selected: bool,
@@ -46,11 +47,9 @@ pub struct EPoint {
     pub selection_order: Option<u32>,
 }
 impl EPoint {
-    pub fn new(kind: EPointKind, core_uid: UId, highlight_uid: UId) -> Self {
+    pub fn new(kind: EPointKind) -> Self {
         Self {
             kind,
-            core_uid,
-            highlight_uid,
             size: 3,
             is_hovered: false,
             is_selected: false,
@@ -66,44 +65,34 @@ pub struct EPointBundle {
     pub point: EPoint,
     pub moveable: IntMoveable,
     pub spatial: SpatialBundle,
+    pub anim: MultiAnimationManager,
     pub save: SaveMarker,
 }
 impl EPointBundle {
-    pub fn new(pos: IVec2, kind: EPointKind) -> (Self, impl Bundle) {
+    pub fn new(pos: IVec2, kind: EPointKind) -> Self {
         let my_uid = fresh_uid();
-        let core_uid = fresh_uid();
-        let highlight_uid = fresh_uid();
-        (
-            Self {
-                uid: UIdMarker(my_uid),
-                point: EPoint::new(kind.clone(), core_uid, highlight_uid),
-                moveable: IntMoveable::new(pos.extend(2)),
-                spatial: SpatialBundle::from_transform(Transform {
-                    translation: pos.as_vec2().extend(0.1),
-                    ..default()
-                }),
-                save: SaveMarker,
-            },
-            SpriteHeadStubs(vec![
-                SpriteHeadStub {
-                    uid: core_uid,
-                    head: SpriteHead {
-                        path: kind.to_path(),
-                        render_layers: vec![sprite_layer_u8()],
-                        ..default()
-                    },
-                },
-                SpriteHeadStub {
-                    uid: highlight_uid,
-                    head: SpriteHead {
-                        path: "sprites/editor/point_highlight.png".to_string(),
-                        render_layers: vec![sprite_layer_u8()],
-                        hidden: true,
-                        ..default()
-                    },
-                },
+        let core_anim = AnimationManager::from_static_pairs(vec![
+            ("solid", EPointKind::Rock.to_sprite_info()),
+            ("hollow", EPointKind::Wild.to_sprite_info()),
+        ]);
+        let highlight_anim = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/editor/point_highlight.png".to_string(),
+            size: UVec2::new(10, 10),
+        });
+        Self {
+            uid: UIdMarker(my_uid),
+            point: EPoint::new(kind.clone()),
+            moveable: IntMoveable::new(pos.extend(2)),
+            spatial: SpatialBundle::from_transform(Transform {
+                translation: pos.as_vec2().extend(0.1),
+                ..default()
+            }),
+            anim: MultiAnimationManager::from_pairs(vec![
+                ("core", core_anim),
+                ("highlight", highlight_anim),
             ]),
-        )
+            save: SaveMarker,
+        }
     }
 }
 
@@ -171,7 +160,7 @@ pub(super) fn spawn_points(
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.push(bund.0.uid.0);
+                    eplanet.rock_points.push(bund.uid.0);
                     parent.spawn(bund);
                 });
             }
@@ -186,7 +175,7 @@ pub(super) fn spawn_points(
                 // These are points that later can be made into fields
                 commands.entity(planet_id).with_children(|parent| {
                     let bund = EPointBundle::new(spawning_at, EPointKind::Wild);
-                    eplanet.wild_points.push(bund.0.uid.0);
+                    eplanet.wild_points.push(bund.uid.0);
                     parent.spawn(bund);
                 });
             } else {
@@ -248,7 +237,7 @@ pub(super) fn spawn_points(
                         mouse_state.world_pos - mv.pos.truncate(),
                         EPointKind::Rock,
                     );
-                    eplanet.rock_points.insert(pos, bund.0.uid.0);
+                    eplanet.rock_points.insert(pos, bund.uid.0);
                     parent.spawn(bund);
                 });
             }
@@ -414,24 +403,17 @@ pub(super) fn set_point_selection_order(mut points: Query<&mut EPoint>) {
 }
 
 /// Changes the sprite based on wild/unwild, and toggles the highlight visibility if selected
-pub(super) fn update_point_sprites(
-    points: Query<&EPoint>,
-    mut sprite_heads: Query<&mut SpriteHead>,
-    ut: Res<UIdTranslator>,
-) {
-    for point in points.iter() {
+pub(super) fn update_point_sprites(mut points: Query<(&EPoint, &mut MultiAnimationManager)>) {
+    for (epoint, mut anim) in points.iter_mut() {
         // Update the core sprite
-        if let Some(eid) = ut.get_entity(point.core_uid) {
-            if let Ok(mut head) = sprite_heads.get_mut(eid) {
-                head.path = point.kind.to_path();
-            }
-        }
+        let core_anim = anim.map.get_mut("core").unwrap();
+        core_anim.set_key(match epoint.kind {
+            EPointKind::Rock | EPointKind::Field => "solid",
+            EPointKind::Wild => "hollow",
+        });
         // Update the highlight
-        if let Some(eid) = ut.get_entity(point.highlight_uid) {
-            if let Ok(mut head) = sprite_heads.get_mut(eid) {
-                head.hidden = !point.is_selected;
-            }
-        }
+        let highlight_anim = anim.map.get_mut("highlight").unwrap();
+        highlight_anim.set_hidden(!epoint.is_selected);
     }
 }
 
