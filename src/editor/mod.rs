@@ -1,9 +1,5 @@
 use crate::{
     camera::CameraMode,
-    drawing::{
-        mesh_head::{BorderedMeshBody, BorderedMeshHead, MeshHead, ScrollSpriteMat},
-        sprite_head::SpriteHead,
-    },
     environment::{
         field::{FieldDrag, FieldStrength},
         rock::RockKind,
@@ -49,7 +45,6 @@ use self::{
 };
 
 pub mod help;
-pub mod input;
 pub mod planet;
 pub mod point;
 pub mod save;
@@ -167,11 +162,6 @@ impl Plugin for EditorPlugin {
         app.register_type::<SegmentParents>();
         app.register_type::<IntMoveable>();
         app.register_type::<UIdMarker>();
-        app.register_type::<SpriteHead>();
-        app.register_type::<BorderedMeshHead>();
-        app.register_type::<BorderedMeshBody>();
-        app.register_type::<MeshHead>();
-        app.register_type::<ScrollSpriteMat>();
         app.register_type::<SaveMarker>();
 
         // Help system

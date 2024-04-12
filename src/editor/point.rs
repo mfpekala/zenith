@@ -61,6 +61,7 @@ impl EPoint {
 
 #[derive(Bundle)]
 pub struct EPointBundle {
+    pub name: Name,
     pub uid: UIdMarker,
     pub point: EPoint,
     pub moveable: IntMoveable,
@@ -80,6 +81,7 @@ impl EPointBundle {
             size: UVec2::new(10, 10),
         });
         Self {
+            name: Name::new("Point"),
             uid: UIdMarker(my_uid),
             point: EPoint::new(kind.clone()),
             moveable: IntMoveable::new(pos.extend(2)),

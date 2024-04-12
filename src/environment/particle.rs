@@ -1,15 +1,12 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, render::view::RenderLayers, sprite::MaterialMesh2dBundle};
+use bevy::{prelude::*, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
 use crate::{
     camera::CameraMarker,
-    drawing::{
-        layering::{light_layer, sprite_layer},
-        mesh::generate_new_color_mesh,
-    },
-    math::{lerp, lerp_color, regular_polygon, Spleen},
+    drawing::layering::sprite_layer,
+    math::{lerp, lerp_color, Spleen},
 };
 
 #[derive(Component)]
@@ -76,40 +73,40 @@ pub struct ParticleLighting {
     pub spleen: Spleen,
 }
 
-#[derive(Bundle)]
-pub struct ParticleLightingBundle {
-    pub light: ParticleLighting,
-    pub mesh: MaterialMesh2dBundle<ColorMaterial>,
-    pub render_layers: RenderLayers,
-}
-impl ParticleLightingBundle {
-    pub fn new(
-        num_sides: u32,
-        radius: f32,
-        color: Color,
-        spleen: Spleen,
-        mats: &mut ResMut<Assets<ColorMaterial>>,
-        meshes: &mut ResMut<Assets<Mesh>>,
-    ) -> Self {
-        let mat = mats.add(ColorMaterial::from(Color::Hsla {
-            hue: color.h(),
-            saturation: color.s(),
-            lightness: color.l(),
-            alpha: color.a(),
-        }));
-        let points = regular_polygon(num_sides, 0.0, radius);
-        let mesh = generate_new_color_mesh(&points, &mat, meshes);
-        Self {
-            light: ParticleLighting {
-                radius,
-                color,
-                spleen,
-            },
-            mesh,
-            render_layers: light_layer(),
-        }
-    }
-}
+// #[derive(Bundle)]
+// pub struct ParticleLightingBundle {
+//     pub light: ParticleLighting,
+//     pub mesh: MaterialMesh2dBundle<ColorMaterial>,
+//     pub render_layers: RenderLayers,
+// }
+// impl ParticleLightingBundle {
+//     pub fn new(
+//         num_sides: u32,
+//         radius: f32,
+//         color: Color,
+//         spleen: Spleen,
+//         mats: &mut ResMut<Assets<ColorMaterial>>,
+//         meshes: &mut ResMut<Assets<Mesh>>,
+//     ) -> Self {
+//         let mat = mats.add(ColorMaterial::from(Color::Hsla {
+//             hue: color.h(),
+//             saturation: color.s(),
+//             lightness: color.l(),
+//             alpha: color.a(),
+//         }));
+//         let points = regular_polygon(num_sides, 0.0, radius);
+//         let mesh = generate_new_color_mesh(&points, &mat, meshes);
+//         Self {
+//             light: ParticleLighting {
+//                 radius,
+//                 color,
+//                 spleen,
+//             },
+//             mesh,
+//             render_layers: light_layer(),
+//         }
+//     }
+// }
 
 #[derive(Default, Clone)]
 pub struct ParticleOptions {
@@ -151,8 +148,8 @@ impl ParticleBundle {
         body: ParticleBody,
         lifespan: f32,
         options: ParticleOptions,
-        mats: &mut ResMut<Assets<ColorMaterial>>,
-        meshes: &mut ResMut<Assets<Mesh>>,
+        _mats: &mut ResMut<Assets<ColorMaterial>>,
+        _meshes: &mut ResMut<Assets<Mesh>>,
     ) -> Entity {
         let id = commands.spawn(Self::new(body, lifespan)).id();
         if let Some(sizing) = options.sizing {
@@ -161,18 +158,18 @@ impl ParticleBundle {
         if let Some(coloring) = options.coloring {
             commands.entity(id).insert(coloring);
         }
-        if let Some(lighting) = options.lighting {
-            commands.entity(id).with_children(|parent| {
-                let lb = ParticleLightingBundle::new(
-                    12,
-                    lighting.radius,
-                    lighting.color,
-                    lighting.spleen,
-                    mats,
-                    meshes,
-                );
-                parent.spawn(lb);
-            });
+        if let Some(_lighting) = options.lighting {
+            // commands.entity(id).with_children(|parent| {
+            //     let lb = ParticleLightingBundle::new(
+            //         12,
+            //         lighting.radius,
+            //         lighting.color,
+            //         lighting.spleen,
+            //         mats,
+            //         meshes,
+            //     );
+            //     parent.spawn(lb);
+            // });
         }
         id
     }

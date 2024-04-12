@@ -10,6 +10,7 @@ use crate::math::irect;
 
 use super::{
     animation_mat::{AnimationMaterial, AnimationMaterialPlugin},
+    bordered_mesh::{materialize_bordered_meshes, update_bordered_meshes, BorderedMesh},
     layering::sprite_layer_u8,
     mesh::{points_to_mesh, uvec2_bound},
 };
@@ -97,6 +98,24 @@ impl AnimationManager {
         self.is_changed = true;
     }
 
+    pub fn set_render_layers(&mut self, render_layers_u8: Vec<u8>) {
+        if render_layers_u8 == self.render_layers_u8 {
+            // Do nothing
+            return;
+        }
+        self.render_layers_u8 = render_layers_u8;
+        self.is_changed = true;
+    }
+
+    pub fn set_offset(&mut self, offset: IVec3) {
+        if self.offset == offset {
+            // Do nothing
+            return;
+        }
+        self.offset = offset;
+        self.is_changed = true;
+    }
+
     pub fn single_static(sprite: SpriteInfo) -> Self {
         let node = AnimationNode {
             sprite: sprite.clone(),
@@ -175,6 +194,7 @@ struct MultiBodyMarker(String);
 #[reflect(Component, Serialize, Deserialize)]
 pub struct MultiAnimationManager {
     pub map: HashMap<String, AnimationManager>,
+    pub is_coup: bool,
 }
 impl MultiAnimationManager {
     pub fn from_pairs(pairs: Vec<(&str, AnimationManager)>) -> Self {
@@ -182,7 +202,10 @@ impl MultiAnimationManager {
         for (key, manager) in pairs {
             map.insert(key.to_string(), manager);
         }
-        Self { map }
+        Self {
+            map,
+            is_coup: false,
+        }
     }
 }
 
@@ -277,6 +300,30 @@ fn materialize_animation_bodies(
             });
             manager.is_changed = true;
         }
+    }
+}
+
+/// A kind of overkill way to prevent ABA problems in the map. Basically whenever such
+/// issues could occur, just delete all saved handles and mark is_changed so things work out
+fn resolve_animation_coups(
+    mut multis: Query<(&mut MultiAnimationManager, &Children)>,
+    mut bodies: Query<(&mut AnimationBody, &MultiBodyMarker)>,
+) {
+    for (mut multi, children) in multis.iter_mut() {
+        if !multi.is_coup {
+            continue;
+        }
+        for child in children.iter() {
+            let Ok((mut body, multi_marker)) = bodies.get_mut(*child) else {
+                continue;
+            };
+            body.handle_map = HashMap::new();
+            let Some(manager) = multi.map.get_mut(&multi_marker.0) else {
+                continue;
+            };
+            manager.is_changed = true;
+        }
+        multi.is_coup = false;
     }
 }
 
@@ -382,58 +429,92 @@ fn update_animation_bodies(
     }
 }
 
+/// For bodies who's parent is a MultiAnimationBundle, check if the key doesn't exist, and if it doesn't, despawn
+fn dematerialize_animation_bodies(
+    mut commands: Commands,
+    multis: Query<(Entity, &MultiAnimationManager)>,
+    bodies: Query<(Entity, &Parent, &MultiBodyMarker)>,
+) {
+    for (eid, parent, multi_marker) in bodies.iter() {
+        let Ok((pid, multi)) = multis.get(parent.get()) else {
+            // Uh oh
+            continue;
+        };
+        if multi.map.contains_key(&multi_marker.0) {
+            continue;
+        }
+        commands.entity(pid).remove_children(&[eid]);
+        commands.entity(eid).despawn_recursive();
+    }
+}
+
 /// Actually play the animations. Happens during the FixedUpdate step.
 fn play_animations(
     mut managers: Query<&mut AnimationManager>,
+    mut multis: Query<&mut MultiAnimationManager>,
     mut bodies: Query<(
         &Parent,
         &Handle<AnimationMaterial>,
         &mut AnimationIndex,
         &AnimationPace,
         &AnimationLength,
+        Option<&MultiBodyMarker>,
     )>,
     mut mats: ResMut<Assets<AnimationMaterial>>,
 ) {
-    for (parent, mat_handle, mut index, pace, length) in bodies.iter_mut() {
-        let Ok(mut manager) = managers.get_mut(parent.get()) else {
-            continue;
-        };
-        let Some(current_node) = manager.map.get(&manager.key) else {
-            continue;
-        };
-        let Some(mat) = mats.get_mut(mat_handle.id()) else {
-            continue;
-        };
-        // First update the material
-        mat.index = index.ix as f32;
-        mat.length = length.0 as f32;
-        match manager.scale {
-            AnimationScale::Repeat => {
-                let fpoints = manager.points.iter().map(|p| p.as_vec2()).collect();
-                let mesh_size = uvec2_bound(&fpoints);
-                let image_size = current_node.sprite.size;
-                mat.x_repetitions = mesh_size.x as f32 / image_size.x as f32;
-                mat.y_repetitions = mesh_size.y as f32 / image_size.y as f32;
+    for (parent, mat_handle, mut index, pace, length, multi_marker) in bodies.iter_mut() {
+        let mut shared_logic = |manager: &mut AnimationManager| {
+            let current_node = manager.current_node();
+            let Some(mat) = mats.get_mut(mat_handle.id()) else {
+                return;
+            };
+            // First update the material
+            mat.index = index.ix as f32;
+            mat.length = length.0 as f32;
+            match manager.scale {
+                AnimationScale::Repeat => {
+                    let fpoints = manager.points.iter().map(|p| p.as_vec2()).collect();
+                    let mesh_size = uvec2_bound(&fpoints);
+                    let image_size = current_node.sprite.size;
+                    mat.x_repetitions = mesh_size.x as f32 / image_size.x as f32;
+                    mat.y_repetitions = mesh_size.y as f32 / image_size.y as f32;
+                }
+                AnimationScale::Grow => {
+                    mat.x_repetitions = 1.0;
+                    mat.y_repetitions = 1.0;
+                }
             }
-            AnimationScale::Grow => {
-                mat.x_repetitions = 1.0;
-                mat.y_repetitions = 1.0;
+            // Then progress the animation (so in case it swaps it'll be correct by next frame)
+            let current_node = current_node.clone();
+            index.steps += 1;
+            if index.steps > pace.0 {
+                index.ix += 1;
+                index.steps = 0;
             }
-        }
-
-        // Then progress the animation (so in case it swaps it'll be correct by next frame)
-        let current_node = current_node.clone();
-        index.steps += 1;
-        if index.steps > pace.0 {
-            index.ix += 1;
-            index.steps = 0;
-        }
-        if index.ix >= length.0 {
-            index.ix = 0;
-            if current_node.next.is_some() {
-                manager.set_key(&current_node.next.unwrap());
+            if index.ix >= length.0 {
+                index.ix = 0;
+                if current_node.next.is_some() {
+                    manager.set_key(&current_node.next.unwrap());
+                }
             }
-        }
+        };
+        match multi_marker {
+            Some(mbm) => {
+                let Ok(mut multi) = multis.get_mut(parent.get()) else {
+                    continue;
+                };
+                let Some(manager) = multi.map.get_mut(&mbm.0) else {
+                    continue;
+                };
+                shared_logic(manager);
+            }
+            None => {
+                let Ok(mut manager) = managers.get_mut(parent.get()) else {
+                    continue;
+                };
+                shared_logic(&mut manager);
+            }
+        };
     }
 }
 
@@ -443,14 +524,27 @@ impl Plugin for GoatedAnimationPlugin {
         app.add_plugins(AnimationMaterialPlugin);
         app.add_systems(
             Update,
-            (materialize_animation_bodies, update_animation_bodies).chain(),
+            (
+                materialize_animation_bodies,
+                resolve_animation_coups,
+                update_animation_bodies,
+                dematerialize_animation_bodies,
+            )
+                .chain(),
+        );
+        app.add_systems(
+            Update,
+            (materialize_bordered_meshes, update_bordered_meshes).chain(),
         );
         app.add_systems(FixedUpdate, play_animations);
 
         app.register_type::<AnimationManager>();
         app.register_type::<MultiAnimationManager>();
+        app.register_type::<MultiBodyMarker>();
         app.register_type::<AnimationIndex>();
         app.register_type::<AnimationLength>();
         app.register_type::<AnimationPace>();
+        app.register_type::<BorderedMesh>();
+        app.register_type::<AnimationMaterial>();
     }
 }

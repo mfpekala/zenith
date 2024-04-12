@@ -1,6 +1,6 @@
 use crate::cutscenes::is_not_in_cutscene;
-use crate::drawing::layering::{light_layer_u8, sprite_layer_u8};
-use crate::drawing::old_animated::{AnimationStub, AnimationStubs};
+use crate::drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo};
+use crate::drawing::layering::light_layer_u8;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
@@ -30,11 +30,20 @@ pub struct ShipBundle {
     pub respawn_watcher: LongKeyPress,
     pub dyno: IntDyno,
     pub spatial: SpatialBundle,
-    pub animation: AnimationStubs,
+    pub anim: MultiAnimationManager,
     pub name: Name,
 }
 impl ShipBundle {
     pub fn new(pos: IVec2) -> Self {
+        let ship = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/ship.png".to_string(),
+            size: UVec2::new(8, 8),
+        });
+        let mut light = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/shipL.png".to_string(),
+            size: UVec2::new(64, 64),
+        });
+        light.set_render_layers(vec![light_layer_u8()]);
         Self {
             ship: Ship { can_shoot: false },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
@@ -42,24 +51,7 @@ impl ShipBundle {
             spatial: SpatialBundle::from_transform(Transform::from_translation(
                 pos.as_vec2().extend(100.0),
             )),
-            animation: AnimationStubs(vec![
-                AnimationStub::single_repeating(
-                    "ship",
-                    "sprites/ship.png",
-                    UVec2::new(8, 8),
-                    1,
-                    None,
-                    sprite_layer_u8(),
-                ),
-                AnimationStub::single_repeating(
-                    "shipL",
-                    "sprites/shipL.png",
-                    UVec2::new(64, 64),
-                    1,
-                    None,
-                    light_layer_u8(),
-                ),
-            ]),
+            anim: MultiAnimationManager::from_pairs(vec![("ship", ship), ("light", light)]),
             name: Name::new("Ship"),
         }
     }

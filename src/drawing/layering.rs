@@ -1,7 +1,6 @@
 //! Original Code + Inspiration: https://github.com/goto64/bevy_2d_screen_space_lightmaps/blob/master/src/lightmap_plugin/lightmap_plugin.rs
 //! Tweaked it to be my own for more control + understanding
 
-use super::sprite_mat::SpriteMaterial;
 use crate::camera::CameraMarker;
 use crate::camera::DynamicCameraBundle;
 use crate::meta::consts::SCREEN_HEIGHT;
@@ -24,6 +23,8 @@ use bevy::render::render_resource::{
 use bevy::render::texture::BevyDefault;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle};
+
+use super::animation_mat::AnimationMaterial;
 
 pub struct LayeringPlugin;
 
@@ -483,7 +484,7 @@ const REDUCED_QUAD: Handle<Mesh> = Handle::weak_from_u128(23467206864860383170);
 const REDUCED_MATERIAL: Handle<ReducedMaterial> = Handle::weak_from_u128(52374148673136432070);
 
 const MENU_QUAD: Handle<Mesh> = Handle::weak_from_u128(36467206864860383170);
-const MENU_MATERIAL: Handle<SpriteMaterial> = Handle::weak_from_u128(29374148673136432070);
+const MENU_MATERIAL: Handle<AnimationMaterial> = Handle::weak_from_u128(29374148673136432070);
 
 fn setup_post_processing_camera(
     mut commands: Commands,
@@ -492,7 +493,7 @@ fn setup_post_processing_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BlendTexturesMaterial>>,
     mut dum_materials: ResMut<Assets<ReducedMaterial>>,
-    mut sprite_materials: ResMut<Assets<SpriteMaterial>>,
+    mut anim_materials: ResMut<Assets<AnimationMaterial>>,
 ) {
     let primary_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
 
@@ -521,12 +522,13 @@ fn setup_post_processing_camera(
         num_pixels_h: SCREEN_HEIGHT as f32,
     };
 
-    let menu_material = SpriteMaterial::from_handle(camera_targets.menu_target.clone(), None, None);
+    let menu_material =
+        AnimationMaterial::from_handle(camera_targets.menu_target.clone(), 1, Vec2::ONE);
 
     materials.insert(BG_PP_MATERIAL.clone(), bg_material);
     materials.insert(PP_MATERIAL.clone(), material);
     dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);
-    sprite_materials.insert(MENU_MATERIAL.clone(), menu_material);
+    anim_materials.insert(MENU_MATERIAL.clone(), menu_material);
 
     let reduced_layer = RenderLayers::from_layers(CAMERA_LAYER_REDUCED);
     let output_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);

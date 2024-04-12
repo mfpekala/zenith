@@ -24,6 +24,5 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let index_lower = (1.0 / length) * (index + 0);
     let index_upper = (1.0 / length) * (index + 1);
     let out_uv = vec2<f32>(index_lower + (index_upper - index_lower) * input_x, input_y);
-    // let out_uv = vec2<f32>(input_x, y_repetitions * in.uv[1]);
     return textureSample(texture, splr, out_uv);
 }

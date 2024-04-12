@@ -1,8 +1,5 @@
 use crate::{
-    drawing::{
-        layering::sprite_layer_u8,
-        mesh_head::{MeshHead, MeshHeadStub, MeshHeadStubs, MeshTextureKind},
-    },
+    drawing::animation::{AnimationManager, SpriteInfo},
     meta::level_data::{ExportedField, Rehydrate},
     physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
     uid::fresh_uid,
@@ -50,7 +47,7 @@ pub struct Field {
 pub struct FieldBundle {
     pub field: Field,
     pub spatial: SpatialBundle,
-    pub mesh_stubs: MeshHeadStubs,
+    pub anim: AnimationManager,
     pub trigger_stubs: ColliderTriggerStubs,
     pub name: Name,
 }
@@ -65,17 +62,11 @@ impl Rehydrate<FieldBundle> for ExportedField {
         // let center = icenter(&self.points);
         let mut spatial = SpatialBundle::default();
         spatial.transform.translation.z = -10.0;
-        let mesh = MeshHeadStub {
-            uid: fresh_uid(),
-            head: MeshHead {
-                path: "sprites/field/field_bg.png".to_string(),
-                points: self.points.clone(),
-                render_layers: vec![sprite_layer_u8()],
-                texture_kind: MeshTextureKind::Repeating(UVec2::new(12, 12)),
-                scroll: self.dir / 4.0,
-                ..default()
-            },
-        };
+        let mut anim = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/field/field_bg.png".to_string(),
+            size: UVec2::new(12, 12),
+        });
+        anim.set_points(self.points.clone());
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),
             points: self.points.clone(),
@@ -84,7 +75,7 @@ impl Rehydrate<FieldBundle> for ExportedField {
         FieldBundle {
             field,
             spatial,
-            mesh_stubs: MeshHeadStubs(vec![mesh]),
+            anim,
             trigger_stubs: ColliderTriggerStubs(vec![trigger]),
             name: Name::new("Field"),
         }

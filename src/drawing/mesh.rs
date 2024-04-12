@@ -1,13 +1,10 @@
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::Mesh2dHandle,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
-
-use super::sprite_mat::SpriteMaterial;
 
 pub fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mesh2dHandle {
     let mut points_vec: Vec<f32> = vec![];
@@ -46,32 +43,6 @@ pub fn points_to_mesh(points: &[Vec2], meshes: &mut ResMut<Assets<Mesh>>) -> Mes
     triangle.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     triangle.insert_indices(Indices::U32(verts));
     meshes.add(triangle).into()
-}
-
-pub fn generate_new_color_mesh(
-    points: &[Vec2],
-    mat: &Handle<ColorMaterial>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-) -> MaterialMesh2dBundle<ColorMaterial> {
-    let mesh_handle = points_to_mesh(points, meshes);
-    MaterialMesh2dBundle {
-        mesh: mesh_handle,
-        material: mat.clone(),
-        ..default()
-    }
-}
-
-pub fn generate_new_sprite_mesh(
-    points: &[Vec2],
-    mat: &Handle<SpriteMaterial>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-) -> MaterialMesh2dBundle<SpriteMaterial> {
-    let mesh_handle = points_to_mesh(points, meshes);
-    MaterialMesh2dBundle {
-        mesh: mesh_handle,
-        material: mat.clone(),
-        ..default()
-    }
 }
 
 /// Returns a mesh that covers the screen
@@ -117,42 +88,10 @@ pub fn outline_points(points: &Vec<Vec2>, width: f32) -> Vec<Vec2> {
 }
 
 /// Given a list of integer points, return points that retain the same shape, but produce an outline
-pub fn outline_int_points(points: &Vec<IVec2>, width: f32) -> Vec<IVec2> {
+pub fn ioutline_points(points: &Vec<IVec2>, width: f32) -> Vec<IVec2> {
     let fpoints: Vec<Vec2> = points.clone().into_iter().map(|p| p.as_vec2()).collect();
     let fres = outline_points(&fpoints, width);
     fres.into_iter()
         .map(|p| IVec2::new(p.x.round() as i32, p.y.round() as i32))
         .collect()
-}
-
-#[derive(Component)]
-pub struct MeshOutline {
-    pub width: f32,
-    pub color: Color,
-}
-impl MeshOutline {
-    pub fn to_bundle(
-        self,
-        points: &Vec<Vec2>,
-        mats: &mut ResMut<Assets<ColorMaterial>>,
-        meshes: &mut ResMut<Assets<Mesh>>,
-    ) -> impl Bundle {
-        let new_points = outline_points(points, self.width);
-        let mesh = points_to_mesh(&new_points, meshes);
-        let mat = mats.add(ColorMaterial::from(self.color));
-
-        MaterialMesh2dBundle {
-            material: mat,
-            mesh,
-            transform: Transform::from_translation(Vec2::ZERO.extend(-0.5)),
-            ..default()
-        }
-    }
-}
-
-#[derive(Component, Debug, Clone, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
-pub struct SpriteInfo {
-    pub sprite_size: UVec2,
-    pub bounds: UVec2,
 }

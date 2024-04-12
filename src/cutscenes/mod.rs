@@ -1,11 +1,4 @@
-use self::chapter_one::{register_chapter_one, walk_to_work::Walk2WorkHot};
-use crate::{
-    drawing::effects::TriggerFadeToBlack,
-    meta::{
-        consts::TuneableConsts,
-        game_state::{GameState, LevelState, MetaState, SetGameState},
-    },
-};
+use crate::drawing::effects::TriggerFadeToBlack;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -125,46 +118,43 @@ pub fn is_not_in_cutscene(res: Res<Cutscene>) -> bool {
     }
 }
 
-#[allow(unused)]
-#[derive(Component)]
-struct PlayDelay(pub Timer);
-#[allow(unused)]
-fn play_setup(mut commands: Commands) {
-    commands.spawn(PlayDelay(Timer::from_seconds(0.2, TimerMode::Once)));
-}
-#[allow(unused)]
-fn play_update(
-    mut commands: Commands,
-    mut play_delay: Query<(Entity, &mut PlayDelay)>,
-    time: Res<Time>,
-    mut gs_writer: EventWriter<SetGameState>,
-    mut cutscene_starter: EventWriter<StartCutscene>,
-    mut cutscene_stopper: EventWriter<StopCutscene>,
-    cutscene_res: Res<Cutscene>,
-    tune: Res<TuneableConsts>,
-    walk2work: Res<Walk2WorkHot>,
-) {
-    let playing = Cutscene::One(ChapterOneCutscenes::WalkToWork);
-    let Ok((id, mut pd)) = play_delay.get_single_mut() else {
-        // This code lets us restart the cutscene whenever one of the consts changes
-        if tune.is_changed() || walk2work.is_changed() {
-            cutscene_stopper.send(StopCutscene(Cutscene::None));
-        }
-        if *cutscene_res == Cutscene::None {
-            cutscene_starter.send(StartCutscene(playing));
-        }
-        return;
-    };
-    // This weird timer based code lets us simulate slipping into the cutscene
-    pd.0.tick(time.delta());
-    if pd.0.finished() {
-        gs_writer.send(SetGameState(GameState {
-            meta: MetaState::Level(LevelState::fresh_from_id("L1".to_string())),
-        }));
-        cutscene_starter.send(StartCutscene(playing));
-        commands.entity(id).despawn();
-    }
-}
+// #[derive(Component)]
+// struct PlayDelay(pub Timer);
+// fn play_setup(mut commands: Commands) {
+//     commands.spawn(PlayDelay(Timer::from_seconds(0.2, TimerMode::Once)));
+// }
+// fn play_update(
+//     mut commands: Commands,
+//     mut play_delay: Query<(Entity, &mut PlayDelay)>,
+//     time: Res<Time>,
+//     mut gs_writer: EventWriter<SetGameState>,
+//     mut cutscene_starter: EventWriter<StartCutscene>,
+//     mut cutscene_stopper: EventWriter<StopCutscene>,
+//     cutscene_res: Res<Cutscene>,
+//     tune: Res<TuneableConsts>,
+//     walk2work: Res<Walk2WorkHot>,
+// ) {
+//     let playing = Cutscene::One(ChapterOneCutscenes::WalkToWork);
+//     let Ok((id, mut pd)) = play_delay.get_single_mut() else {
+//         // This code lets us restart the cutscene whenever one of the consts changes
+//         if tune.is_changed() || walk2work.is_changed() {
+//             cutscene_stopper.send(StopCutscene(Cutscene::None));
+//         }
+//         if *cutscene_res == Cutscene::None {
+//             cutscene_starter.send(StartCutscene(playing));
+//         }
+//         return;
+//     };
+//     // This weird timer based code lets us simulate slipping into the cutscene
+//     pd.0.tick(time.delta());
+//     if pd.0.finished() {
+//         gs_writer.send(SetGameState(GameState {
+//             meta: MetaState::Level(LevelState::fresh_from_id("L1".to_string())),
+//         }));
+//         cutscene_starter.send(StartCutscene(playing));
+//         commands.entity(id).despawn();
+//     }
+// }
 
 pub struct CutscenesPlugin;
 
@@ -179,7 +169,7 @@ impl Plugin for CutscenesPlugin {
         app.add_systems(FixedUpdate, update_fade_killers);
         app.add_systems(FixedUpdate, translate_cutscenes.after(update_fade_killers));
 
-        register_chapter_one(app);
+        // register_chapter_one(app);
     }
 }
 

@@ -2,10 +2,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::{
-        old_animated::{AnimationStub, AnimationStubs},
-        layering::sprite_layer_u8,
-    },
+    drawing::animation::{AnimationManager, SpriteInfo},
     physics::dyno::IntMoveable,
 };
 
@@ -28,22 +25,19 @@ impl StartSize {
         }
     }
 
-    pub fn length(&self) -> u8 {
+    pub fn to_sprite_info(&self) -> SpriteInfo {
         match *self {
-            Self::Medium => 10,
+            Self::Medium => SpriteInfo {
+                path: "sprites/start_goal/start18.png".to_string(),
+                size: UVec2::new(self.to_diameter(), self.to_diameter()),
+            },
         }
     }
 
-    pub fn to_animation_bundle_stub(&self) -> AnimationStub {
-        let size = UVec2::new(self.to_diameter(), self.to_diameter());
-        AnimationStub::single_repeating(
-            "shrinking",
-            &self.to_path(),
-            size,
-            self.length(),
-            None,
-            sprite_layer_u8(),
-        )
+    pub fn to_anim_length(&self) -> u32 {
+        match *self {
+            Self::Medium => 10,
+        }
     }
 }
 
@@ -53,7 +47,7 @@ pub struct StartMarker;
 #[derive(Bundle)]
 pub struct StartBundle {
     start: StartMarker,
-    animation: AnimationStubs,
+    anim: AnimationManager,
     mv: IntMoveable,
     spatial: SpatialBundle,
 }
@@ -61,7 +55,7 @@ impl StartBundle {
     pub fn new(size: StartSize, pos: IVec2) -> Self {
         Self {
             start: StartMarker,
-            animation: AnimationStubs(vec![size.to_animation_bundle_stub()]),
+            anim: AnimationManager::single_repeating(size.to_sprite_info(), size.to_anim_length()),
             mv: IntMoveable::new(pos.extend(-1)),
             spatial: SpatialBundle::from_transform(Transform::from_translation(
                 pos.as_vec2().extend(-1.0),

@@ -16,7 +16,7 @@ impl Plugin for AnimationMaterialPlugin {
     }
 }
 
-#[derive(AsBindGroup, Debug, Clone, Asset, TypePath)]
+#[derive(AsBindGroup, Debug, Clone, Asset, Reflect, PartialEq)]
 pub struct AnimationMaterial {
     #[texture(1)]
     #[sampler(2)]

@@ -2,17 +2,13 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::{
-        old_animated::{AnimationHead, AnimationHeadStub},
-        layering::sprite_layer,
-    },
+    drawing::{animation::AnimationManager, layering::sprite_layer},
     environment::{
         goal::{GoalSize, GoalStrength},
         start::StartSize,
     },
     input::MouseState,
     physics::dyno::IntMoveable,
-    uid::fresh_uid,
 };
 
 use super::save::SaveMarker;
@@ -38,7 +34,7 @@ pub struct EGoal {
 #[derive(Bundle)]
 pub(super) struct EGoalBundle {
     pub egoal: EGoal,
-    pub animation: AnimationHeadStub,
+    pub anim: AnimationManager,
     pub spatial: SpatialBundle,
     pub mv: IntMoveable,
     pub render_layers: RenderLayers,
@@ -56,7 +52,7 @@ pub struct EStart {
 #[derive(Bundle)]
 pub(super) struct EStartBundle {
     pub estart: EStart,
-    pub animation: AnimationHeadStub,
+    pub anim: AnimationManager,
     pub spatial: SpatialBundle,
     pub mv: IntMoveable,
     pub render_layers: RenderLayers,
@@ -82,12 +78,10 @@ pub(super) fn spawn_or_update_start_goal(
                 commands.spawn(EGoalBundle {
                     egoal: EGoal::default(),
                     diameter: EStartGoalDiameter(EGoal::default().size.to_diameter()),
-                    animation: AnimationHeadStub {
-                        uid: fresh_uid(),
-                        head: AnimationHead {
-                            stubs: vec![GoalSize::Medium.to_animation_bundle_stub()],
-                        },
-                    },
+                    anim: AnimationManager::single_repeating(
+                        GoalSize::Medium.to_sprite_info(),
+                        GoalSize::Medium.to_anim_length(),
+                    ),
                     spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
@@ -108,12 +102,10 @@ pub(super) fn spawn_or_update_start_goal(
                 commands.spawn(EStartBundle {
                     estart: EStart::default(),
                     diameter: EStartGoalDiameter(EStart::default().size.to_diameter()),
-                    animation: AnimationHeadStub {
-                        uid: fresh_uid(),
-                        head: AnimationHead {
-                            stubs: vec![StartSize::Medium.to_animation_bundle_stub()],
-                        },
-                    },
+                    anim: AnimationManager::single_repeating(
+                        StartSize::Medium.to_sprite_info(),
+                        StartSize::Medium.to_anim_length(),
+                    ),
                     spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
