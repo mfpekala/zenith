@@ -13,7 +13,10 @@ use super::{
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
 };
-use crate::meta::game_state::{EditingMode, SetGameState};
+use crate::{
+    drawing::animation_mat::AnimationMaterial,
+    meta::game_state::{EditingMode, SetGameState},
+};
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -261,12 +264,13 @@ pub(super) fn fix_after_load(
     params: &mut SystemState<(
         ResMut<FuckySceneResource>,
         ResMut<Assets<DynamicScene>>,
+        ResMut<Assets<AnimationMaterial>>,
         Query<Entity, With<EditingSceneRoot>>,
         Query<(Entity, &Children)>,
         Query<Entity>,
     )>,
 ) {
-    let (mut fucky_scene, mut scenes, root_q, _, _) = params.get_mut(world);
+    let (mut fucky_scene, mut scenes, mut anim_mats, root_q, _, _) = params.get_mut(world);
     let roots: Vec<Entity> = root_q.iter().collect();
     let Some(scene_handle) = fucky_scene.0.clone() else {
         return;
@@ -274,6 +278,16 @@ pub(super) fn fix_after_load(
     let Some(scene) = scenes.remove(scene_handle.id()) else {
         return;
     };
+    // Get rid of the ephemeral mats to avoid bugs
+    let mut ephemeral = vec![];
+    for mat in anim_mats.iter() {
+        if mat.1.ephemeral {
+            ephemeral.push(mat.0);
+        }
+    }
+    for id in ephemeral {
+        anim_mats.remove(id);
+    }
     // We have to keep track of all this fuckery
     *fucky_scene = FuckySceneResource(None);
     let mut entity_map = EntityHashMap::default();
@@ -282,7 +296,7 @@ pub(super) fn fix_after_load(
     }
     scene.write_to_world(world, &mut entity_map).unwrap();
     // Guess what? Secret fuckery we need to deal with
-    let (_, _, _, children_q, all_q) = params.get_mut(world);
+    let (_, _, _, _, children_q, all_q) = params.get_mut(world);
     let mut unfucked_children = HashMap::new();
     for (eid, children) in children_q.iter() {
         let mut all_good = vec![];

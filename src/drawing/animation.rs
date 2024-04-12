@@ -404,13 +404,14 @@ fn update_animation_bodies(
         }
 
         // Set the pace
-        pace.0 = current_node.pace.unwrap_or(2);
+        pace.0 = current_node.pace.unwrap_or(1);
 
         length.0 = current_node.length;
 
         // Redo the mesh
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
-        let mat = AnimationMaterial::from_handle(image_handle, length.0, Vec2::ONE);
+        let mut mat = AnimationMaterial::from_handle(image_handle, length.0, Vec2::ONE);
+        mat.ephemeral = true;
         let mat_ass = mats.add(mat);
         let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh = points_to_mesh(&fpoints, &mut meshes);
