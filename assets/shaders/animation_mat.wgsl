@@ -19,7 +19,7 @@ var<uniform> y_repetitions: f32;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let input_x = (x_offset + x_repetitions * in.uv[0]) % 1.0;
+    let input_x = (-x_offset + 2.0 + x_repetitions * in.uv[0]) % 1.0;
     let input_y = (y_offset + y_repetitions * in.uv[1]) % 1.0;
     let index_lower = (1.0 / length) * (index + 0);
     let index_upper = (1.0 / length) * (index + 1);

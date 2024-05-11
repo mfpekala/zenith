@@ -3,6 +3,7 @@ pub mod field;
 pub mod goal;
 pub mod particle;
 pub mod rock;
+pub mod segment;
 pub mod start;
 
 use self::particle::register_particles;

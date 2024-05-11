@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drawing::animation::{AnimationManager, SpriteInfo},
+    drawing::animation::AnimationManager,
+    environment::segment::SegmentKind,
     math::irect,
     meta::game_state::{EditingMode, GameState},
     uid::{UId, UIdMarker, UIdTranslator},
@@ -24,12 +25,13 @@ pub struct SegmentParents {
 }
 
 #[derive(Bundle)]
-pub struct SegmentBundle {
-    pub name: Name,
-    pub parents: SegmentParents,
-    pub animation: AnimationManager,
-    pub spatial: SpatialBundle,
-    pub save: SaveMarker,
+struct ESegmentBundle {
+    name: Name,
+    kind: SegmentKind,
+    anim: AnimationManager,
+    parents: SegmentParents,
+    spatial: SpatialBundle,
+    save: SaveMarker,
 }
 
 /// Watches for keys to create a segment between two points
@@ -43,7 +45,7 @@ pub(super) fn create_segment(
     existing_segments: Query<(Entity, &SegmentParents)>,
 ) {
     // Basic validation
-    if !keyboard.any_just_pressed([KeyCode::KeyK]) {
+    if !keyboard.any_just_pressed([KeyCode::KeyK, KeyCode::KeyJ]) {
         return;
     }
     let Some(EditingMode::EditingPlanet(planet_id)) = gs.get_editing_mode() else {
@@ -106,21 +108,21 @@ pub(super) fn create_segment(
         return;
     }
 
-    // We're not! Spawn a new segment
+    // We're not! Actually spawn the thing
+    let kind = if keyboard.just_pressed(KeyCode::KeyJ) {
+        SegmentKind::Spring
+    } else {
+        SegmentKind::Spike
+    };
     commands.entity(planet_id).with_children(|parent| {
-        parent.spawn(SegmentBundle {
-            name: Name::new("Segment"),
+        parent.spawn(ESegmentBundle {
+            name: Name::new(kind.to_string()),
+            kind,
+            anim: kind.to_animation_manager(),
             parents: SegmentParents {
                 left_uid: ordered_uids[0],
                 right_uid: ordered_uids[1],
             },
-            animation: AnimationManager::single_repeating(
-                SpriteInfo {
-                    path: "sprites/goodies/spike.png".to_string(),
-                    size: UVec2::new(7, 7),
-                },
-                2,
-            ),
             spatial: SpatialBundle::default(),
             save: SaveMarker,
         });

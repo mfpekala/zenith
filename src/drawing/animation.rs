@@ -50,6 +50,7 @@ pub struct AnimationManager {
     angle: f32,
     render_layers_u8: Vec<u8>,
     hidden: bool,
+    scroll: Vec2,
     is_changed: bool,
 }
 impl AnimationManager {
@@ -69,6 +70,10 @@ impl AnimationManager {
     pub fn reset_key(&mut self, key: &str) {
         self.key = key.to_string();
         self.is_changed = true;
+    }
+
+    pub fn get_points(&self) -> Vec<IVec2> {
+        self.points.clone()
     }
 
     pub fn set_points(&mut self, points: Vec<IVec2>) {
@@ -113,6 +118,15 @@ impl AnimationManager {
             return;
         }
         self.offset = offset;
+        self.is_changed = true;
+    }
+
+    pub fn set_scroll(&mut self, scroll: Vec2) {
+        if self.scroll.distance_squared(scroll) < 0.001 {
+            // Do nothing
+            return;
+        }
+        self.scroll = scroll;
         self.is_changed = true;
     }
 
@@ -169,6 +183,23 @@ impl AnimationManager {
             ..default()
         }
     }
+
+    /// Creates an animation manager with the provided nodes and labels.
+    /// The first node in the list will be the initial animation
+    pub fn from_nodes(node_info: Vec<(&str, AnimationNode)>) -> Self {
+        let mut map = HashMap::new();
+        let first = node_info[0].clone();
+        for (key, node) in node_info {
+            map.insert(key.to_string(), node);
+        }
+        let points = irect(first.1.sprite.size.x, first.1.sprite.size.y);
+        Self {
+            key: first.0.to_string(),
+            map,
+            points,
+            ..default()
+        }
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {
@@ -181,6 +212,7 @@ impl Default for AnimationManager {
             angle: 0.0,
             render_layers_u8: vec![sprite_layer_u8()],
             hidden: false,
+            scroll: Vec2::ZERO,
             is_changed: true,
         }
     }
@@ -230,6 +262,13 @@ struct AnimationPace(u32);
 #[reflect(Component, Serialize, Deserialize)]
 struct AnimationLength(u32);
 
+#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+struct AnimationScroll {
+    vec: Vec2,
+    reset: bool,
+}
+
 #[derive(Bundle, Default)]
 struct AnimationBundle {
     name: Name,
@@ -237,6 +276,7 @@ struct AnimationBundle {
     index: AnimationIndex,
     pace: AnimationPace,
     length: AnimationLength,
+    scroll: AnimationScroll,
     render_layers: RenderLayers,
     mesh: Mesh2dHandle,
     material: Handle<AnimationMaterial>,
@@ -307,16 +347,22 @@ fn materialize_animation_bodies(
 /// issues could occur, just delete all saved handles and mark is_changed so things work out
 fn resolve_animation_coups(
     mut multis: Query<(&mut MultiAnimationManager, &Children)>,
-    mut bodies: Query<(&mut AnimationBody, &MultiBodyMarker)>,
+    mut bodies: Query<(
+        &mut AnimationBody,
+        &MultiBodyMarker,
+        &Handle<AnimationMaterial>,
+    )>,
+    mut mats: ResMut<Assets<AnimationMaterial>>,
 ) {
     for (mut multi, children) in multis.iter_mut() {
         if !multi.is_coup {
             continue;
         }
         for child in children.iter() {
-            let Ok((mut body, multi_marker)) = bodies.get_mut(*child) else {
+            let Ok((mut body, multi_marker, mat)) = bodies.get_mut(*child) else {
                 continue;
             };
+            mats.remove(mat.id());
             body.handle_map = HashMap::new();
             let Some(manager) = multi.map.get_mut(&multi_marker.0) else {
                 continue;
@@ -340,6 +386,7 @@ fn update_animation_bodies(
         &mut AnimationBody,
         &mut AnimationPace,
         &mut AnimationLength,
+        &mut AnimationScroll,
         &mut Transform,
         &mut Visibility,
         Option<&MultiBodyMarker>,
@@ -348,8 +395,17 @@ fn update_animation_bodies(
     mut mats: ResMut<Assets<AnimationMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (eid, parent, mut body, mut pace, mut length, mut tran, mut vis, multi_marker) in
-        bodies.iter_mut()
+    for (
+        eid,
+        parent,
+        mut body,
+        mut pace,
+        mut length,
+        mut scroll,
+        mut tran,
+        mut vis,
+        multi_marker,
+    ) in bodies.iter_mut()
     {
         // See if we need to update
         let (manager, current_node) = match multi_marker {
@@ -406,7 +462,12 @@ fn update_animation_bodies(
         // Set the pace
         pace.0 = current_node.pace.unwrap_or(1);
 
+        // Set the length
         length.0 = current_node.length;
+
+        // Set the scroll
+        scroll.vec = manager.scroll;
+        scroll.reset = true;
 
         // Redo the mesh
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
@@ -459,11 +520,13 @@ fn play_animations(
         &mut AnimationIndex,
         &AnimationPace,
         &AnimationLength,
+        &mut AnimationScroll,
         Option<&MultiBodyMarker>,
     )>,
     mut mats: ResMut<Assets<AnimationMaterial>>,
 ) {
-    for (parent, mat_handle, mut index, pace, length, multi_marker) in bodies.iter_mut() {
+    for (parent, mat_handle, mut index, pace, length, mut scroll, multi_marker) in bodies.iter_mut()
+    {
         let mut shared_logic = |manager: &mut AnimationManager| {
             let current_node = manager.current_node();
             let Some(mat) = mats.get_mut(mat_handle.id()) else {
@@ -472,6 +535,15 @@ fn play_animations(
             // First update the material
             mat.index = index.ix as f32;
             mat.length = length.0 as f32;
+            mat.x_offset += scroll.vec.x / 3.0;
+            mat.x_offset = mat.x_offset.rem_euclid(1.0);
+            mat.y_offset += scroll.vec.y / 3.0;
+            mat.y_offset = mat.y_offset.rem_euclid(1.0);
+            if scroll.reset {
+                mat.x_offset = 0.0;
+                mat.y_offset = 0.0;
+                scroll.reset = false;
+            }
             match manager.scale {
                 AnimationScale::Repeat => {
                     let fpoints = manager.points.iter().map(|p| p.as_vec2()).collect();
@@ -543,9 +615,11 @@ impl Plugin for GoatedAnimationPlugin {
         app.register_type::<MultiAnimationManager>();
         app.register_type::<MultiBodyMarker>();
         app.register_type::<AnimationIndex>();
-        app.register_type::<AnimationLength>();
         app.register_type::<AnimationPace>();
+        app.register_type::<AnimationLength>();
+        app.register_type::<AnimationScroll>();
         app.register_type::<BorderedMesh>();
         app.register_type::<AnimationMaterial>();
+        app.register_asset_reflect::<AnimationMaterial>();
     }
 }

@@ -109,7 +109,8 @@ impl Rehydrate<RockBundle> for ExportedRock {
         let spatial = SpatialBundle::default();
         let key = self.kind.to_string();
         let (inner, outer) = self.kind.to_sprite_infos();
-        let bm = BorderedMesh::new(vec![(key.clone(), inner)], vec![(key.clone(), outer)], 7.0);
+        let mut bm = BorderedMesh::new(vec![(key.clone(), inner)], vec![(key.clone(), outer)], 7.0);
+        bm.set_points(self.points.clone());
         let collider = self.kind.to_collider_stub(self.points.clone());
         RockBundle {
             rock,

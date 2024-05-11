@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    environment::segment::{Segment, SegmentKind},
     math::MathLine,
     meta::consts::MAX_COLLISIONS_PER_FRAME,
     uid::{UId, UIdMarker},
@@ -72,8 +73,13 @@ pub struct ColliderStatic {
     pub friction: f32,
 }
 
-#[derive(Component, Debug)]
-pub struct ColliderTrigger;
+#[derive(Component, Debug, Default)]
+pub struct ColliderTrigger {
+    pub refresh_period: u32,
+}
+
+#[derive(Component, Debug, Default)]
+pub struct ColliderTimedDisable(pub u32);
 
 #[derive(Component, Debug)]
 pub struct ColliderActive(pub bool);
@@ -98,6 +104,7 @@ pub struct ColliderStaticBundle {
 
 pub struct ColliderTriggerStub {
     pub uid: UId,
+    pub refresh_period: u32,
     pub points: Vec<IVec2>,
     pub active: bool,
 }
@@ -144,7 +151,9 @@ pub(super) fn materialize_collider_stubs(
                 parent.spawn((
                     UIdMarker(stub.uid),
                     ColliderTriggerBundle {
-                        trigger: ColliderTrigger,
+                        trigger: ColliderTrigger {
+                            refresh_period: stub.refresh_period,
+                        },
                         boundary: ColliderBoundary::from_points(stub.points.clone()),
                         active: ColliderActive(stub.active),
                     },
@@ -219,34 +228,6 @@ pub(super) fn resolve_static_collisions(
     dyno.fpos.x = fpos.x;
     dyno.fpos.y = fpos.y;
     true
-
-    // // We want to move the dyno out of the rock, but also snap it to an integer position
-    // let diff = fpos - min_point;
-    // let normal = diff.normalize_or_zero();
-    // let mut rounded = fpos;
-    // // let mut rounded = fpos.round();
-    // while normal.length_squared() > 0.1 && rounded.distance(min_point) < dyno.radius + 0.1 {
-    //     fpos += normal;
-    //     rounded = fpos.round();
-    // }
-    // fpos = rounded;
-    // dyno.pos.x = fpos.x.round() as i32;
-    // dyno.pos.y = fpos.y.round() as i32;
-    // dyno.rem = Vec2::ZERO;
-    // // Now we apply forces to the velocity
-    // let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
-    // let fixed_normal = if dyno.vel.dot(normal) < 0.0 {
-    //     normal
-    // } else {
-    //     -normal
-    // };
-    // let new_vel = pure_parr * (1.0 - stat.friction)
-    //     - 1.0 * dyno.vel.dot(fixed_normal) * normal * stat.bounciness;
-    // dyno.vel = new_vel;
-    // if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-    //     dyno.statics.push(min_id);
-    // }
-    // true
 }
 
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
@@ -270,24 +251,30 @@ pub(super) fn resolve_trigger_collisions(
             continue;
         }
         let em = boundary.effective_mult(dyno.fpos.truncate(), dyno.radius);
-        if em > 0.001 {
-            if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME {
-                dyno.triggers.push((id, em));
-            }
+        if em < 0.001 {
+            continue;
+        }
+        if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME
+            && !dyno.triggers.iter().any(|(other_id, _)| id == *other_id)
+        {
+            dyno.triggers.push((id, em));
         }
     }
 }
 
 pub fn update_triggers(
-    mut dynos: Query<&mut IntDyno>,
-    triggers: Query<(
-        Entity,
-        &ColliderBoundary,
-        &ColliderTrigger,
-        Option<&ColliderActive>,
-    )>,
+    mut commands: Commands,
+    mut triggers: Query<(Entity, Option<&mut ColliderTimedDisable>)>,
 ) {
-    for mut dyno in dynos.iter_mut() {
-        resolve_trigger_collisions(dyno.as_mut(), &triggers);
+    for (eid, timed_disable) in triggers.iter_mut() {
+        let Some(mut timed_disable) = timed_disable else {
+            continue;
+        };
+        if timed_disable.0 == 0 {
+            commands.entity(eid).remove::<ColliderTimedDisable>();
+            commands.entity(eid).insert(ColliderActive(true));
+        } else {
+            timed_disable.0 -= 1;
+        }
     }
 }

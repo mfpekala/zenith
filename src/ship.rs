@@ -10,7 +10,7 @@ use crate::input::LongKeyPress;
 use crate::math::Spleen;
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::meta::level_data::LevelRoot;
-use crate::physics::dyno::{resolve_dynos, IntDyno};
+use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::should_apply_physics;
 use bevy::prelude::*;
 
@@ -165,28 +165,28 @@ pub fn spawn_trail(
     let Ok(tran) = ship.get_single() else {
         return;
     };
-    ParticleBundle::spawn_options(
-        &mut commands,
-        ParticleBody {
-            pos: tran.translation().truncate(),
-            vel: Vec2::ZERO,
-            size: Ship::radius(),
-            color: Color::YELLOW,
-        },
-        0.5,
-        ParticleOptions {
-            sizing: Some(ParticleSizing {
-                spleen: Spleen::EaseInQuad,
-            }),
-            coloring: Some(ParticleColoring {
-                end_color: Color::BLUE,
-                spleen: Spleen::EaseInQuad,
-            }),
-            ..default()
-        },
-        &mut mats,
-        &mut meshes,
-    );
+    // ParticleBundle::spawn_options(
+    //     &mut commands,
+    //     ParticleBody {
+    //         pos: tran.translation().truncate(),
+    //         vel: Vec2::ZERO,
+    //         size: Ship::radius(),
+    //         color: Color::YELLOW,
+    //     },
+    //     0.5,
+    //     ParticleOptions {
+    //         sizing: Some(ParticleSizing {
+    //             spleen: Spleen::EaseInQuad,
+    //         }),
+    //         coloring: Some(ParticleColoring {
+    //             end_color: Color::BLUE,
+    //             spleen: Spleen::EaseInQuad,
+    //         }),
+    //         ..default()
+    //     },
+    //     &mut mats,
+    //     &mut meshes,
+    // );
 }
 
 pub fn register_ship(app: &mut App) {
@@ -206,6 +206,6 @@ pub fn register_ship(app: &mut App) {
         )
             .run_if(should_apply_physics)
             .run_if(is_not_in_cutscene)
-            .after(resolve_dynos),
+            .after(apply_fields),
     );
 }

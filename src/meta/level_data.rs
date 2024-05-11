@@ -7,12 +7,14 @@ use crate::{
     editor::{
         planet::EPlanet,
         point::EPoint,
+        segment::SegmentParents,
         start_goal::{EGoal, EStart},
     },
     environment::{
         field::{FieldDrag, FieldStrength},
         goal::{GoalBundle, GoalSize},
         rock::RockKind,
+        segment::SegmentKind,
         start::{StartBundle, StartSize},
     },
     ship::ShipBundle,
@@ -26,15 +28,7 @@ pub trait Rehydrate<T> {
 }
 
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    bevy::asset::Asset,
-    bevy::reflect::TypePath,
-    Debug,
-    PartialEq,
-    Clone,
-    Resource,
-    Default,
+    serde::Serialize, serde::Deserialize, bevy::reflect::TypePath, Debug, PartialEq, Clone, Default,
 )]
 pub struct ExportedRock {
     pub kind: RockKind,
@@ -43,21 +37,22 @@ pub struct ExportedRock {
 }
 
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    bevy::asset::Asset,
-    bevy::reflect::TypePath,
-    Debug,
-    PartialEq,
-    Clone,
-    Resource,
-    Default,
+    serde::Serialize, serde::Deserialize, bevy::reflect::TypePath, Debug, PartialEq, Clone, Default,
 )]
 pub struct ExportedField {
     pub points: Vec<IVec2>,
     pub dir: Vec2,
     pub strength: FieldStrength,
     pub drag: FieldDrag,
+}
+
+#[derive(
+    serde::Serialize, serde::Deserialize, bevy::reflect::TypePath, Debug, PartialEq, Clone, Default,
+)]
+pub struct ExportedSegment {
+    pub kind: SegmentKind,
+    pub left_parent: IVec2,
+    pub right_parent: IVec2,
 }
 
 /// All the data that exists about a level.
@@ -78,6 +73,7 @@ pub struct LevelData {
     goal: IVec2,
     rocks: Vec<ExportedRock>,
     fields: Vec<ExportedField>,
+    segments: Vec<ExportedSegment>,
 }
 
 /// A struct that contains SystemIds for systems relating to exporting/loading levels
@@ -94,10 +90,11 @@ pub(super) fn crystallize_level_data(
         Query<&EPlanet>,
         Query<&GlobalTransform, With<EStart>>,
         Query<&GlobalTransform, With<EGoal>>,
+        Query<(&SegmentParents, &SegmentKind)>,
         Res<UIdTranslator>,
     )>,
 ) -> LevelData {
-    let (points_q, planets_q, estart, egoal, ut) = params.get(world);
+    let (points_q, planets_q, estart, egoal, segments_q, ut) = params.get(world);
     let start = match estart.get_single() {
         Ok(gt) => IVec2::new(
             gt.translation().x.round() as i32,
@@ -150,11 +147,37 @@ pub(super) fn crystallize_level_data(
             })
         }
     }
+    let mut segments = vec![];
+    for (parents, kind) in segments_q.iter() {
+        let Some(eid_left) = ut.get_entity(parents.left_uid) else {
+            continue;
+        };
+        let Some(eid_right) = ut.get_entity(parents.right_uid) else {
+            continue;
+        };
+        let Ok(left_point) = points_q.get(eid_left) else {
+            continue;
+        };
+        let Ok(right_point) = points_q.get(eid_right) else {
+            continue;
+        };
+        let left_parent = left_point.translation().truncate();
+        let left_parent = IVec2::new(left_parent.x.round() as i32, left_parent.y.round() as i32);
+        let right_parent = right_point.translation().truncate();
+        let right_parent = IVec2::new(right_parent.x.round() as i32, right_parent.y.round() as i32);
+
+        segments.push(ExportedSegment {
+            kind: *kind,
+            left_parent,
+            right_parent,
+        });
+    }
     LevelData {
         start,
         goal,
         rocks,
         fields,
+        segments,
     }
 }
 
@@ -182,6 +205,9 @@ pub(super) fn spawn_level(
             }
             for field in level_data.fields {
                 parent.spawn(field.rehydrate());
+            }
+            for segment in level_data.segments {
+                parent.spawn(segment.rehydrate());
             }
         });
 }

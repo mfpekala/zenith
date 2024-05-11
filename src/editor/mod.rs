@@ -3,6 +3,7 @@ use crate::{
     environment::{
         field::{FieldDrag, FieldStrength},
         rock::RockKind,
+        segment::SegmentKind,
     },
     input::{watch_camera_input, SetCameraModeEvent},
     meta::{
@@ -154,6 +155,7 @@ impl Plugin for EditorPlugin {
         app.register_type::<EPoint>();
         app.register_type::<EStart>();
         app.register_type::<EGoal>();
+        app.register_type::<SegmentKind>();
         app.register_type::<EStartGoalDragOffset>();
         app.register_type::<EStartGoalDiameter>();
         app.register_type::<RockKind>();

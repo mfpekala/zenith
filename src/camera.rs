@@ -8,7 +8,7 @@ use crate::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
     },
-    physics::dyno::{move_int_dynos, IntDyno, IntMoveable},
+    physics::dyno::{apply_fields, IntDyno, IntMoveable},
 };
 use bevy::prelude::*;
 
@@ -186,6 +186,6 @@ pub fn register_camera(app: &mut App) {
         update_camera
             .run_if(in_editor.or_else(in_level))
             // .run_if(is_not_in_cutscene)
-            .after(move_int_dynos),
+            .after(apply_fields),
     );
 }

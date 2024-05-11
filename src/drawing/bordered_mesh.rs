@@ -110,7 +110,7 @@ pub(super) fn update_bordered_meshes(
             continue;
         };
         if !bm.is_changed {
-            return;
+            continue;
         }
 
         let Some(inner) = multi.map.get_mut("inner") else {

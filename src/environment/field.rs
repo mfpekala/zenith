@@ -67,8 +67,10 @@ impl Rehydrate<FieldBundle> for ExportedField {
             size: UVec2::new(12, 12),
         });
         anim.set_points(self.points.clone());
+        anim.set_scroll(field.dir * 0.1);
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),
+            refresh_period: 0,
             points: self.points.clone(),
             active: true,
         };

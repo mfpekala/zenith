@@ -137,7 +137,7 @@ pub(super) fn planet_state_input(
 /// NOTE: Must be editing the planet
 pub(super) fn redo_fields(
     mut commands: Commands,
-    mut eplanets: Query<&mut EPlanet>,
+    mut eplanets: Query<(&mut EPlanet, &mut MultiAnimationManager)>,
     points: Query<(Entity, &IntMoveable, &mut EPoint, &UIdMarker)>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -153,7 +153,8 @@ pub(super) fn redo_fields(
         return;
     }
     // Despawn and clear the old field points
-    let mut eplanet = eplanets.get_mut(planet_id).unwrap();
+    let (mut eplanet, mut multi) = eplanets.get_mut(planet_id).unwrap();
+    multi.is_coup = true;
     let mut despawned = HashSet::new();
     for field in eplanet.fields.iter() {
         for id in field.field_points.iter() {
@@ -701,14 +702,17 @@ pub(super) fn drive_planet_meshes(
             }
             // TODO: Scroll
             let name = format!("field_{}", ix);
+            let scroll = field.dir * 0.1;
             if multi.map.contains_key(&name) {
                 let manager = multi.map.get_mut(&name).unwrap();
                 manager.set_points(field_points);
+                manager.set_scroll(scroll);
             } else {
                 let mut manager = AnimationManager::single_static(SpriteInfo {
                     path: "sprites/field/field_bg.png".to_string(),
                     size: UVec2::new(12, 12),
                 });
+                manager.set_scroll(scroll);
                 multi.map.insert(name.clone(), manager);
                 is_coup = true;
             }
