@@ -181,7 +181,6 @@ pub fn apply_fields(
     for mut dyno in dynos.iter_mut() {
         let mut diff = Vec2::ZERO;
         let mut slowdown = 1.0;
-        println!("num_trigs: {}", dyno.triggers.len());
         for (trigger_id, mult) in dyno.triggers.iter() {
             let Ok(parent_id) = to_parent.get(*trigger_id) else {
                 continue;

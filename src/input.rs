@@ -106,13 +106,11 @@ pub fn watch_mouse(
 #[derive(Resource, Debug)]
 pub struct CameraControlState {
     pub wasd_dir: Vec2,
-    pub zoom: i8,
 }
 impl CameraControlState {
     pub fn new() -> Self {
         Self {
             wasd_dir: Vec2::ZERO,
-            zoom: 0,
         }
     }
 }
@@ -125,10 +123,14 @@ pub struct SetCameraModeEvent {
     pub mode: CameraMode,
 }
 
+#[derive(Event, Debug)]
+pub struct CameraZoomEvent(pub i32);
+
 pub fn watch_camera_input(
     mut camera_control_state: ResMut<CameraControlState>,
     keys: Res<ButtonInput<KeyCode>>,
     mut switch_event: EventWriter<SwitchCameraModeEvent>,
+    mut zoom_event: EventWriter<CameraZoomEvent>,
 ) {
     // Movement
     let mut hor = 0.0;
@@ -159,7 +161,9 @@ pub fn watch_camera_input(
     if keys.just_pressed(KeyCode::KeyE) {
         zoom -= 1;
     }
-    camera_control_state.zoom = zoom;
+    if zoom != 0 {
+        zoom_event.send(CameraZoomEvent(zoom));
+    }
     // Switch event
     if keys.just_pressed(KeyCode::Space) {
         switch_event.send(SwitchCameraModeEvent);
@@ -257,13 +261,13 @@ fn spawn_shot_arrow(mut commands: Commands) {
 fn update_shot_arrow(
     mut arrow: Query<(&mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
     mouse_state: Res<MouseState>,
-    camera: Query<&IntMoveable, With<CameraMarker>>,
+    camera: Query<(&IntMoveable, &CameraMarker)>,
     gs: Res<GameState>,
 ) {
     let Ok((mut tran, mut multi)) = arrow.get_single_mut() else {
         return;
     };
-    let Ok(cam_im) = camera.get_single() else {
+    let Ok((cam_im, cam_marker)) = camera.get_single() else {
         return;
     };
     let set_invisible = |multi: &mut Mut<MultiAnimationManager>| {
@@ -276,14 +280,20 @@ fn update_shot_arrow(
         set_invisible(&mut multi);
         return;
     }
+    tran.scale = Vec2::new(cam_marker.scale.to_f32(), cam_marker.scale.to_f32()).extend(1.0);
     match mouse_state.pending_launch_start {
         Some(start) => {
             let start = start.as_vec2();
             // let test = cam_im.pos
             tran.translation.x = cam_im.pos.x as f32
-                + (start.x - WINDOW_WIDTH as f32 / 2.0) * SCREEN_WIDTH as f32 / WINDOW_WIDTH as f32;
+                + cam_marker.scale.to_f32()
+                    * (start.x - WINDOW_WIDTH as f32 / 2.0)
+                    * SCREEN_WIDTH as f32
+                    / WINDOW_WIDTH as f32;
             tran.translation.y = cam_im.pos.y as f32
-                - (start.y - WINDOW_HEIGHT as f32 / 2.0) * SCREEN_HEIGHT as f32
+                - cam_marker.scale.to_f32()
+                    * (start.y - WINDOW_HEIGHT as f32 / 2.0)
+                    * SCREEN_HEIGHT as f32
                     / WINDOW_HEIGHT as f32;
             let end = start + mouse_state.pending_launch_vel.unwrap_or(Vec2::ZERO);
             let angle = Vec2::Y.angle_between(end - start);
@@ -325,6 +335,7 @@ pub fn register_input(app: &mut App) {
     app.insert_resource(CameraControlState::new());
     app.add_event::<SwitchCameraModeEvent>();
     app.add_event::<SetCameraModeEvent>();
+    app.add_event::<CameraZoomEvent>();
     app.add_systems(Update, watch_mouse);
     app.add_systems(
         Update,

@@ -17,6 +17,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Ship {
     pub can_shoot: bool,
+    pub last_safe_location: IVec2,
 }
 impl Ship {
     pub const fn radius() -> f32 {
@@ -45,7 +46,10 @@ impl ShipBundle {
         });
         light.set_render_layers(vec![light_layer_u8()]);
         Self {
-            ship: Ship { can_shoot: false },
+            ship: Ship {
+                can_shoot: false,
+                last_safe_location: pos,
+            },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
             dyno: IntDyno::new(pos.extend(10), 4.0),
             spatial: SpatialBundle::from_transform(Transform::from_translation(
@@ -66,7 +70,7 @@ pub fn launch_ship(
     let level_state = gs.get_level_state();
     for launch in launch_events.read() {
         for (mut dyno, mut ship) in ship_q.iter_mut() {
-            if !ship.can_shoot && level_state.is_some() {
+            if !ship.can_shoot {
                 continue;
             }
             dyno.vel = launch.vel;
@@ -83,19 +87,15 @@ pub fn launch_ship(
 
 fn watch_for_respawn(
     mut commands: Commands,
-    gs: Res<GameState>,
-    mut entity_n_lp: Query<(Entity, &mut LongKeyPress), With<Ship>>,
+    mut entity_n_lp: Query<(Entity, &mut LongKeyPress, &Ship)>,
     level_root_q: Query<Entity, With<LevelRoot>>,
 ) {
-    let MetaState::Level(level_state) = &gs.meta else {
-        return;
-    };
-    for (id, mut lp) in entity_n_lp.iter_mut() {
+    for (id, mut lp, ship) in entity_n_lp.iter_mut() {
         if lp.was_activated() {
             commands.entity(id).despawn_recursive();
             let level_root_eid = level_root_q.single();
             commands.entity(level_root_eid).with_children(|parent| {
-                parent.spawn(ShipBundle::new(level_state.last_safe_location));
+                parent.spawn(ShipBundle::new(ship.last_safe_location));
             });
         }
     }
@@ -103,15 +103,11 @@ fn watch_for_respawn(
 
 fn watch_for_death(
     mut commands: Commands,
-    gs: Res<GameState>,
-    entity_n_lp: Query<(Entity, &IntDyno), With<Ship>>,
+    ship_q: Query<(Entity, &IntDyno, &Ship)>,
     rock_info: Query<&Rock>,
     level_root_q: Query<Entity, With<LevelRoot>>,
 ) {
-    let MetaState::Level(level_state) = &gs.meta else {
-        return;
-    };
-    for (id, dyno) in entity_n_lp.iter() {
+    for (id, dyno, ship) in ship_q.iter() {
         for rock_id in dyno.statics.iter() {
             let Ok(rock) = rock_info.get(*rock_id) else {
                 continue;
@@ -120,7 +116,7 @@ fn watch_for_death(
                 commands.entity(id).despawn_recursive();
                 let level_root_eid = level_root_q.single();
                 commands.entity(level_root_eid).with_children(|parent| {
-                    parent.spawn(ShipBundle::new(level_state.last_safe_location));
+                    parent.spawn(ShipBundle::new(ship.last_safe_location));
                 });
                 break;
             }
@@ -128,30 +124,14 @@ fn watch_for_death(
     }
 }
 
-fn replenish_shot(
-    mut ship_q: Query<(&mut Ship, &mut IntDyno, &GlobalTransform)>,
-    gs: Res<GameState>,
-    mut gs_writer: EventWriter<SetGameState>,
-) {
-    let Some(level_state) = gs.get_level_state() else {
-        return;
-    };
-    for (mut ship, mut dyno, tran) in ship_q.iter_mut() {
+fn replenish_shot(mut ship_q: Query<(&mut Ship, &mut IntDyno)>) {
+    for (mut ship, dyno) in ship_q.iter_mut() {
         if ship.can_shoot {
             continue;
         }
-        let ipos = IVec2 {
-            x: tran.translation().x as i32,
-            y: tran.translation().y as i32,
-        };
-        if dyno.vel.length() < 3.0 && dyno.statics.len() > 0 {
+        if dyno.vel.length() < 1.0 && dyno.statics.len() > 0 {
             ship.can_shoot = true;
-            dyno.vel = Vec2::ZERO;
-            let mut ls = level_state.clone();
-            ls.last_safe_location = ipos;
-            gs_writer.send(SetGameState(GameState {
-                meta: MetaState::Level(ls),
-            }));
+            ship.last_safe_location = dyno.ipos.truncate();
         }
     }
 }

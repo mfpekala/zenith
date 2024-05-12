@@ -3,7 +3,7 @@ use crate::{
         layering::{LayeringPlugin, LightCameraMarker, SpriteCameraMarker},
         post_pixel::PostPixelPlugin,
     },
-    input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
+    input::{CameraControlState, CameraZoomEvent, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
         game_state::{in_editor, in_level},
         level_data::LevelRoot,
@@ -98,21 +98,12 @@ pub struct DynamicCameraBundle {
 
 /// Manage input for controlling the camera in the Update system
 pub(super) fn camera_input(
-    mut marker: Query<(&IntMoveable, &mut CameraMarker)>,
-    control_state: Res<CameraControlState>,
+    mut marker: Query<&mut CameraMarker>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
     mut set_event: EventReader<SetCameraModeEvent>,
-    mut light_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        (With<LightCameraMarker>, Without<SpriteCameraMarker>),
-    >,
-    mut sprite_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        (With<SpriteCameraMarker>, Without<LightCameraMarker>),
-    >,
 ) {
     // Get the camera (do nothing if we can't find one)
-    let Ok((moveable, mut marker)) = marker.get_single_mut() else {
+    let Ok(mut marker) = marker.get_single_mut() else {
         return;
     };
     // Handle switching
@@ -124,21 +115,6 @@ pub(super) fn camera_input(
     if let Some(set_event) = set_event.read().last() {
         marker.mode = set_event.mode.clone();
     }
-    // Handle zoom
-    if control_state.zoom > 0 {
-        marker.scale = marker.scale.up();
-    } else if control_state.zoom < 0 {
-        marker.scale = marker.scale.down();
-    }
-    // Handle moving the "actual" cameras
-    let (lc_tran, lc_proj) = light_camera.single_mut();
-    let (sc_tran, sc_proj) = sprite_camera.single_mut();
-    for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = moveable.pos.truncate().as_vec2().extend(0.0);
-    }
-    for proj in [lc_proj, sc_proj].iter_mut() {
-        proj.scale = marker.scale.to_f32();
-    }
 }
 
 pub fn camera_movement(
@@ -146,9 +122,18 @@ pub fn camera_movement(
     level_root: Query<&GlobalTransform, With<LevelRoot>>,
     mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
     control_state: Res<CameraControlState>,
+    mut zooms: EventReader<CameraZoomEvent>,
+    mut light_camera: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        (With<LightCameraMarker>, Without<SpriteCameraMarker>),
+    >,
+    mut sprite_camera: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        (With<SpriteCameraMarker>, Without<LightCameraMarker>),
+    >,
 ) {
     // Get the camera (do nothing if we can't find one)
-    let Ok((mut moveable, marker)) = marker.get_single_mut() else {
+    let Ok((mut moveable, mut marker)) = marker.get_single_mut() else {
         return;
     };
     // Handle movement
@@ -183,6 +168,25 @@ pub fn camera_movement(
         CameraMode::Controlled => {
             // Do nothing, something else is driving us
         }
+    }
+    // Handle zoom
+    let mut zoom_total: i32 = 0;
+    for zoom_ev in zooms.read() {
+        zoom_total += zoom_ev.0;
+    }
+    if zoom_total > 0 {
+        marker.scale = marker.scale.up();
+    } else if zoom_total < 0 {
+        marker.scale = marker.scale.down();
+    }
+    // Handle moving the "actual" cameras
+    let (lc_tran, lc_proj) = light_camera.single_mut();
+    let (sc_tran, sc_proj) = sprite_camera.single_mut();
+    for tran in [lc_tran, sc_tran].iter_mut() {
+        tran.translation = moveable.pos.truncate().as_vec2().extend(0.0);
+    }
+    for proj in [lc_proj, sc_proj].iter_mut() {
+        proj.scale = marker.scale.to_f32();
     }
 }
 

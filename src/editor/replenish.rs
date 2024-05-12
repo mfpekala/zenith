@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Component, Clone, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub(super) struct EReplenish;
+pub struct EReplenish;
 
 #[derive(Bundle)]
 pub(super) struct EReplenishBundle {

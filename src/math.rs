@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use linreg::linear_regression;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MathLine {
     pub p1: Vec2,
     pub p2: Vec2,
@@ -112,7 +112,7 @@ impl MathLine {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MathTriangle {
     pub lines: [MathLine; 3],
 }
@@ -387,7 +387,6 @@ mod math_nerd {
         let triangle1 = MathTriangle::from_points(&[a, b, c]);
         let triangle2 = MathTriangle::from_points(&[a, c, b]);
 
-        println!("triangle1: {:?}", triangle1);
-        println!("triangle2: {:?}", triangle2);
+        assert_eq!(triangle1, triangle2);
     }
 }

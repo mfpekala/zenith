@@ -7,6 +7,7 @@ use crate::{
     editor::{
         planet::EPlanet,
         point::EPoint,
+        replenish::EReplenish,
         segment::SegmentParents,
         start_goal::{EGoal, EStart},
     },
@@ -55,6 +56,13 @@ pub struct ExportedSegment {
     pub right_parent: IVec2,
 }
 
+#[derive(
+    serde::Serialize, serde::Deserialize, bevy::reflect::TypePath, Debug, PartialEq, Clone, Default,
+)]
+pub struct ExportedReplenish {
+    pub pos: IVec2,
+}
+
 /// All the data that exists about a level.
 /// Just the data that needs to be used to load/play the level
 #[derive(
@@ -74,6 +82,7 @@ pub struct LevelData {
     rocks: Vec<ExportedRock>,
     fields: Vec<ExportedField>,
     segments: Vec<ExportedSegment>,
+    replenishes: Vec<ExportedReplenish>,
 }
 
 /// A struct that contains SystemIds for systems relating to exporting/loading levels
@@ -91,10 +100,11 @@ pub(super) fn crystallize_level_data(
         Query<&GlobalTransform, With<EStart>>,
         Query<&GlobalTransform, With<EGoal>>,
         Query<(&SegmentParents, &SegmentKind)>,
+        Query<&GlobalTransform, With<EReplenish>>,
         Res<UIdTranslator>,
     )>,
 ) -> LevelData {
-    let (points_q, planets_q, estart, egoal, segments_q, ut) = params.get(world);
+    let (points_q, planets_q, estart, egoal, segments_q, replenish_q, ut) = params.get(world);
     let start = match estart.get_single() {
         Ok(gt) => IVec2::new(
             gt.translation().x.round() as i32,
@@ -172,12 +182,22 @@ pub(super) fn crystallize_level_data(
             right_parent,
         });
     }
+    let mut replenishes = vec![];
+    for replenish in replenish_q.iter() {
+        replenishes.push(ExportedReplenish {
+            pos: IVec2::new(
+                replenish.translation().x.round() as i32,
+                replenish.translation().y.round() as i32,
+            ),
+        });
+    }
     LevelData {
         start,
         goal,
         rocks,
         fields,
         segments,
+        replenishes,
     }
 }
 
@@ -208,6 +228,9 @@ pub(super) fn spawn_level(
             }
             for segment in level_data.segments {
                 parent.spawn(segment.rehydrate());
+            }
+            for repl in level_data.replenishes {
+                parent.spawn(repl.rehydrate());
             }
         });
 }

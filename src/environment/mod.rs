@@ -2,6 +2,7 @@ pub mod background;
 pub mod field;
 pub mod goal;
 pub mod particle;
+pub mod replenish;
 pub mod rock;
 pub mod segment;
 pub mod start;

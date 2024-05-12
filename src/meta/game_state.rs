@@ -67,9 +67,7 @@ impl EditorState {
 pub struct LevelState {
     pub id: String,
     pub next_id: Option<String>,
-    pub is_settled: bool,
     pub is_won: bool,
-    pub last_safe_location: IVec2,
     pub num_shots: i32,
 }
 impl LevelState {
@@ -77,9 +75,7 @@ impl LevelState {
         Self {
             id,
             next_id: None,
-            is_settled: false,
             is_won: false,
-            last_safe_location: IVec2::ZERO,
             num_shots: 0,
         }
     }
@@ -172,9 +168,7 @@ pub fn register_game_state(app: &mut App) {
     let initial_state = MetaState::Level(LevelState {
         id: "".to_string(),
         next_id: None,
-        is_settled: false,
         is_won: false,
-        last_safe_location: IVec2::ZERO,
         num_shots: 0,
     });
     app.insert_resource(GameState {
