@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::{
-    environment::segment::{Segment, SegmentKind},
     math::MathLine,
     meta::consts::MAX_COLLISIONS_PER_FRAME,
     uid::{UId, UIdMarker},

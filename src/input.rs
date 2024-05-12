@@ -4,7 +4,11 @@ use bevy::window::PrimaryWindow;
 use crate::{
     camera::{camera_movement, CameraMarker, CameraMode},
     cutscenes::{is_not_in_cutscene, Cutscene},
-    drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
+    drawing::{
+        animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
+        layering::light_layer_u8,
+    },
+    editor::is_testing,
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
         game_state::{in_editor, in_level, GameState},
@@ -37,7 +41,7 @@ pub struct LaunchEvent {
     pub vel: Vec2,
 }
 
-const MULT_THINGY: f32 = 0.36;
+const MULT_THINGY: f32 = 0.32;
 pub fn watch_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
@@ -219,12 +223,29 @@ impl ShotArrowBundle {
         });
         body.set_hidden(true);
         body.set_offset(IVec3::new(0, 0, -1));
+        let mut head_light = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/arrow_headL.png".to_string(),
+            size: UVec2::new(12, 8),
+        });
+        head_light.set_hidden(true);
+        head_light.set_render_layers(vec![light_layer_u8()]);
+        let mut body_light = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/arrow_bodyL.png".to_string(),
+            size: UVec2::new(6, 12),
+        });
+        body_light.set_hidden(true);
+        body_light.set_render_layers(vec![light_layer_u8()]);
         let spatial =
-            SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 100.0)));
+            SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 102.0)));
         Self {
             marker: ShotArrowMarker,
             spatial,
-            anim: MultiAnimationManager::from_pairs(vec![("head", head), ("body", body)]),
+            anim: MultiAnimationManager::from_pairs(vec![
+                ("head", head),
+                ("body", body),
+                ("headL", head_light),
+                ("bodyL", body_light),
+            ]),
         }
     }
 }
@@ -234,17 +255,27 @@ fn spawn_shot_arrow(mut commands: Commands) {
 }
 
 fn update_shot_arrow(
-    mut arrow: Query<(Entity, &mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
+    mut arrow: Query<(&mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
     mouse_state: Res<MouseState>,
     camera: Query<&IntMoveable, With<CameraMarker>>,
-    mut commands: Commands,
+    gs: Res<GameState>,
 ) {
-    let Ok((eid, mut tran, mut multi)) = arrow.get_single_mut() else {
+    let Ok((mut tran, mut multi)) = arrow.get_single_mut() else {
         return;
     };
     let Ok(cam_im) = camera.get_single() else {
         return;
     };
+    let set_invisible = |multi: &mut Mut<MultiAnimationManager>| {
+        multi.map.get_mut("head").unwrap().set_hidden(true);
+        multi.map.get_mut("headL").unwrap().set_hidden(true);
+        multi.map.get_mut("body").unwrap().set_hidden(true);
+        multi.map.get_mut("bodyL").unwrap().set_hidden(true);
+    };
+    if !gs.is_in_level() && !is_testing(gs) {
+        set_invisible(&mut multi);
+        return;
+    }
     match mouse_state.pending_launch_start {
         Some(start) => {
             let start = start.as_vec2();
@@ -256,7 +287,7 @@ fn update_shot_arrow(
                     / WINDOW_HEIGHT as f32;
             let end = start + mouse_state.pending_launch_vel.unwrap_or(Vec2::ZERO);
             let angle = Vec2::Y.angle_between(end - start);
-            let body_len = ((start - end).length() / MULT_THINGY * 2.0).round() as i32;
+            let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;
             let body = multi.map.get_mut("body").unwrap();
             body.set_angle(angle);
             body.set_hidden(false);
@@ -266,13 +297,24 @@ fn update_shot_arrow(
                 IVec2::new(3, -body_len),
                 IVec2::new(-3, -body_len),
             ]);
+            let body_light = multi.map.get_mut("bodyL").unwrap();
+            body_light.set_angle(angle);
+            body_light.set_hidden(false);
+            body_light.set_points(vec![
+                IVec2::new(-3, 0),
+                IVec2::new(3, 0),
+                IVec2::new(3, -body_len),
+                IVec2::new(-3, -body_len),
+            ]);
             let head = multi.map.get_mut("head").unwrap();
             head.set_angle(angle);
             head.set_hidden(false);
+            let head_light = multi.map.get_mut("headL").unwrap();
+            head_light.set_angle(angle);
+            head_light.set_hidden(false);
         }
         None => {
-            multi.map.get_mut("head").unwrap().set_hidden(true);
-            multi.map.get_mut("body").unwrap().set_hidden(true);
+            set_invisible(&mut multi);
         }
     }
 }

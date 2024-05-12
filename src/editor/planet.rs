@@ -290,6 +290,9 @@ pub(super) fn resolve_pending_fields(
                     points_n_ids.push((uid, pos));
                     center += mv.pos.truncate().as_vec2();
                 }
+                EPointKind::Free(_) => {
+                    continue;
+                }
             }
         }
         center /= points_n_ids.len() as f32;
@@ -349,7 +352,7 @@ pub(super) fn resolve_pending_fields(
     }
 }
 
-/// On cmd + / cmd -, nudge all field points closer/further from their parent
+/// On cmd , / cmd ., nudge all field points closer/further from their parent
 pub(super) fn nudge_fields(
     eplanets: Query<&EPlanet>,
     mut points: Query<(Entity, &EPoint, &mut IntMoveable, &UIdMarker)>,
@@ -696,7 +699,7 @@ pub(super) fn drive_planet_meshes(
                             let (_, _, _, parent_mv, _) = points.get(parent.get()).unwrap();
                             field_points.push(parent_mv.pos.truncate() + mv.pos.truncate());
                         }
-                        EPointKind::Wild => (),
+                        EPointKind::Wild | EPointKind::Free(_) => (),
                     }
                 }
             }
@@ -707,6 +710,7 @@ pub(super) fn drive_planet_meshes(
                 let manager = multi.map.get_mut(&name).unwrap();
                 manager.set_points(field_points);
                 manager.set_scroll(scroll);
+                manager.set_offset(IVec3::new(0, 0, -40));
             } else {
                 let mut manager = AnimationManager::single_static(SpriteInfo {
                     path: "sprites/field/field_bg.png".to_string(),

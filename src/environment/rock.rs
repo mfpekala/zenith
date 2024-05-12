@@ -18,7 +18,7 @@ pub enum RockKind {
 impl RockKind {
     fn bounciness(&self) -> f32 {
         match *self {
-            Self::Normal => 0.8,
+            Self::Normal => 0.7,
             Self::SimpleKill => 0.1,
             Self::MagLev => 0.0,
         }

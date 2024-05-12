@@ -33,6 +33,7 @@ use self::{
         delete_points, hover_points, move_points, point_select_shortcuts, select_points,
         set_point_selection_order, spawn_points, update_point_sprites, EPoint,
     },
+    replenish::{spawn_replenish, EReplenish},
     save::{
         connect_parents, fix_after_load, load_editor, save_editor, FuckySceneResource,
         LoadEditorEvent, SaveEditorEvent, SaveMarker,
@@ -48,6 +49,7 @@ use self::{
 pub mod help;
 pub mod planet;
 pub mod point;
+pub mod replenish;
 pub mod save;
 pub mod segment;
 pub mod start_goal;
@@ -155,6 +157,7 @@ impl Plugin for EditorPlugin {
         app.register_type::<EPoint>();
         app.register_type::<EStart>();
         app.register_type::<EGoal>();
+        app.register_type::<EReplenish>();
         app.register_type::<SegmentKind>();
         app.register_type::<EStartGoalDragOffset>();
         app.register_type::<EStartGoalDiameter>();
@@ -239,6 +242,12 @@ impl Plugin for EditorPlugin {
         app.add_systems(
             Update,
             (create_segment, kill_segments, position_segments).run_if(is_editing),
+        );
+
+        // Replenish
+        app.add_systems(
+            Update,
+            spawn_replenish.run_if(is_editing).after(editor_help_input),
         );
 
         // Testing

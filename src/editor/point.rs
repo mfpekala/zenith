@@ -20,6 +20,8 @@ pub enum EPointKind {
     Field,
     #[default]
     Wild,
+    /// A point that does not exist in a rock
+    Free(u32),
 }
 impl EPointKind {
     pub fn to_sprite_info(&self) -> SpriteInfo {
@@ -31,6 +33,10 @@ impl EPointKind {
             Self::Wild => SpriteInfo {
                 path: "sprites/editor/point_wild.png".to_string(),
                 size: UVec2::new(10, 10),
+            },
+            Self::Free(_) => SpriteInfo {
+                path: "sprites/editor/point.png".to_string(),
+                size: UVec2::new(0, 0),
             },
         }
     }
@@ -48,9 +54,13 @@ pub struct EPoint {
 }
 impl EPoint {
     pub fn new(kind: EPointKind) -> Self {
+        let size = match kind {
+            EPointKind::Free(size) => size,
+            _ => 3,
+        };
         Self {
             kind,
-            size: 3,
+            size,
             is_hovered: false,
             is_selected: false,
             drag_offset: None,
@@ -407,11 +417,16 @@ pub(super) fn set_point_selection_order(mut points: Query<&mut EPoint>) {
 /// Changes the sprite based on wild/unwild, and toggles the highlight visibility if selected
 pub(super) fn update_point_sprites(mut points: Query<(&EPoint, &mut MultiAnimationManager)>) {
     for (epoint, mut anim) in points.iter_mut() {
+        if let EPointKind::Free(_) = epoint.kind {
+            // Free points manage their own animation manager
+            continue;
+        }
         // Update the core sprite
         let core_anim = anim.map.get_mut("core").unwrap();
         core_anim.set_key(match epoint.kind {
             EPointKind::Rock | EPointKind::Field => "solid",
             EPointKind::Wild => "hollow",
+            EPointKind::Free(_) => continue,
         });
         // Update the highlight
         let highlight_anim = anim.map.get_mut("highlight").unwrap();
@@ -446,6 +461,9 @@ pub(super) fn delete_points(
                     EPointKind::Wild => {
                         let mut parent = eplanets.get_mut(parent_ref.get()).unwrap().1;
                         parent.wild_points.retain(|x| *x != eid.0);
+                    }
+                    EPointKind::Free(_) => {
+                        // No other cleanup to do
                     }
                 }
                 commands.entity(parent_ref.get()).remove_children(&[id]);

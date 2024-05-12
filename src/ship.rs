@@ -165,28 +165,28 @@ pub fn spawn_trail(
     let Ok(tran) = ship.get_single() else {
         return;
     };
-    // ParticleBundle::spawn_options(
-    //     &mut commands,
-    //     ParticleBody {
-    //         pos: tran.translation().truncate(),
-    //         vel: Vec2::ZERO,
-    //         size: Ship::radius(),
-    //         color: Color::YELLOW,
-    //     },
-    //     0.5,
-    //     ParticleOptions {
-    //         sizing: Some(ParticleSizing {
-    //             spleen: Spleen::EaseInQuad,
-    //         }),
-    //         coloring: Some(ParticleColoring {
-    //             end_color: Color::BLUE,
-    //             spleen: Spleen::EaseInQuad,
-    //         }),
-    //         ..default()
-    //     },
-    //     &mut mats,
-    //     &mut meshes,
-    // );
+    ParticleBundle::spawn_options(
+        &mut commands,
+        ParticleBody {
+            pos: tran.translation().truncate(),
+            vel: Vec2::ZERO,
+            size: Ship::radius(),
+            color: Color::YELLOW,
+        },
+        0.5,
+        ParticleOptions {
+            sizing: Some(ParticleSizing {
+                spleen: Spleen::EaseInQuad,
+            }),
+            coloring: Some(ParticleColoring {
+                end_color: Color::BLUE,
+                spleen: Spleen::EaseInQuad,
+            }),
+            ..default()
+        },
+        &mut mats,
+        &mut meshes,
+    );
 }
 
 pub fn register_ship(app: &mut App) {
