@@ -2,13 +2,14 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::{
-    camera::{CameraMarker, CameraMode},
+    camera::{camera_movement, CameraMarker, CameraMode},
     cutscenes::{is_not_in_cutscene, Cutscene},
+    drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
     meta::{
-        consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_WIDTH},
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
-    physics::should_apply_physics,
+    physics::{dyno::IntMoveable, should_apply_physics},
 };
 
 #[derive(Resource, Debug)]
@@ -36,6 +37,7 @@ pub struct LaunchEvent {
     pub vel: Vec2,
 }
 
+const MULT_THINGY: f32 = 0.36;
 pub fn watch_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
@@ -71,11 +73,11 @@ pub fn watch_mouse(
     }
     if buttons.pressed(MouseButton::Left) {
         if let Some(start_pos) = mouse_state.pending_launch_start {
-            let mut almost_vel = (mouse_state.pos - start_pos).as_vec2();
-            almost_vel.x *= -1.0;
+            let mut almost_vel = (start_pos - mouse_state.pos).as_vec2();
+            almost_vel.y *= -1.0;
             let norm = almost_vel.normalize_or_zero();
             let mag = if almost_vel.length() > 0.1 {
-                almost_vel.length().sqrt() * 0.3
+                almost_vel.length().sqrt() * MULT_THINGY
             } else {
                 0.0
             };
@@ -195,6 +197,86 @@ fn update_long_presses(mut lps: Query<&mut LongKeyPress>, keys: Res<ButtonInput<
     }
 }
 
+#[derive(Component)]
+struct ShotArrowMarker;
+
+#[derive(Bundle)]
+struct ShotArrowBundle {
+    marker: ShotArrowMarker,
+    spatial: SpatialBundle,
+    anim: MultiAnimationManager,
+}
+impl ShotArrowBundle {
+    pub fn new() -> Self {
+        let mut head = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/arrow_head.png".to_string(),
+            size: UVec2::new(12, 8),
+        });
+        head.set_hidden(true);
+        let mut body = AnimationManager::single_static(SpriteInfo {
+            path: "sprites/arrow_body.png".to_string(),
+            size: UVec2::new(6, 12),
+        });
+        body.set_hidden(true);
+        body.set_offset(IVec3::new(0, 0, -1));
+        let spatial =
+            SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 100.0)));
+        Self {
+            marker: ShotArrowMarker,
+            spatial,
+            anim: MultiAnimationManager::from_pairs(vec![("head", head), ("body", body)]),
+        }
+    }
+}
+
+fn spawn_shot_arrow(mut commands: Commands) {
+    commands.spawn(ShotArrowBundle::new());
+}
+
+fn update_shot_arrow(
+    mut arrow: Query<(Entity, &mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
+    mouse_state: Res<MouseState>,
+    camera: Query<&IntMoveable, With<CameraMarker>>,
+    mut commands: Commands,
+) {
+    let Ok((eid, mut tran, mut multi)) = arrow.get_single_mut() else {
+        return;
+    };
+    let Ok(cam_im) = camera.get_single() else {
+        return;
+    };
+    match mouse_state.pending_launch_start {
+        Some(start) => {
+            let start = start.as_vec2();
+            // let test = cam_im.pos
+            tran.translation.x = cam_im.pos.x as f32
+                + (start.x - WINDOW_WIDTH as f32 / 2.0) * SCREEN_WIDTH as f32 / WINDOW_WIDTH as f32;
+            tran.translation.y = cam_im.pos.y as f32
+                - (start.y - WINDOW_HEIGHT as f32 / 2.0) * SCREEN_HEIGHT as f32
+                    / WINDOW_HEIGHT as f32;
+            let end = start + mouse_state.pending_launch_vel.unwrap_or(Vec2::ZERO);
+            let angle = Vec2::Y.angle_between(end - start);
+            let body_len = ((start - end).length() / MULT_THINGY * 2.0).round() as i32;
+            let body = multi.map.get_mut("body").unwrap();
+            body.set_angle(angle);
+            body.set_hidden(false);
+            body.set_points(vec![
+                IVec2::new(-3, 0),
+                IVec2::new(3, 0),
+                IVec2::new(3, -body_len),
+                IVec2::new(-3, -body_len),
+            ]);
+            let head = multi.map.get_mut("head").unwrap();
+            head.set_angle(angle);
+            head.set_hidden(false);
+        }
+        None => {
+            multi.map.get_mut("head").unwrap().set_hidden(true);
+            multi.map.get_mut("body").unwrap().set_hidden(true);
+        }
+    }
+}
+
 pub fn register_input(app: &mut App) {
     app.insert_resource(MouseState::empty());
     app.add_event::<LaunchEvent>();
@@ -209,4 +291,8 @@ pub fn register_input(app: &mut App) {
             .run_if(is_not_in_cutscene),
     );
     app.add_systems(Update, update_long_presses.run_if(is_not_in_cutscene));
+
+    // Shot arrow
+    app.add_systems(Startup, spawn_shot_arrow);
+    app.add_systems(FixedUpdate, update_shot_arrow.after(camera_movement));
 }

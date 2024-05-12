@@ -470,11 +470,15 @@ fn update_animation_bodies(
         scroll.reset = true;
 
         // Redo the mesh
+        let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
+        let mesh_size = uvec2_bound(&fpoints);
+        let x_rep = mesh_size.x as f32 / current_node.sprite.size.x as f32;
+        let y_rep = mesh_size.y as f32 / current_node.sprite.size.y as f32;
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
-        let mut mat = AnimationMaterial::from_handle(image_handle, length.0, Vec2::ONE);
+        let mut mat =
+            AnimationMaterial::from_handle(image_handle, length.0, Vec2::new(x_rep, y_rep));
         mat.ephemeral = true;
         let mat_ass = mats.add(mat);
-        let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh = points_to_mesh(&fpoints, &mut meshes);
         commands.entity(eid).insert(mat_ass);
         commands.entity(eid).insert(mesh);

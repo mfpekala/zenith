@@ -1,14 +1,17 @@
 use bevy::{prelude::*, utils::hashbrown::HashSet};
 use serde::{Deserialize, Serialize};
 
-use crate::environment::{
-    field::Field,
-    segment::{Segment, SegmentKind},
+use crate::{
+    drawing::animation::AnimationManager,
+    environment::{
+        field::Field,
+        segment::{Segment, SegmentKind},
+    },
 };
 
 use super::collider::{
     resolve_static_collisions, resolve_trigger_collisions, update_triggers, ColliderActive,
-    ColliderBoundary, ColliderStatic, ColliderTimedDisable, ColliderTrigger,
+    ColliderBoundary, ColliderStatic, ColliderTrigger,
 };
 
 #[derive(Component, Debug, Default, Clone, Reflect, Serialize, Deserialize)]
@@ -86,7 +89,7 @@ pub(super) fn move_int_dyno_helper(
         Option<&ColliderActive>,
     )>,
     parents: &Query<&Parent>,
-    segments: &Query<&Segment>,
+    segments: &mut Query<(&Segment, &mut AnimationManager)>,
 ) {
     let mut amt_travlled = 0.0;
     let to_travel = dyno.vel.length();
@@ -109,11 +112,12 @@ pub(super) fn move_int_dyno_helper(
             let Ok(parent) = parents.get(*eid) else {
                 continue;
             };
-            let Ok(segment) = segments.get(parent.get()) else {
+            let Ok((segment, mut anim)) = segments.get_mut(parent.get()) else {
                 continue;
             };
             match segment.kind {
                 SegmentKind::Spring => {
+                    killing_ids.insert(*eid);
                     if !sprung {
                         let line = (segment.right_parent - segment.left_parent).as_vec2();
                         let norm = Vec2::new(-line.y, line.x).normalize_or_zero();
@@ -121,14 +125,15 @@ pub(super) fn move_int_dyno_helper(
                         let new_vel = pure_parr + norm * 3.0;
                         dyno.vel = new_vel;
                         sprung = true;
+                        anim.reset_key("bounce");
                     }
                 }
                 SegmentKind::Spike => {
-                    // commands.entity(eid).despawn_recursive();
-                    println!("Would kill");
+                    // Set the velocity to so it stops on the spike, but DON'T add this to the killing_ids
+                    // so that a follow-up system can read this trigger and kill the ship
+                    dyno.vel = Vec2::ZERO;
                 }
             }
-            killing_ids.insert(*eid);
         }
         dyno.triggers.retain(|(id, _)| !killing_ids.contains(id));
         amt_travlled += this_step;
@@ -157,12 +162,12 @@ pub(super) fn move_int_dynos(
         Option<&ColliderActive>,
     )>,
     parents: Query<&Parent>,
-    segments: Query<&Segment>,
+    mut segments: Query<(&Segment, &mut AnimationManager)>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         // Clear the old static collisions
         dyno.statics = vec![];
-        move_int_dyno_helper(dyno.as_mut(), &statics, &triggers, &parents, &segments);
+        move_int_dyno_helper(dyno.as_mut(), &statics, &triggers, &parents, &mut segments);
         tran.translation.x = dyno.ipos.x as f32;
         tran.translation.y = dyno.ipos.y as f32;
     }
@@ -200,5 +205,5 @@ pub fn register_int_dynos(app: &mut App) {
         (move_int_dynos, update_triggers, apply_fields).chain(),
     );
 
-    app.add_systems(FixedUpdate, move_int_moveables);
+    app.add_systems(FixedUpdate, move_int_moveables.after(move_int_dynos));
 }

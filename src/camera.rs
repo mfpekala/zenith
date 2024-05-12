@@ -5,8 +5,8 @@ use crate::{
     },
     input::{CameraControlState, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
-        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
+        level_data::LevelRoot,
     },
     physics::dyno::{apply_fields, IntDyno, IntMoveable},
 };
@@ -96,9 +96,9 @@ pub struct DynamicCameraBundle {
     pub spatial: SpatialBundle,
 }
 
-pub fn update_camera(
-    dynos: Query<&GlobalTransform, (With<IntDyno>, Without<CameraMarker>)>,
-    mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
+/// Manage input for controlling the camera in the Update system
+pub(super) fn camera_input(
+    mut marker: Query<(&IntMoveable, &mut CameraMarker)>,
     control_state: Res<CameraControlState>,
     mut switch_event: EventReader<SwitchCameraModeEvent>,
     mut set_event: EventReader<SetCameraModeEvent>,
@@ -112,7 +112,7 @@ pub fn update_camera(
     >,
 ) {
     // Get the camera (do nothing if we can't find one)
-    let Ok((mut moveable, mut marker)) = marker.get_single_mut() else {
+    let Ok((moveable, mut marker)) = marker.get_single_mut() else {
         return;
     };
     // Handle switching
@@ -123,43 +123,6 @@ pub fn update_camera(
     // Handle setting
     if let Some(set_event) = set_event.read().last() {
         marker.mode = set_event.mode.clone();
-    }
-    // Handle movement
-    match marker.mode {
-        CameraMode::Follow => {
-            let Ok(dyno) = dynos.get_single() else {
-                return;
-            };
-            let ipos = dyno.translation().truncate();
-            let ipos = IVec2::new(ipos.x.round() as i32, ipos.y.round() as i32);
-            let diff = ipos - moveable.pos.truncate();
-            let hor_wiggle = 8;
-            if diff.x.abs() > SCREEN_WIDTH as i32 / hor_wiggle {
-                moveable.pos.x +=
-                    (diff.x.abs() - SCREEN_WIDTH as i32 / hor_wiggle) * diff.x.signum();
-            }
-            let ver_wiggle = 8;
-            if diff.y.abs() > SCREEN_HEIGHT as i32 / ver_wiggle {
-                moveable.pos.y +=
-                    (diff.y.abs() - SCREEN_HEIGHT as i32 / ver_wiggle) * diff.y.signum();
-            }
-        }
-        CameraMode::Free => {
-            if control_state.wasd_dir.length_squared() < 0.1 {
-                // Slow to a stop
-                moveable.vel *= 0.7;
-            } else {
-                // Move around
-                let max_speed = 10.0 * marker.scale.to_f32();
-                moveable.vel += control_state.wasd_dir * 0.5 * marker.scale.to_f32();
-                if moveable.vel.length_squared() > max_speed * max_speed {
-                    moveable.vel = moveable.vel.normalize() * max_speed;
-                }
-            }
-        }
-        CameraMode::Controlled => {
-            // Do nothing, something else is driving us
-        }
     }
     // Handle zoom
     if control_state.zoom > 0 {
@@ -178,14 +141,59 @@ pub fn update_camera(
     }
 }
 
+pub fn camera_movement(
+    dynos: Query<&IntDyno, Without<CameraMarker>>,
+    level_root: Query<&GlobalTransform, With<LevelRoot>>,
+    mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
+    control_state: Res<CameraControlState>,
+) {
+    // Get the camera (do nothing if we can't find one)
+    let Ok((mut moveable, marker)) = marker.get_single_mut() else {
+        return;
+    };
+    // Handle movement
+    match marker.mode {
+        CameraMode::Follow => {
+            moveable.vel = Vec2::ZERO;
+            let Ok(dyno) = dynos.get_single() else {
+                return;
+            };
+            let Ok(root) = level_root.get_single() else {
+                return;
+            };
+            moveable.pos.x = root.translation().x.round() as i32 + dyno.ipos.x;
+            moveable.pos.y = root.translation().y.round() as i32 + dyno.ipos.y;
+        }
+        CameraMode::Free => {
+            if control_state.wasd_dir.length_squared() < 0.1 {
+                // Slow to a stop
+                moveable.vel *= 0.6;
+                if moveable.vel.length_squared() < 0.1 {
+                    moveable.vel = Vec2::ZERO;
+                }
+            } else {
+                // Move around
+                let max_speed = 16.0 * marker.scale.to_f32();
+                moveable.vel += control_state.wasd_dir * marker.scale.to_f32();
+                if moveable.vel.length_squared() > max_speed * max_speed {
+                    moveable.vel = moveable.vel.normalize() * max_speed;
+                }
+            }
+        }
+        CameraMode::Controlled => {
+            // Do nothing, something else is driving us
+        }
+    }
+}
+
 pub fn register_camera(app: &mut App) {
     app.add_plugins(LayeringPlugin);
     app.add_plugins(PostPixelPlugin);
+    app.add_systems(Update, camera_input.run_if(in_editor.or_else(in_level)));
     app.add_systems(
-        Update,
-        update_camera
+        FixedUpdate,
+        camera_movement
             .run_if(in_editor.or_else(in_level))
-            // .run_if(is_not_in_cutscene)
             .after(apply_fields),
     );
 }
