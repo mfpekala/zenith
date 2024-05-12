@@ -604,7 +604,7 @@ impl Plugin for GoatedAnimationPlugin {
             (
                 materialize_animation_bodies,
                 resolve_animation_coups,
-                update_animation_bodies,
+                // update_animation_bodies,
                 dematerialize_animation_bodies,
             )
                 .chain(),
@@ -613,7 +613,10 @@ impl Plugin for GoatedAnimationPlugin {
             Update,
             (materialize_bordered_meshes, update_bordered_meshes).chain(),
         );
-        app.add_systems(FixedUpdate, play_animations);
+        app.add_systems(
+            FixedUpdate,
+            (update_animation_bodies, play_animations).chain(),
+        );
 
         app.register_type::<AnimationManager>();
         app.register_type::<MultiAnimationManager>();

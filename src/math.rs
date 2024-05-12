@@ -112,6 +112,70 @@ impl MathLine {
     }
 }
 
+#[derive(Debug)]
+pub struct MathTriangle {
+    pub lines: [MathLine; 3],
+}
+impl MathTriangle {
+    /// Returns a triangle where the lines are guaranteed to respect our clockwise convention
+    pub fn from_points(points: &[Vec2; 3]) -> Self {
+        let a = points[1].x - points[0].x;
+        let b = points[2].y - points[0].y;
+        let c = points[2].x - points[0].x;
+        let d = points[1].y - points[0].y;
+        let det_like = a * b - c * d;
+        let (i1, i2, i3) = if det_like < 0.0 { (0, 1, 2) } else { (0, 2, 1) };
+        Self {
+            lines: [
+                MathLine {
+                    p1: points[i1].clone(),
+                    p2: points[i2].clone(),
+                },
+                MathLine {
+                    p1: points[i2].clone(),
+                    p2: points[i3].clone(),
+                },
+                MathLine {
+                    p1: points[i3].clone(),
+                    p2: points[i1].clone(),
+                },
+            ],
+        }
+    }
+
+    /// Turn a polygon given by points into a list of triangles that respect clockwise convention
+    pub fn triangulate(points: &[Vec2]) -> Vec<MathTriangle> {
+        if points.len() < 3 {
+            return vec![];
+        }
+        let mut flat = vec![];
+        for point in points {
+            flat.push(point.x);
+            flat.push(point.y);
+        }
+        let mut result = vec![];
+        let mut indices = earcutr::earcut(&flat, &[], 2).unwrap();
+        while !indices.is_empty() {
+            let ixs = vec![
+                indices.pop().unwrap(),
+                indices.pop().unwrap(),
+                indices.pop().unwrap(),
+            ];
+            let triangle = Self::from_points(&[points[ixs[0]], points[ixs[1]], points[ixs[2]]]);
+            result.push(triangle);
+        }
+        result
+    }
+
+    pub fn signed_distance_from_point(&self, other_point: &Vec2) -> f32 {
+        let mut result = f32::MIN;
+        for line in self.lines.iter() {
+            result = result.max(line.signed_distance_from_point(other_point));
+        }
+        result
+    }
+}
+
 /// Given a polygon of points GIVEN IN CLOCKWISE ORDER, return the points of the shell
 /// that is formed by giving each edge some breathing room
 pub fn get_shell(rock_points: &Vec<Vec2>, space: f32) -> Vec<Vec2> {
@@ -304,6 +368,7 @@ fn ease_in_out_quintic(x: f32) -> f32 {
 
 #[cfg(test)]
 mod math_nerd {
+    use super::*;
     use linreg::linear_regression;
 
     #[test]
@@ -311,5 +376,18 @@ mod math_nerd {
         let xs: Vec<f64> = vec![1.0, 2.0, 3.0];
         let ys: Vec<f64> = vec![0.0, 1.0, 2.0];
         let _out: (f64, f64) = linear_regression(&xs, &ys).unwrap();
+    }
+
+    #[test]
+    fn triangle_order_test() {
+        let a = Vec2::ZERO;
+        let b = Vec2::X;
+        let c = Vec2::Y;
+
+        let triangle1 = MathTriangle::from_points(&[a, b, c]);
+        let triangle2 = MathTriangle::from_points(&[a, c, b]);
+
+        println!("triangle1: {:?}", triangle1);
+        println!("triangle2: {:?}", triangle2);
     }
 }

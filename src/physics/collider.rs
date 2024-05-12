@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    math::MathLine,
+    math::{MathLine, MathTriangle},
     meta::consts::MAX_COLLISIONS_PER_FRAME,
     uid::{UId, UIdMarker},
 };
@@ -12,6 +12,7 @@ use super::dyno::IntDyno;
 pub struct ColliderBoundary {
     pub points: Vec<IVec2>,
     pub lines: Vec<MathLine>,
+    pub triangles: Vec<MathTriangle>,
     pub center: Vec2,
     pub bound_squared: f32,
 }
@@ -30,9 +31,11 @@ impl ColliderBoundary {
         }
         let fpoints: Vec<Vec2> = boundary_points.iter().map(|p| p.as_vec2()).collect();
         let lines = MathLine::from_points(&fpoints);
+        let triangles = MathTriangle::triangulate(&fpoints);
         ColliderBoundary {
             points: boundary_points,
             lines,
+            triangles,
             center,
             bound_squared: max_dist_sq,
         }
@@ -56,13 +59,15 @@ impl ColliderBoundary {
     }
 
     pub fn effective_mult(&self, point: Vec2, radius: f32) -> f32 {
-        let mut max_dist = f32::MIN;
-        for line in self.lines.iter() {
-            let signed_dist = line.signed_distance_from_point(&point);
-            max_dist = max_dist.max(signed_dist);
+        let mut total_em = 0.0;
+        for triangle in self.triangles.iter() {
+            let signed_dist = triangle.signed_distance_from_point(&point);
+            let this_em = ((-1.0 * (signed_dist / radius) + 1.0) / 2.0)
+                .min(1.0)
+                .max(0.0);
+            total_em += this_em;
         }
-        max_dist = (-1.0 * (max_dist / radius) + 1.0) / 2.0;
-        max_dist.min(1.0).max(0.0)
+        total_em.min(1.0).max(0.0)
     }
 }
 

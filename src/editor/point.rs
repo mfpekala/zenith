@@ -32,7 +32,7 @@ impl EPointKind {
             },
             Self::Wild => SpriteInfo {
                 path: "sprites/editor/point_wild.png".to_string(),
-                size: UVec2::new(10, 10),
+                size: UVec2::new(6, 6),
             },
             Self::Free(_) => SpriteInfo {
                 path: "sprites/editor/point.png".to_string(),
