@@ -165,8 +165,9 @@ pub(super) fn move_int_dynos(
     mut segments: Query<(&Segment, &mut AnimationManager)>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
-        // Clear the old static collisions
+        // Clear the old collisions/triggers
         dyno.statics = vec![];
+        dyno.triggers = vec![];
         move_int_dyno_helper(dyno.as_mut(), &statics, &triggers, &parents, &mut segments);
         tran.translation.x = dyno.ipos.x as f32;
         tran.translation.y = dyno.ipos.y as f32;
@@ -181,11 +182,13 @@ pub fn apply_fields(
     for mut dyno in dynos.iter_mut() {
         let mut diff = Vec2::ZERO;
         let mut slowdown = 1.0;
+        let mut killing_ids = HashSet::new();
         for (trigger_id, mult) in dyno.triggers.iter() {
             let Ok(parent_id) = to_parent.get(*trigger_id) else {
                 continue;
             };
             if let Ok((field, active)) = fields.get(parent_id.get()) {
+                killing_ids.insert(*trigger_id);
                 if active.is_some() && !active.unwrap().0 {
                     continue;
                 }
@@ -195,7 +198,7 @@ pub fn apply_fields(
         }
         dyno.vel += diff;
         dyno.vel *= slowdown;
-        dyno.triggers = vec![];
+        dyno.triggers.retain(|(id, _)| !killing_ids.contains(id));
     }
 }
 

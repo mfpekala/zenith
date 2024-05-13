@@ -4,12 +4,14 @@ use crate::drawing::layering::light_layer_u8;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
+use crate::environment::replenish::ReplenishMarker;
 use crate::environment::rock::{Rock, RockKind};
 use crate::input::LaunchEvent;
 use crate::input::LongKeyPress;
 use crate::math::Spleen;
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::meta::level_data::LevelRoot;
+use crate::physics::collider::ColliderTrigger;
 use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::should_apply_physics;
 use bevy::prelude::*;
@@ -36,10 +38,22 @@ pub struct ShipBundle {
 }
 impl ShipBundle {
     pub fn new(pos: IVec2) -> Self {
-        let ship = AnimationManager::single_static(SpriteInfo {
-            path: "sprites/ship.png".to_string(),
-            size: UVec2::new(8, 8),
-        });
+        let ship = AnimationManager::from_static_pairs(vec![
+            (
+                "full",
+                SpriteInfo {
+                    path: "sprites/ship.png".to_string(),
+                    size: UVec2::new(8, 8),
+                },
+            ),
+            (
+                "empty",
+                SpriteInfo {
+                    path: "sprites/ship_empty.png".to_string(),
+                    size: UVec2::new(8, 8),
+                },
+            ),
+        ]);
         let mut light = AnimationManager::single_static(SpriteInfo {
             path: "sprites/shipL.png".to_string(),
             size: UVec2::new(64, 64),
@@ -124,15 +138,46 @@ fn watch_for_death(
     }
 }
 
-fn replenish_shot(mut ship_q: Query<(&mut Ship, &mut IntDyno)>) {
-    for (mut ship, dyno) in ship_q.iter_mut() {
-        if ship.can_shoot {
-            continue;
-        }
+/// Checks if the shot can be replenished and also updates the sprite
+fn replenish_shot(
+    mut ship_q: Query<
+        (&mut Ship, &mut IntDyno, &mut MultiAnimationManager),
+        Without<ReplenishMarker>,
+    >,
+    triggers: Query<&Parent, (With<ColliderTrigger>, Without<ReplenishMarker>)>,
+    mut replenishes: Query<&mut MultiAnimationManager, With<ReplenishMarker>>,
+) {
+    for (mut ship, mut dyno, mut multi) in ship_q.iter_mut() {
         if dyno.vel.length() < 1.0 && dyno.statics.len() > 0 {
             ship.can_shoot = true;
             ship.last_safe_location = dyno.ipos.truncate();
         }
+        let mut replenish_triggers = vec![];
+        for (trigger_id, _) in dyno.triggers.iter() {
+            let Ok(parent) = triggers.get(*trigger_id) else {
+                continue;
+            };
+            if !replenishes.contains(parent.get()) {
+                continue;
+            }
+            replenish_triggers.push(parent.get());
+        }
+        dyno.triggers
+            .retain(|(id, _)| !replenish_triggers.contains(id));
+        if !ship.can_shoot && replenish_triggers.len() > 0 {
+            ship.can_shoot = true;
+            for eid in replenish_triggers {
+                let mut repl = replenishes.get_mut(eid).unwrap();
+                let core = repl.map.get_mut("core").unwrap();
+                core.set_key("exploding");
+                let light = repl.map.get_mut("light").unwrap();
+                light.set_key("exploding");
+            }
+        }
+
+        let anim = multi.map.get_mut("ship").unwrap();
+        let key = if ship.can_shoot { "full" } else { "empty" };
+        anim.set_key(key);
     }
 }
 
@@ -177,13 +222,16 @@ pub fn register_ship(app: &mut App) {
             .run_if(is_not_in_cutscene),
     );
     app.add_systems(
+        FixedUpdate,
+        (replenish_shot)
+            .run_if(should_apply_physics)
+            .run_if(is_not_in_cutscene)
+            .after(apply_fields),
+    );
+
+    app.add_systems(
         Update,
-        (
-            watch_for_respawn,
-            replenish_shot,
-            watch_for_death,
-            spawn_trail,
-        )
+        (watch_for_respawn, watch_for_death, spawn_trail)
             .run_if(should_apply_physics)
             .run_if(is_not_in_cutscene)
             .after(apply_fields),
