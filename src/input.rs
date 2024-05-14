@@ -3,7 +3,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::{
     camera::{camera_movement, CameraMarker, CameraMode},
-    cutscenes::{is_not_in_cutscene, Cutscene},
+    cutscenes::is_not_in_cutscene,
     drawing::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
         layering::light_layer_u8,
@@ -13,16 +13,23 @@ use crate::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
-    physics::{dyno::IntMoveable, should_apply_physics},
+    physics::dyno::IntMoveable,
+    ship::Ship,
 };
+
+#[derive(Debug)]
+pub struct PendingLaunch {
+    pub timer: Option<Timer>,
+    pub launch_start: IVec2,
+    pub launch_vel: Vec2,
+}
 
 #[derive(Resource, Debug)]
 pub struct MouseState {
     pub pos: IVec2,
     pub world_pos: IVec2,
     pub left_pressed: bool,
-    pub pending_launch_start: Option<IVec2>,
-    pub pending_launch_vel: Option<Vec2>,
+    pub pending_launch: Option<PendingLaunch>,
 }
 impl MouseState {
     pub fn empty() -> Self {
@@ -30,8 +37,7 @@ impl MouseState {
             pos: IVec2::ZERO,
             world_pos: IVec2::ZERO,
             left_pressed: false,
-            pending_launch_start: None,
-            pending_launch_vel: None,
+            pending_launch: None,
         }
     }
 }
@@ -48,8 +54,8 @@ pub fn watch_mouse(
     mut mouse_state: ResMut<MouseState>,
     mut launch_event: EventWriter<LaunchEvent>,
     camera_n_tran: Query<(&Transform, &CameraMarker)>,
-    gs: Res<GameState>,
-    cutscene: Res<Cutscene>,
+    ships: Query<&Ship>,
+    time: Res<Time>,
 ) {
     let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
         // Mouse is not in the window, don't do anything
@@ -59,6 +65,7 @@ pub fn watch_mouse(
         // Camera not found, don't do anything
         return;
     };
+    let can_shoot = ships.iter().all(|ship| ship.can_shoot);
     let scale_down_to_screen = (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32);
     mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
     mouse_pos *= scale_down_to_screen;
@@ -69,15 +76,34 @@ pub fn watch_mouse(
                 y: -1.0 * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
             };
     mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
-
     mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
-    if buttons.just_pressed(MouseButton::Left) {
+
+    // Begin a launch
+    if buttons.just_pressed(MouseButton::Left) && mouse_state.pending_launch.is_none() {
         // Beginning launch
-        mouse_state.pending_launch_start = Some(mouse_state.pos);
+        mouse_state.pending_launch = Some(PendingLaunch {
+            timer: if can_shoot {
+                Some(Timer::from_seconds(1.0, TimerMode::Once))
+            } else {
+                None
+            },
+            launch_start: mouse_state.pos,
+            launch_vel: Vec2::ZERO,
+        });
     }
+    // Helper function to terminate a launch
+    let send_launch = |mouse_state: &mut MouseState,
+                       launch_event: &mut EventWriter<LaunchEvent>| {
+        let pending = mouse_state.pending_launch.take().unwrap();
+        launch_event.send(LaunchEvent {
+            vel: pending.launch_vel,
+        });
+    };
     if buttons.pressed(MouseButton::Left) {
-        if let Some(start_pos) = mouse_state.pending_launch_start {
-            let mut almost_vel = (start_pos - mouse_state.pos).as_vec2();
+        // Continue updating an existing launch
+        let pos = mouse_state.pos;
+        if let Some(pending_launch) = mouse_state.pending_launch.as_mut() {
+            let mut almost_vel = (pending_launch.launch_start - pos).as_vec2();
             almost_vel.y *= -1.0;
             let norm = almost_vel.normalize_or_zero();
             let mag = if almost_vel.length() > 0.1 {
@@ -85,20 +111,33 @@ pub fn watch_mouse(
             } else {
                 0.0
             };
-            mouse_state.pending_launch_vel = Some(norm * mag);
+            pending_launch.launch_vel = norm * mag;
         }
     } else {
-        match mouse_state.pending_launch_vel {
-            Some(vel) => {
-                if should_apply_physics(gs) && *cutscene == Cutscene::None {
-                    launch_event.send(LaunchEvent { vel });
-                }
-                mouse_state.pending_launch_start = None;
-                mouse_state.pending_launch_vel = None;
+        // Mouse button released, launch should happen
+        if mouse_state.pending_launch.is_some() {
+            send_launch(&mut mouse_state, &mut launch_event);
+        }
+    }
+    // Update the timer for the launch
+    let has_timer = match mouse_state.pending_launch.as_ref() {
+        Some(pending) => pending.timer.is_some(),
+        None => false,
+    };
+    if has_timer {
+        let did_timer_expire = match mouse_state.pending_launch.as_mut() {
+            Some(pending) => {
+                pending.timer.as_mut().unwrap().tick(time.delta());
+                pending.timer.as_ref().unwrap().finished()
             }
-            None => {
-                // Nothing to do
-            }
+            None => false,
+        };
+        if did_timer_expire {
+            send_launch(&mut mouse_state, &mut launch_event);
+        }
+    } else if let Some(pending) = mouse_state.pending_launch.as_mut() {
+        if can_shoot {
+            pending.timer = Some(Timer::from_seconds(1.0, TimerMode::Once));
         }
     }
 }
@@ -281,9 +320,9 @@ fn update_shot_arrow(
         return;
     }
     tran.scale = Vec2::new(cam_marker.scale.to_f32(), cam_marker.scale.to_f32()).extend(1.0);
-    match mouse_state.pending_launch_start {
-        Some(start) => {
-            let start = start.as_vec2();
+    match mouse_state.pending_launch.as_ref() {
+        Some(pending_launch) => {
+            let start = pending_launch.launch_start.as_vec2();
             // let test = cam_im.pos
             tran.translation.x = cam_im.pos.x as f32
                 + cam_marker.scale.to_f32()
@@ -295,7 +334,7 @@ fn update_shot_arrow(
                     * (start.y - WINDOW_HEIGHT as f32 / 2.0)
                     * SCREEN_HEIGHT as f32
                     / WINDOW_HEIGHT as f32;
-            let end = start + mouse_state.pending_launch_vel.unwrap_or(Vec2::ZERO);
+            let end = start + pending_launch.launch_vel;
             let angle = Vec2::Y.angle_between(end - start);
             let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;
             let body = multi.map.get_mut("body").unwrap();

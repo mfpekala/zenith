@@ -9,9 +9,12 @@ use crate::{
     },
 };
 
-use super::collider::{
-    resolve_static_collisions, resolve_trigger_collisions, update_triggers, ColliderActive,
-    ColliderBoundary, ColliderStatic, ColliderTrigger,
+use super::{
+    collider::{
+        resolve_static_collisions, resolve_trigger_collisions, update_triggers, ColliderActive,
+        ColliderBoundary, ColliderStatic, ColliderTrigger,
+    },
+    BulletTime,
 };
 
 #[derive(Component, Debug, Default, Clone, Reflect, Serialize, Deserialize)]
@@ -31,10 +34,13 @@ impl IntMoveable {
     }
 }
 
-pub(super) fn move_int_moveables(mut moveables: Query<(&mut Transform, &mut IntMoveable)>) {
+pub(super) fn move_int_moveables(
+    mut moveables: Query<(&mut Transform, &mut IntMoveable)>,
+    bullet_time: Res<BulletTime>,
+) {
     for (mut tran, mut moveable) in moveables.iter_mut() {
         // We move the objects in much the same way that we move dynos
-        let would_move = moveable.vel + moveable.rem;
+        let would_move = (moveable.vel + moveable.rem) * bullet_time.factor();
         let move_x = would_move.x.round() as i32;
         let move_y = would_move.y.round() as i32;
         if move_x != 0 {
@@ -90,15 +96,16 @@ pub(super) fn move_int_dyno_helper(
     )>,
     parents: &Query<&Parent>,
     segments: &mut Query<(&Segment, &mut AnimationManager)>,
+    bullet_time: &Res<BulletTime>,
 ) {
     let mut amt_travlled = 0.0;
-    let to_travel = dyno.vel.length();
-    while amt_travlled < to_travel && amt_travlled < dyno.vel.length() {
+    let to_travel = dyno.vel.length() * bullet_time.factor();
+    while amt_travlled < to_travel && amt_travlled < dyno.vel.length() * bullet_time.factor() {
         let this_step = if dyno.vel.length() - amt_travlled >= 1.0 {
             1.0
         } else {
-            if dyno.vel.length() - amt_travlled > 0.1 {
-                dyno.vel.length().rem_euclid(1.0).max(0.1)
+            if dyno.vel.length() - amt_travlled > 0.01 {
+                dyno.vel.length().rem_euclid(1.0).max(0.01)
             } else {
                 break;
             }
@@ -163,12 +170,20 @@ pub(super) fn move_int_dynos(
     )>,
     parents: Query<&Parent>,
     mut segments: Query<(&Segment, &mut AnimationManager)>,
+    bullet_time: Res<BulletTime>,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         // Clear the old collisions/triggers
         dyno.statics = vec![];
         dyno.triggers = vec![];
-        move_int_dyno_helper(dyno.as_mut(), &statics, &triggers, &parents, &mut segments);
+        move_int_dyno_helper(
+            dyno.as_mut(),
+            &statics,
+            &triggers,
+            &parents,
+            &mut segments,
+            &bullet_time,
+        );
         tran.translation.x = dyno.ipos.x as f32;
         tran.translation.y = dyno.ipos.y as f32;
     }
@@ -178,11 +193,15 @@ pub fn apply_fields(
     mut dynos: Query<&mut IntDyno>,
     to_parent: Query<&Parent>,
     fields: Query<(&Field, Option<&ColliderActive>)>,
+    bullet_time: Res<BulletTime>,
 ) {
+    if !bullet_time.is_special_frame() {
+        return;
+    }
     for mut dyno in dynos.iter_mut() {
         let mut diff = Vec2::ZERO;
-        let mut slowdown = 1.0;
         let mut killing_ids = HashSet::new();
+        let mut slowdown = 1.0;
         for (trigger_id, mult) in dyno.triggers.iter() {
             let Ok(parent_id) = to_parent.get(*trigger_id) else {
                 continue;

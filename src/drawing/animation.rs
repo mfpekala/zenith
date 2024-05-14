@@ -52,6 +52,7 @@ pub struct AnimationManager {
     hidden: bool,
     scroll: Vec2,
     is_changed: bool,
+    force_index: Option<u32>,
 }
 impl AnimationManager {
     pub fn current_node(&self) -> AnimationNode {
@@ -65,11 +66,13 @@ impl AnimationManager {
         }
         self.key = key.to_string();
         self.is_changed = true;
+        self.force_index = Some(0);
     }
 
     pub fn reset_key(&mut self, key: &str) {
         self.key = key.to_string();
         self.is_changed = true;
+        self.force_index = Some(0);
     }
 
     pub fn get_points(&self) -> Vec<IVec2> {
@@ -214,6 +217,7 @@ impl Default for AnimationManager {
             hidden: false,
             scroll: Vec2::ZERO,
             is_changed: true,
+            force_index: Some(0),
         }
     }
 }
@@ -536,6 +540,12 @@ fn play_animations(
             let Some(mat) = mats.get_mut(mat_handle.id()) else {
                 return;
             };
+            // Zeroth, update the index if needed
+            if let Some(forced) = manager.force_index {
+                index.ix = forced;
+                index.steps = 0;
+                manager.force_index = None;
+            }
             // First update the material
             mat.index = index.ix as f32;
             mat.length = length.0 as f32;

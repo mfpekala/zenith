@@ -4,14 +4,14 @@ use crate::drawing::layering::light_layer_u8;
 use crate::environment::particle::{
     ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
 };
-use crate::environment::replenish::ReplenishMarker;
+use crate::environment::replenish::{ReplenishCharging, ReplenishMarker};
 use crate::environment::rock::{Rock, RockKind};
 use crate::input::LaunchEvent;
 use crate::input::LongKeyPress;
 use crate::math::Spleen;
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::meta::level_data::LevelRoot;
-use crate::physics::collider::ColliderTrigger;
+use crate::physics::collider::{ColliderActive, ColliderTrigger};
 use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::should_apply_physics;
 use bevy::prelude::*;
@@ -61,7 +61,7 @@ impl ShipBundle {
         light.set_render_layers(vec![light_layer_u8()]);
         Self {
             ship: Ship {
-                can_shoot: false,
+                can_shoot: true,
                 last_safe_location: pos,
             },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
@@ -145,7 +145,11 @@ fn replenish_shot(
         Without<ReplenishMarker>,
     >,
     triggers: Query<&Parent, (With<ColliderTrigger>, Without<ReplenishMarker>)>,
-    mut replenishes: Query<&mut MultiAnimationManager, With<ReplenishMarker>>,
+    mut replenishes: Query<
+        (Entity, &mut MultiAnimationManager, &mut ColliderActive),
+        With<ReplenishMarker>,
+    >,
+    mut commands: Commands,
 ) {
     for (mut ship, mut dyno, mut multi) in ship_q.iter_mut() {
         if dyno.vel.length() < 1.0 && dyno.statics.len() > 0 {
@@ -167,11 +171,13 @@ fn replenish_shot(
         if !ship.can_shoot && replenish_triggers.len() > 0 {
             ship.can_shoot = true;
             for eid in replenish_triggers {
-                let mut repl = replenishes.get_mut(eid).unwrap();
+                let (rid, mut repl, mut active) = replenishes.get_mut(eid).unwrap();
                 let core = repl.map.get_mut("core").unwrap();
                 core.set_key("exploding");
                 let light = repl.map.get_mut("light").unwrap();
                 light.set_key("exploding");
+                active.0 = false;
+                commands.entity(rid).insert(ReplenishCharging::new());
             }
         }
 

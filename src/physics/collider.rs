@@ -82,9 +82,6 @@ pub struct ColliderTrigger {
     pub refresh_period: u32,
 }
 
-#[derive(Component, Debug, Default)]
-pub struct ColliderTimedDisable(pub u32);
-
 #[derive(Component, Debug)]
 pub struct ColliderActive(pub bool);
 
@@ -266,19 +263,26 @@ pub(super) fn resolve_trigger_collisions(
     }
 }
 
-pub fn update_triggers(
-    mut commands: Commands,
-    mut triggers: Query<(Entity, Option<&mut ColliderTimedDisable>)>,
-) {
-    for (eid, timed_disable) in triggers.iter_mut() {
-        let Some(mut timed_disable) = timed_disable else {
+/// A function that trickles ColliderActive down to the child. Basically allows you to add ColliderActive
+/// to the parent and have it auto-update the child
+pub(super) fn trickle_active(mut colliders: Query<(Entity, &mut ColliderActive, Option<&Parent>)>) {
+    let mut eids_n_rents = vec![];
+    for (eid, _, rent) in colliders.iter() {
+        let Some(rent) = rent else {
             continue;
         };
-        if timed_disable.0 == 0 {
-            commands.entity(eid).remove::<ColliderTimedDisable>();
-            commands.entity(eid).insert(ColliderActive(true));
-        } else {
-            timed_disable.0 -= 1;
-        }
+        eids_n_rents.push((eid, rent.get()));
+    }
+    for (eid, rent) in eids_n_rents {
+        let Ok((_, truth, _)) = colliders.get(rent) else {
+            continue;
+        };
+        let val = truth.0;
+        let Ok((_, mut active, _)) = colliders.get_mut(eid) else {
+            continue;
+        };
+        active.0 = val;
     }
 }
+
+pub fn update_triggers() {}
