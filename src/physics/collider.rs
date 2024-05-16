@@ -211,7 +211,7 @@ pub(super) fn resolve_static_collisions(
     };
 
     if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-        dyno.statics.push(min_id);
+        dyno.statics.insert(min_id);
     }
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
@@ -255,10 +255,8 @@ pub(super) fn resolve_trigger_collisions(
         if em < 0.001 {
             continue;
         }
-        if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME
-            && !dyno.triggers.iter().any(|(other_id, _)| id == *other_id)
-        {
-            dyno.triggers.push((id, em));
+        if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME {
+            dyno.triggers.insert(id, em);
         }
     }
 }

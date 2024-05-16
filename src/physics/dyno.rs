@@ -1,4 +1,7 @@
-use bevy::{prelude::*, utils::hashbrown::HashSet};
+use bevy::{
+    prelude::*,
+    utils::{hashbrown::HashSet, HashMap},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -66,8 +69,9 @@ pub struct IntDyno {
     pub fpos: Vec3,
     pub ipos: IVec3,
     pub radius: f32,
-    pub statics: Vec<Entity>,
-    pub triggers: Vec<(Entity, f32)>,
+    pub statics: HashSet<Entity>,
+    pub triggers: HashMap<Entity, f32>,
+    pub long_statics: HashMap<Entity, u32>,
 }
 impl IntDyno {
     pub fn new(pos: IVec3, radius: f32) -> Self {
@@ -100,12 +104,14 @@ pub(super) fn move_int_dyno_helper(
 ) {
     let mut amt_travlled = 0.0;
     let to_travel = dyno.vel.length() * bullet_time.factor();
+
     while amt_travlled < to_travel && amt_travlled < dyno.vel.length() * bullet_time.factor() {
         let this_step = if dyno.vel.length() - amt_travlled >= 1.0 {
             1.0
         } else {
-            if dyno.vel.length() - amt_travlled > 0.01 {
-                dyno.vel.length().rem_euclid(1.0).max(0.01)
+            let min_move: f32 = 0.0000000001;
+            if dyno.vel.length() - amt_travlled > min_move {
+                dyno.vel.length().rem_euclid(1.0).max(min_move)
             } else {
                 break;
             }
@@ -142,7 +148,7 @@ pub(super) fn move_int_dyno_helper(
                 }
             }
         }
-        dyno.triggers.retain(|(id, _)| !killing_ids.contains(id));
+        dyno.triggers.retain(|id, _| !killing_ids.contains(id));
         amt_travlled += this_step;
     }
     resolve_trigger_collisions(dyno, triggers);
@@ -174,8 +180,8 @@ pub(super) fn move_int_dynos(
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         // Clear the old collisions/triggers
-        dyno.statics = vec![];
-        dyno.triggers = vec![];
+        dyno.statics = HashSet::new();
+        dyno.triggers = HashMap::new();
         move_int_dyno_helper(
             dyno.as_mut(),
             &statics,
@@ -184,6 +190,7 @@ pub(super) fn move_int_dynos(
             &mut segments,
             &bullet_time,
         );
+
         tran.translation.x = dyno.ipos.x as f32;
         tran.translation.y = dyno.ipos.y as f32;
     }
@@ -195,13 +202,9 @@ pub fn apply_fields(
     fields: Query<(&Field, Option<&ColliderActive>)>,
     bullet_time: Res<BulletTime>,
 ) {
-    if !bullet_time.is_special_frame() {
-        return;
-    }
     for mut dyno in dynos.iter_mut() {
         let mut diff = Vec2::ZERO;
         let mut killing_ids = HashSet::new();
-        let mut slowdown = 1.0;
         for (trigger_id, mult) in dyno.triggers.iter() {
             let Ok(parent_id) = to_parent.get(*trigger_id) else {
                 continue;
@@ -211,13 +214,15 @@ pub fn apply_fields(
                 if active.is_some() && !active.unwrap().0 {
                     continue;
                 }
-                diff += field.dir * field.strength.to_f32() * *mult;
-                slowdown *= (1.0 - field.drag.to_f32()).powf(*mult);
+                diff += field.dir * field.strength.to_f32() * *mult * bullet_time.factor();
+                // slowdown *= (1.0 - field.drag.to_f32()).powf(*mult);
             }
         }
         dyno.vel += diff;
-        dyno.vel *= slowdown;
-        dyno.triggers.retain(|(id, _)| !killing_ids.contains(id));
+        dyno.triggers.retain(|id, _| !killing_ids.contains(id));
+        if bullet_time.is_special_frame() {
+            println!("Pos: {:?}, Vel: {:?}", dyno.fpos, dyno.vel);
+        }
     }
 }
 

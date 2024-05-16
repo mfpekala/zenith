@@ -167,7 +167,7 @@ fn replenish_shot(
             replenish_triggers.push(parent.get());
         }
         dyno.triggers
-            .retain(|(id, _)| !replenish_triggers.contains(id));
+            .retain(|id, _| !replenish_triggers.contains(id));
         if !ship.can_shoot && replenish_triggers.len() > 0 {
             ship.can_shoot = true;
             for eid in replenish_triggers {
