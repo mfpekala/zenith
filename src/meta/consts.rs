@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
+/// Framerate
+pub const FRAMERATE: f64 = 24.0;
+
 /// Size of the window's width
 pub const WINDOW_WIDTH: usize = 800;
 /// Size of the window's height

@@ -6,7 +6,7 @@ use crate::{
     uid::{UId, UIdMarker},
 };
 
-use super::dyno::IntDyno;
+use super::{dyno::IntDyno, BulletTime};
 
 #[derive(Component, Debug)]
 pub struct ColliderBoundary {
@@ -174,13 +174,16 @@ pub(super) fn resolve_static_collisions(
         &ColliderBoundary,
         &ColliderStatic,
         Option<&ColliderActive>,
+        &Parent,
     )>,
+    bullet_time: &Res<BulletTime>,
 ) -> bool {
     let mut fpos = dyno.fpos.truncate();
     let mut min_dist_sq: Option<f32> = None;
     let mut min_point: Option<Vec2> = None;
     let mut min_id: Option<Entity> = None;
-    for (id, boundary, _, active) in statics.iter() {
+    let mut min_parent_id: Option<Entity> = None;
+    for (eid, boundary, _, active, parent) in statics.iter() {
         if active.is_none() || !active.unwrap().0 {
             continue;
         }
@@ -194,24 +197,27 @@ pub(super) fn resolve_static_collisions(
         if min_dist_sq.is_none() || min_dist_sq.unwrap() > dist_sq {
             min_dist_sq = Some(dist_sq);
             min_point = Some(closest_point);
-            min_id = Some(id);
+            min_id = Some(eid);
+            min_parent_id = Some(parent.get());
         }
     }
     // Early exit when there's no collision
     if min_dist_sq.unwrap_or(f32::MAX) > dyno.radius.powi(2) {
         return false;
     }
-    let (_, Some(min_point), Some(min_id)) = (min_dist_sq, min_point, min_id) else {
+    let (_, Some(min_point), Some(min_id), Some(min_parent_id)) =
+        (min_dist_sq, min_point, min_id, min_parent_id)
+    else {
         error!("Weird stuff happened in resolving static collisions...");
         return false;
     };
-    let Ok((_, _, stat, _)) = statics.get(min_id) else {
+    let Ok((_, _, stat, _, _)) = statics.get(min_id) else {
         error!("Weird stuff2 happened in resolving static collisions...");
         return false;
     };
 
     if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-        dyno.statics.insert(min_id);
+        dyno.statics.insert(min_parent_id);
     }
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
@@ -220,8 +226,8 @@ pub(super) fn resolve_static_collisions(
     }
 
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
-    let new_vel =
-        pure_parr * (1.0 - stat.friction) - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness;
+    let new_vel = pure_parr * (1.0 - stat.friction)
+        - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness * bullet_time.factor();
     dyno.vel = new_vel;
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
@@ -235,14 +241,14 @@ pub(super) fn resolve_static_collisions(
 pub(super) fn resolve_trigger_collisions(
     dyno: &mut IntDyno,
     triggers: &Query<(
-        Entity,
         &ColliderBoundary,
         &ColliderTrigger,
         Option<&ColliderActive>,
+        &Parent,
     )>,
 ) {
     let fpos = dyno.fpos.truncate();
-    for (id, boundary, _, active) in triggers.iter() {
+    for (boundary, _, active, parent) in triggers.iter() {
         if active.is_some() && !active.unwrap().0 {
             continue;
         }
@@ -256,7 +262,7 @@ pub(super) fn resolve_trigger_collisions(
             continue;
         }
         if dyno.triggers.len() < MAX_COLLISIONS_PER_FRAME {
-            dyno.triggers.insert(id, em);
+            dyno.triggers.insert(parent.get(), em);
         }
     }
 }

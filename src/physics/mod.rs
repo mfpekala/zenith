@@ -44,16 +44,26 @@ pub fn should_apply_physics(gs: Res<GameState>) -> bool {
     }
 }
 
-pub fn update_bullet_time(mut bullet_time: ResMut<BulletTime>, mouse_state: Res<MouseState>) {
+pub fn update_bullet_time(
+    mut bullet_time: ResMut<BulletTime>,
+    mouse_state: Res<MouseState>,
+    mut dynos: Query<&mut IntDyno>,
+) {
     let in_bullet_time = match mouse_state.pending_launch.as_ref() {
         Some(pending) => pending.timer.is_some(),
         None => false,
+    };
+    let mut scale_dyno_vels = |scale: f32| {
+        for mut dyno in dynos.iter_mut() {
+            dyno.vel *= scale;
+        }
     };
     if in_bullet_time {
         if bullet_time.slowdown == 1 {
             // We are entering bullet time
             bullet_time.slowdown = 20;
             bullet_time.fixed_equiv = 0;
+            scale_dyno_vels(1.0 / 20.0);
         } else {
             // We are already in bullet time
             bullet_time.fixed_equiv = (bullet_time.fixed_equiv + 1) % bullet_time.slowdown;
@@ -65,6 +75,7 @@ pub fn update_bullet_time(mut bullet_time: ResMut<BulletTime>, mouse_state: Res<
             // We are leaving bullet time
             bullet_time.slowdown = 1;
             bullet_time.fixed_equiv = 0;
+            scale_dyno_vels(20.0);
         }
     }
 }

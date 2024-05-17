@@ -13,7 +13,7 @@ use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::meta::level_data::LevelRoot;
 use crate::physics::collider::{ColliderActive, ColliderTrigger};
 use crate::physics::dyno::{apply_fields, IntDyno};
-use crate::physics::should_apply_physics;
+use crate::physics::{should_apply_physics, BulletTime};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -80,6 +80,7 @@ pub fn launch_ship(
     mut launch_events: EventReader<LaunchEvent>,
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetGameState>,
+    bullet_time: Res<BulletTime>,
 ) {
     let level_state = gs.get_level_state();
     for launch in launch_events.read() {
@@ -87,7 +88,7 @@ pub fn launch_ship(
             if !ship.can_shoot {
                 continue;
             }
-            dyno.vel = launch.vel;
+            dyno.vel = launch.vel * bullet_time.factor();
             ship.can_shoot = false;
             if let Some(mut ls) = level_state.clone() {
                 ls.num_shots += 1;
@@ -144,7 +145,6 @@ fn replenish_shot(
         (&mut Ship, &mut IntDyno, &mut MultiAnimationManager),
         Without<ReplenishMarker>,
     >,
-    triggers: Query<&Parent, (With<ColliderTrigger>, Without<ReplenishMarker>)>,
     mut replenishes: Query<
         (Entity, &mut MultiAnimationManager, &mut ColliderActive),
         With<ReplenishMarker>,
@@ -154,17 +154,14 @@ fn replenish_shot(
     for (mut ship, mut dyno, mut multi) in ship_q.iter_mut() {
         if dyno.vel.length() < 1.0 && dyno.statics.len() > 0 {
             ship.can_shoot = true;
-            ship.last_safe_location = dyno.ipos.truncate();
+            // ship.last_safe_location = dyno.ipos.truncate();
         }
         let mut replenish_triggers = vec![];
         for (trigger_id, _) in dyno.triggers.iter() {
-            let Ok(parent) = triggers.get(*trigger_id) else {
-                continue;
-            };
-            if !replenishes.contains(parent.get()) {
+            if !replenishes.contains(*trigger_id) {
                 continue;
             }
-            replenish_triggers.push(parent.get());
+            replenish_triggers.push(*trigger_id);
         }
         dyno.triggers
             .retain(|id, _| !replenish_triggers.contains(id));
@@ -180,7 +177,6 @@ fn replenish_shot(
                 commands.entity(rid).insert(ReplenishCharging::new());
             }
         }
-
         let anim = multi.map.get_mut("ship").unwrap();
         let key = if ship.can_shoot { "full" } else { "empty" };
         anim.set_key(key);

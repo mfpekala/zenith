@@ -23,7 +23,7 @@ use environment::EnvironmentPlugin;
 use input::register_input;
 use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
-    consts::{TuneableConsts, TuneableConstsPlugin, WINDOW_HEIGHT, WINDOW_WIDTH},
+    consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE, WINDOW_HEIGHT, WINDOW_WIDTH},
     game_state::register_game_state,
     MetaPlugin,
 };
@@ -52,7 +52,7 @@ fn main() {
     )
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
     .add_systems(Startup, main_setup);
-    app.insert_resource(Time::<Fixed>::from_hz(24.0));
+    app.insert_resource(Time::<Fixed>::from_hz(FRAMERATE));
     app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
     app.add_plugins(UIdPlugin);
     app.add_plugins(TuneableConstsPlugin);

@@ -91,21 +91,21 @@ pub(super) fn move_int_dyno_helper(
         &ColliderBoundary,
         &ColliderStatic,
         Option<&ColliderActive>,
+        &Parent,
     )>,
     triggers: &Query<(
-        Entity,
         &ColliderBoundary,
         &ColliderTrigger,
         Option<&ColliderActive>,
+        &Parent,
     )>,
-    parents: &Query<&Parent>,
     segments: &mut Query<(&Segment, &mut AnimationManager)>,
     bullet_time: &Res<BulletTime>,
 ) {
     let mut amt_travlled = 0.0;
-    let to_travel = dyno.vel.length() * bullet_time.factor();
+    let to_travel = dyno.vel.length();
 
-    while amt_travlled < to_travel && amt_travlled < dyno.vel.length() * bullet_time.factor() {
+    while amt_travlled < to_travel && amt_travlled < dyno.vel.length() {
         let this_step = if dyno.vel.length() - amt_travlled >= 1.0 {
             1.0
         } else {
@@ -117,15 +117,12 @@ pub(super) fn move_int_dyno_helper(
             }
         };
         dyno.fpos += dyno.vel.normalize_or_zero().extend(0.0) * this_step;
-        resolve_static_collisions(dyno, statics);
+        resolve_static_collisions(dyno, statics, bullet_time);
         resolve_trigger_collisions(dyno, triggers);
         let mut killing_ids = HashSet::new();
         let mut sprung = false;
         for (eid, _emult) in dyno.triggers.iter() {
-            let Ok(parent) = parents.get(*eid) else {
-                continue;
-            };
-            let Ok((segment, mut anim)) = segments.get_mut(parent.get()) else {
+            let Ok((segment, mut anim)) = segments.get_mut(*eid) else {
                 continue;
             };
             match segment.kind {
@@ -135,7 +132,7 @@ pub(super) fn move_int_dyno_helper(
                         let line = (segment.right_parent - segment.left_parent).as_vec2();
                         let norm = Vec2::new(-line.y, line.x).normalize_or_zero();
                         let pure_parr = -1.0 * dyno.vel.dot(norm) * norm + dyno.vel;
-                        let new_vel = pure_parr + norm * 3.0;
+                        let new_vel = pure_parr + norm * 3.0 * bullet_time.factor();
                         dyno.vel = new_vel;
                         sprung = true;
                         anim.reset_key("bounce");
@@ -167,14 +164,14 @@ pub(super) fn move_int_dynos(
         &ColliderBoundary,
         &ColliderStatic,
         Option<&ColliderActive>,
+        &Parent,
     )>,
     triggers: Query<(
-        Entity,
         &ColliderBoundary,
         &ColliderTrigger,
         Option<&ColliderActive>,
+        &Parent,
     )>,
-    parents: Query<&Parent>,
     mut segments: Query<(&Segment, &mut AnimationManager)>,
     bullet_time: Res<BulletTime>,
 ) {
@@ -186,10 +183,30 @@ pub(super) fn move_int_dynos(
             dyno.as_mut(),
             &statics,
             &triggers,
-            &parents,
             &mut segments,
             &bullet_time,
         );
+
+        // Update the long statics (for replenishing shot)
+        let statics = dyno.statics.clone();
+        for key in statics.iter() {
+            let contained = dyno.long_statics.contains_key(key);
+            if contained {
+                let count = dyno.long_statics.get_mut(key).unwrap();
+                *count += 1;
+            } else {
+                dyno.long_statics.insert(*key, 1);
+            }
+        }
+        let mut killing = vec![];
+        for key in dyno.long_statics.keys() {
+            if !dyno.statics.contains(key) {
+                killing.push(*key);
+            }
+        }
+        for key in killing.iter() {
+            dyno.long_statics.remove(key);
+        }
 
         tran.translation.x = dyno.ipos.x as f32;
         tran.translation.y = dyno.ipos.y as f32;
@@ -198,7 +215,6 @@ pub(super) fn move_int_dynos(
 
 pub fn apply_fields(
     mut dynos: Query<&mut IntDyno>,
-    to_parent: Query<&Parent>,
     fields: Query<(&Field, Option<&ColliderActive>)>,
     bullet_time: Res<BulletTime>,
 ) {
@@ -206,10 +222,7 @@ pub fn apply_fields(
         let mut diff = Vec2::ZERO;
         let mut killing_ids = HashSet::new();
         for (trigger_id, mult) in dyno.triggers.iter() {
-            let Ok(parent_id) = to_parent.get(*trigger_id) else {
-                continue;
-            };
-            if let Ok((field, active)) = fields.get(parent_id.get()) {
+            if let Ok((field, active)) = fields.get(*trigger_id) {
                 killing_ids.insert(*trigger_id);
                 if active.is_some() && !active.unwrap().0 {
                     continue;
@@ -220,9 +233,6 @@ pub fn apply_fields(
         }
         dyno.vel += diff;
         dyno.triggers.retain(|id, _| !killing_ids.contains(id));
-        if bullet_time.is_special_frame() {
-            println!("Pos: {:?}, Vel: {:?}", dyno.fpos, dyno.vel);
-        }
     }
 }
 
