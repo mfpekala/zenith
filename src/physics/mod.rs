@@ -13,23 +13,23 @@ pub mod dyno;
 
 #[derive(Resource)]
 pub struct BulletTime {
-    slowdown: u32,
-    fixed_equiv: u32,
+    pub is_slow: bool,
 }
 impl BulletTime {
-    pub fn from_slowdown_u32(slowdown: u32) -> Self {
-        Self {
-            slowdown,
-            fixed_equiv: 0,
-        }
+    pub const fn slowdown() -> f32 {
+        8.0
+    }
+
+    pub fn new() -> Self {
+        Self { is_slow: false }
     }
 
     pub fn factor(&self) -> f32 {
-        1.0 / self.slowdown as f32
-    }
-
-    pub fn is_special_frame(&self) -> bool {
-        self.fixed_equiv == 0
+        if self.is_slow {
+            1.0 / Self::slowdown()
+        } else {
+            1.0
+        }
     }
 }
 
@@ -59,23 +59,20 @@ pub fn update_bullet_time(
         }
     };
     if in_bullet_time {
-        if bullet_time.slowdown == 1 {
+        if !bullet_time.is_slow {
             // We are entering bullet time
-            bullet_time.slowdown = 20;
-            bullet_time.fixed_equiv = 0;
-            scale_dyno_vels(1.0 / 20.0);
+            bullet_time.is_slow = true;
+            scale_dyno_vels(bullet_time.factor());
         } else {
             // We are already in bullet time
-            bullet_time.fixed_equiv = (bullet_time.fixed_equiv + 1) % bullet_time.slowdown;
         }
     } else {
-        if bullet_time.slowdown == 1 {
+        if !bullet_time.is_slow {
             // We already left bullet time
         } else {
             // We are leaving bullet time
-            bullet_time.slowdown = 1;
-            bullet_time.fixed_equiv = 0;
-            scale_dyno_vels(20.0);
+            scale_dyno_vels(1.0 / bullet_time.factor());
+            bullet_time.is_slow = false;
         }
     }
 }
@@ -84,7 +81,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         register_int_dynos(app);
-        app.insert_resource(BulletTime::from_slowdown_u32(1));
+        app.insert_resource(BulletTime::new());
         app.register_type::<IntDyno>();
         app.add_systems(Update, materialize_collider_stubs);
         app.add_systems(Update, trickle_active);

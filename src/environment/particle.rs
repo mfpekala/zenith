@@ -7,6 +7,7 @@ use crate::{
     camera::CameraMarker,
     drawing::layering::sprite_layer,
     math::{lerp, lerp_color, Spleen},
+    physics::BulletTime,
 };
 
 #[derive(Component)]
@@ -185,10 +186,11 @@ fn update_particles(
     )>,
     time: Res<Time>,
     cam: Query<&CameraMarker>,
+    bullet_time: Res<BulletTime>,
 ) {
     let _cam = cam.single();
     for (id, mut tran, mut body, mut lifespan) in particles.iter_mut() {
-        lifespan.tick(time.delta());
+        lifespan.tick(time.delta().mul_f32(bullet_time.factor()));
         if lifespan.is_dead() {
             commands.entity(id).despawn_recursive();
             continue;
@@ -303,10 +305,13 @@ fn update_spawners(
     time: Res<Time>,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    bullet_time: Res<BulletTime>,
 ) {
     let mut rng = thread_rng();
     for (mut spawner, gtran) in spawners.iter_mut() {
-        spawner.timer.tick(time.delta());
+        spawner
+            .timer
+            .tick(time.delta().mul_f32(bullet_time.factor()));
         if !spawner.timer.finished() {
             continue;
         }

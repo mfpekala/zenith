@@ -6,7 +6,10 @@ use crate::{
         layering::light_layer_u8,
     },
     meta::level_data::{ExportedReplenish, Rehydrate},
-    physics::collider::{ColliderActive, ColliderTriggerStub, ColliderTriggerStubs},
+    physics::{
+        collider::{ColliderActive, ColliderTriggerStub, ColliderTriggerStubs},
+        BulletTime,
+    },
     uid::fresh_uid,
 };
 
@@ -152,9 +155,12 @@ pub(super) fn update_replenishes(
         With<ReplenishMarker>,
     >,
     time: Res<Time>,
+    bullet_time: Res<BulletTime>,
 ) {
     for (eid, mut charge, mut multi, mut active) in replenishes.iter_mut() {
-        charge.timer.tick(time.delta());
+        charge
+            .timer
+            .tick(time.delta().mul_f32(bullet_time.factor()));
         if charge.timer.finished() {
             commands.entity(eid).remove::<ReplenishCharging>();
             let core: &mut AnimationManager = multi.map.get_mut("core").unwrap();

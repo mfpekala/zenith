@@ -226,8 +226,8 @@ pub(super) fn resolve_static_collisions(
     }
 
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
-    let new_vel = pure_parr * (1.0 - stat.friction)
-        - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness * bullet_time.factor();
+    let new_vel =
+        pure_parr * (1.0 - stat.friction) - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness;
     dyno.vel = new_vel;
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();

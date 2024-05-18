@@ -150,11 +150,14 @@ fn replenish_shot(
         With<ReplenishMarker>,
     >,
     mut commands: Commands,
+    bullet_time: Res<BulletTime>,
 ) {
     for (mut ship, mut dyno, mut multi) in ship_q.iter_mut() {
-        if dyno.vel.length() < 1.0 && dyno.statics.len() > 0 {
+        if dyno.vel.length() < 0.0001 * bullet_time.factor() && dyno.statics.len() > 0 {
             ship.can_shoot = true;
-            // ship.last_safe_location = dyno.ipos.truncate();
+        }
+        if dyno.long_statics.iter().any(|(_key, val)| *val >= 3) {
+            ship.can_shoot = true;
         }
         let mut replenish_triggers = vec![];
         for (trigger_id, _) in dyno.triggers.iter() {

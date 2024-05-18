@@ -2,6 +2,7 @@ use crate::{
     drawing::layering::bg_sprite_layer,
     math::Spleen,
     meta::consts::{TuneableConsts, SCREEN_HEIGHT, SCREEN_WIDTH},
+    physics::BulletTime,
 };
 use bevy::prelude::*;
 
@@ -148,6 +149,7 @@ fn move_bg_entities(
     )>,
     tune: Res<TuneableConsts>,
     time: Res<Time>,
+    bullet_time: Res<BulletTime>,
 ) {
     let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
     for (id, mut tran, depth, mut offset, spleen) in objects.iter_mut() {
@@ -199,7 +201,9 @@ fn move_bg_entities(
         }
         // Finally we apply spleen
         if let Some(mut spleen) = spleen {
-            spleen.timer.tick(time.delta());
+            spleen
+                .timer
+                .tick(time.delta().mul_f32(bullet_time.factor()));
             if spleen.timer.finished() {
                 commands.entity(id).remove::<BgOffsetSpleen>();
             }
