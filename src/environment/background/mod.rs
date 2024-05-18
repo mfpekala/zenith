@@ -1,10 +1,21 @@
 use crate::{
-    drawing::layering::bg_sprite_layer,
+    camera::CameraMarker,
+    drawing::layering::{bg_light_layer, bg_sprite_layer},
     math::Spleen,
     meta::consts::{TuneableConsts, SCREEN_HEIGHT, SCREEN_WIDTH},
-    physics::BulletTime,
+    physics::{dyno::IntMoveable, BulletTime},
 };
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
+
+#[derive(Resource, PartialEq, Copy, Clone)]
+pub enum BackgroundType {
+    None,
+    ParallaxStars,
+}
+
+#[derive(Resource)]
+struct LastBackgroundType(BackgroundType);
 
 #[derive(Component, Clone)]
 /// A struct to mark things as being in the background layer for clearing purposes
@@ -24,18 +35,14 @@ pub struct BgDepth {
 }
 impl BgDepth {
     /// Exponential multiplier to be used in calculating depth-to-translation
-    pub fn dmult_translation(&self, tune: &Res<TuneableConsts>) -> f32 {
-        let base = tune
-            .map
-            .get("bg_dmult_translation_base")
-            .unwrap_or(&1.3)
-            .clone();
+    pub fn dmult_translation(&self) -> f32 {
+        let base = 1.4;
         (self.depth as f32) * (base as f32).powi(self.depth as i32)
     }
 
     /// Exponential multiplier to be used in calculating depth-to-scale
-    pub fn dmult_scale(&self, tune: &Res<TuneableConsts>) -> f32 {
-        let base = tune.map.get("bg_dmult_scale_base").unwrap_or(&1.3).clone();
+    pub fn dmult_scale(&self) -> f32 {
+        let base = 0.8;
         (base as f32).powi(self.depth as i32)
     }
 }
@@ -45,21 +52,17 @@ impl BgDepth {
 pub struct BgOffset {
     pub vel: Vec2,
     pub pos: IVec2,
+    pub camera_offset: Option<IVec2>,
     pub placed: Vec2,
     pub rem: Vec2,
     pub base_scale: f32,
     pub tweak_scale: Option<f32>,
 }
 impl BgOffset {
-    pub fn from_frac_pos(
-        tune: &Res<TuneableConsts>,
-        bg_depth: &BgDepth,
-        frac_pos: Vec2,
-        scale: f32,
-    ) -> Self {
+    pub fn from_frac_pos(bg_depth: &BgDepth, frac_pos: Vec2, scale: f32) -> Self {
         let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
         let ref_screen_size =
-            og_screen_size * bg_depth.dmult_translation(tune) * bg_depth.wrap.unwrap_or(1.0);
+            og_screen_size * bg_depth.dmult_translation() * bg_depth.wrap.unwrap_or(1.0);
         let fpos = ref_screen_size * frac_pos;
         let adjusted_pos = IVec2 {
             x: fpos.x as i32,
@@ -89,52 +92,19 @@ pub struct PlacedBgBundle {
 }
 impl PlacedBgBundle {
     /// Creates a bg bundle at the given fraction of the screen (should be between 0.5 and -0.5)
-    pub fn basic_stationary(
-        tune: &Res<TuneableConsts>,
-        depth: u8,
-        frac_pos: Vec2,
-        scale: f32,
-    ) -> Self {
+    pub fn basic_stationary(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
         let depth = BgDepth {
             depth,
             shrink: Some(true),
             snap_to_pixel: Some(true),
-            wrap: Some(1.5),
+            wrap: Some(3.0),
         };
-        let offset = BgOffset::from_frac_pos(tune, &depth, frac_pos, scale);
+        let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale);
         Self {
             _marker: BgMarker,
             depth,
             offset,
         }
-    }
-}
-
-fn _test_new_bg_system_startup(mut commands: Commands) {
-    let max_d: u8 = 24;
-    for depth in 0..24 {
-        let bg_depth = BgDepth {
-            depth,
-            wrap: Some(1.2),
-            snap_to_pixel: Some(true),
-            shrink: Some(true),
-            ..default()
-        };
-        let frac = (depth as f32) / (max_d as f32);
-        commands.spawn((
-            BgOffset {
-                vel: Vec2::new(40.0, 0.0),
-                pos: IVec2::new(0, (-80 + (160 as f32 * frac) as i32) * 10),
-                base_scale: 80.0,
-                ..default()
-            },
-            bg_depth,
-            SpriteBundle {
-                transform: Transform { ..default() },
-                ..default()
-            },
-            bg_sprite_layer(),
-        ));
     }
 }
 
@@ -147,10 +117,14 @@ fn move_bg_entities(
         &mut BgOffset,
         Option<&mut BgOffsetSpleen>,
     )>,
-    tune: Res<TuneableConsts>,
     time: Res<Time>,
     bullet_time: Res<BulletTime>,
+    camera: Query<&IntMoveable, With<CameraMarker>>,
 ) {
+    let Ok(camera) = camera.get_single() else {
+        error!("Weird stuff in move bg entities with camera");
+        return;
+    };
     let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
     for (id, mut tran, depth, mut offset, spleen) in objects.iter_mut() {
         // We move the objects in much the same way that we move dynos
@@ -170,7 +144,7 @@ fn move_bg_entities(
             offset.rem.y = would_move.y;
         }
         // Then place them on screen accounting for their "depth"
-        let dmult_translation = depth.dmult_translation(&tune);
+        let dmult_translation = depth.dmult_translation();
         let ref_screen_size = og_screen_size * dmult_translation;
         // Wrap if needed
         if let Some(wrap) = depth.wrap {
@@ -183,8 +157,24 @@ fn move_bg_entities(
                 offset.pos.y = (-ref_screen_size.y * wrap + rem) as i32;
             }
         }
+        let placing_pos = if let Some(cam_offset) = offset.camera_offset {
+            let mut total = cam_offset - camera.pos.truncate();
+            if let Some(wrap) = depth.wrap {
+                if total.as_vec2().x.abs() > ref_screen_size.x * wrap * 0.5 {
+                    let rem = (total.x as f32).rem_euclid(ref_screen_size.x);
+                    total.x = (-ref_screen_size.x * wrap + rem) as i32;
+                }
+                if total.as_vec2().y.abs() > ref_screen_size.y * wrap * 0.5 {
+                    let rem = (total.y as f32).rem_euclid(ref_screen_size.y);
+                    total.y = (-ref_screen_size.y * wrap + rem) as i32;
+                }
+            }
+            total
+        } else {
+            offset.pos
+        };
         // The relative position on the screen. If on the screen, x and y will be in (-0.5, 0.5)
-        let ref_frac = offset.pos.as_vec2() / ref_screen_size;
+        let ref_frac = placing_pos.as_vec2() / ref_screen_size;
         // Then we scale it up to find an actual position which it should live
         let mut pos = ref_frac * og_screen_size;
         if depth.snap_to_pixel.unwrap_or(false) {
@@ -194,7 +184,7 @@ fn move_bg_entities(
         let z = -(depth.depth as f32);
         tran.translation = pos.extend(z);
         if depth.shrink.unwrap_or(false) {
-            let factor = depth.dmult_scale(&tune);
+            let factor = depth.dmult_scale();
             tran.scale =
                 (Vec2::ONE * factor * offset.base_scale * offset.tweak_scale.unwrap_or(1.0))
                     .extend(z);
@@ -213,17 +203,79 @@ fn move_bg_entities(
     }
 }
 
-pub fn clear_background_entities(commands: &mut Commands, bgs: &Query<Entity, With<BgMarker>>) {
-    for id in bgs.iter() {
-        commands.entity(id).despawn_recursive();
+#[derive(Component)]
+pub struct BackgroundRoot;
+
+fn setup_background(mut commands: Commands) {
+    commands.spawn((
+        Name::new("BackgroundRoot"),
+        BackgroundRoot,
+        SpatialBundle::default(),
+    ));
+}
+
+fn update_background(
+    mut last_bg_type: ResMut<LastBackgroundType>,
+    bg_type: Res<BackgroundType>,
+    mut commands: Commands,
+    bg_root: Query<Entity, With<BackgroundRoot>>,
+    asset_server: Res<AssetServer>,
+) {
+    let Ok(root_eid) = bg_root.get_single() else {
+        error!("Weird stuff happening in updatebackground");
+        return;
+    };
+    if last_bg_type.0 == *bg_type {
+        return;
     }
+    last_bg_type.0 = *bg_type;
+    commands.entity(root_eid).despawn_descendants();
+    commands
+        .entity(root_eid)
+        .with_children(|parent| match *bg_type {
+            BackgroundType::None => (),
+            BackgroundType::ParallaxStars => {
+                let num_stars = 300;
+                let depth_min = 5;
+                let depth_max = 14;
+                let scale_min = 1.0;
+                let scale_max = 5.0;
+                let mut rng = thread_rng();
+                for _ in 0..num_stars {
+                    let depth: u8 = rng.gen_range(depth_min..depth_max) as u8;
+                    let frac_pos = Vec2 {
+                        x: -0.5 + rng.gen::<f32>(),
+                        y: -0.5 + rng.gen::<f32>(),
+                    };
+                    let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
+                    let mut placement = PlacedBgBundle::basic_stationary(depth, frac_pos, scale);
+                    placement.offset.camera_offset = Some(placement.offset.pos);
+                    placement.offset.pos = IVec2::ZERO;
+                    let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
+                    let sprite = SpriteBundle {
+                        texture: asset_server.load("sprites/stars/7a.png"),
+                        sprite: Sprite { color, ..default() },
+                        ..default()
+                    };
+                    let sprite_l = SpriteBundle {
+                        texture: asset_server.load("sprites/stars/7aL.png"),
+                        ..default()
+                    };
+                    parent.spawn((placement.clone(), sprite, bg_sprite_layer()));
+                    parent.spawn((placement, sprite_l, bg_light_layer()));
+                }
+            }
+        });
 }
 
 pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_systems(Startup, test_new_bg_system_startup);
+        app.insert_resource(BackgroundType::None);
+        app.insert_resource(LastBackgroundType(BackgroundType::None));
+        app.add_systems(Startup, setup_background);
         app.add_systems(FixedUpdate, move_bg_entities);
+        app.add_systems(Update, update_background);
     }
 }

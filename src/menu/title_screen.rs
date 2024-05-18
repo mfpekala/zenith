@@ -35,51 +35,51 @@ struct TitleBgStarBundle {
 fn setup_title_screen(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    tune: Res<TuneableConsts>,
+    // tune: Res<TuneableConsts>,
 ) {
     MenuAssetComponent::spawn(
         &asset_server,
         &mut commands,
         TITLE_SCREEN_RON_PATH.to_string(),
     );
-    let num_stars = tune.get_or("title_screen_num_stars", 0.0) as i32;
-    let depth_min = tune.get_or("title_screen_depth_min", 0.0) as i32;
-    let depth_max = (tune.get_or("title_screen_depth_max", 1.0) as i32).max(depth_min + 1);
-    let scale_min = tune.get_or("title_screen_scale_min", 0.0);
-    let scale_max = tune.get_or("title_screen_scale_max", 1.0);
-    let mut rng = thread_rng();
-    for _ in 0..num_stars {
-        let depth: u8 = rng.gen_range(depth_min..depth_max) as u8;
-        let frac_pos = Vec2 {
-            x: -0.5 + rng.gen::<f32>(),
-            y: -0.5 + rng.gen::<f32>(),
-        };
-        let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
-        let mut placement = PlacedBgBundle::basic_stationary(&tune, depth, frac_pos, scale);
-        placement.offset.vel = Vec2::new(2.0, 0.2);
-        let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
-        let sprite = SpriteBundle {
-            texture: asset_server.load("sprites/stars/7a.png"),
-            sprite: Sprite { color, ..default() },
-            ..default()
-        };
-        let sprite_l = SpriteBundle {
-            texture: asset_server.load("sprites/stars/7aL.png"),
-            ..default()
-        };
-        commands.spawn(TitleBgStarBundle {
-            placement: placement.clone(),
-            sprite,
-            layers: bg_sprite_layer(),
-            color: ColorMarker(color),
-        });
-        commands.spawn(TitleBgStarBundle {
-            placement,
-            sprite: sprite_l,
-            layers: bg_light_layer(),
-            color: ColorMarker(color),
-        });
-    }
+    // let num_stars = tune.get_or("title_screen_num_stars", 0.0) as i32;
+    // let depth_min = tune.get_or("title_screen_depth_min", 0.0) as i32;
+    // let depth_max = (tune.get_or("title_screen_depth_max", 1.0) as i32).max(depth_min + 1);
+    // let scale_min = tune.get_or("title_screen_scale_min", 0.0);
+    // let scale_max = tune.get_or("title_screen_scale_max", 1.0);
+    // let mut rng = thread_rng();
+    // for _ in 0..num_stars {
+    //     let depth: u8 = rng.gen_range(depth_min..depth_max) as u8;
+    //     let frac_pos = Vec2 {
+    //         x: -0.5 + rng.gen::<f32>(),
+    //         y: -0.5 + rng.gen::<f32>(),
+    //     };
+    //     let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
+    //     let mut placement = PlacedBgBundle::basic_stationary(depth, frac_pos, scale);
+    //     placement.offset.vel = Vec2::new(2.0, 0.2);
+    //     let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
+    //     let sprite = SpriteBundle {
+    //         texture: asset_server.load("sprites/stars/7a.png"),
+    //         sprite: Sprite { color, ..default() },
+    //         ..default()
+    //     };
+    //     let sprite_l = SpriteBundle {
+    //         texture: asset_server.load("sprites/stars/7aL.png"),
+    //         ..default()
+    //     };
+    //     commands.spawn(TitleBgStarBundle {
+    //         placement: placement.clone(),
+    //         sprite,
+    //         layers: bg_sprite_layer(),
+    //         color: ColorMarker(color),
+    //     });
+    //     commands.spawn(TitleBgStarBundle {
+    //         placement,
+    //         sprite: sprite_l,
+    //         layers: bg_light_layer(),
+    //         color: ColorMarker(color),
+    //     });
+    // }
 }
 
 fn update_title_screen(
