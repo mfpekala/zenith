@@ -10,7 +10,7 @@ use crate::{
     },
     editor::is_testing,
     meta::{
-        consts::{SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH},
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
     physics::dyno::IntMoveable,
@@ -61,12 +61,19 @@ pub fn watch_mouse(
         // Mouse is not in the window, don't do anything
         return;
     };
+    let window = q_windows.single();
+    let (w, h) = (window.width(), window.height());
+    let (pw, ph) = (window.physical_width(), window.physical_height());
+    // println!("w, h: {w}, {h}");
+    // println!("pw, ph: {pw}, {ph}");
+    // println!("mouse: {}, {}", mouse_pos.x, mouse_pos.y);
+
     let Some((camera_tran, camera_marker)) = camera_n_tran.iter().next() else {
         // Camera not found, don't do anything
         return;
     };
     let can_shoot = ships.iter().all(|ship| ship.can_shoot);
-    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (WINDOW_WIDTH as f32);
+    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (SCREEN_WIDTH as f32);
     mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
     mouse_pos *= scale_down_to_screen;
     let fworld_pos = camera_tran.translation.truncate()
@@ -326,14 +333,14 @@ fn update_shot_arrow(
             // let test = cam_im.pos
             tran.translation.x = cam_im.pos.x as f32
                 + cam_marker.scale.to_f32()
-                    * (start.x - WINDOW_WIDTH as f32 / 2.0)
+                    * (start.x - SCREEN_WIDTH as f32 / 2.0)
                     * SCREEN_WIDTH as f32
-                    / WINDOW_WIDTH as f32;
+                    / SCREEN_WIDTH as f32;
             tran.translation.y = cam_im.pos.y as f32
                 - cam_marker.scale.to_f32()
-                    * (start.y - WINDOW_HEIGHT as f32 / 2.0)
+                    * (start.y - SCREEN_HEIGHT as f32 / 2.0)
                     * SCREEN_HEIGHT as f32
-                    / WINDOW_HEIGHT as f32;
+                    / SCREEN_HEIGHT as f32;
             let end = start + pending_launch.launch_vel;
             let angle = Vec2::Y.angle_between(end - start);
             let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;

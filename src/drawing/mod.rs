@@ -4,6 +4,7 @@ use self::{
     animation::GoatedAnimationPlugin,
     effects::EffectsPlugin,
     layering::{bg_light_layer, bg_sprite_layer, light_layer, sprite_layer},
+    resize::resize_canvases,
     text::ZenithTextPlugin,
 };
 use bevy::prelude::*;
@@ -16,6 +17,7 @@ pub mod layering;
 pub mod light;
 pub mod mesh;
 pub mod post_pixel;
+pub mod resize;
 pub mod sunrise_mat;
 pub mod text;
 
@@ -53,6 +55,7 @@ pub fn register_drawing(app: &mut App) {
     app.add_plugins(ZenithTextPlugin);
 
     app.add_systems(Startup, setup_gizmos);
+    app.add_systems(Update, resize_canvases);
 
     app.init_gizmo_group::<LightGizmoGroup>();
     app.init_gizmo_group::<BgSpriteGizmoGroup>();

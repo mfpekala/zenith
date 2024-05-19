@@ -1,8 +1,8 @@
 use crate::{
-    camera::CameraMarker,
+    camera::{camera_movement, CameraMarker},
     drawing::layering::{bg_light_layer, bg_sprite_layer},
     math::Spleen,
-    meta::consts::{TuneableConsts, SCREEN_HEIGHT, SCREEN_WIDTH},
+    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
     physics::{dyno::IntMoveable, BulletTime},
 };
 use bevy::prelude::*;
@@ -47,19 +47,54 @@ impl BgDepth {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum BgPosKind {
+    Free(IVec2),
+    Parallax(IVec2),
+}
+impl Default for BgPosKind {
+    fn default() -> Self {
+        Self::Free(IVec2::ZERO)
+    }
+}
+impl BgPosKind {
+    fn pos(&self) -> IVec2 {
+        match self {
+            &Self::Free(pos) => pos,
+            &Self::Parallax(pos) => pos,
+        }
+    }
+
+    fn set_pos(&mut self, new_pos: IVec2) {
+        *self = match self {
+            Self::Free(_) => Self::Free(new_pos),
+            Self::Parallax(_) => Self::Parallax(new_pos),
+        };
+    }
+
+    fn add_ivec(&mut self, ivec: IVec2) {
+        let new_pos = self.pos() + ivec;
+        self.set_pos(new_pos);
+    }
+}
+
 #[derive(Component, Clone, Debug, Default)]
 /// Component driving the positioning of background elements, along with BgDepth
 pub struct BgOffset {
     pub vel: Vec2,
-    pub pos: IVec2,
-    pub camera_offset: Option<IVec2>,
+    pub pos: BgPosKind,
     pub placed: Vec2,
     pub rem: Vec2,
     pub base_scale: f32,
     pub tweak_scale: Option<f32>,
 }
 impl BgOffset {
-    pub fn from_frac_pos(bg_depth: &BgDepth, frac_pos: Vec2, scale: f32) -> Self {
+    pub fn from_frac_pos(
+        bg_depth: &BgDepth,
+        frac_pos: Vec2,
+        scale: f32,
+        is_parallax: bool,
+    ) -> Self {
         let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
         let ref_screen_size =
             og_screen_size * bg_depth.dmult_translation() * bg_depth.wrap.unwrap_or(1.0);
@@ -68,8 +103,13 @@ impl BgOffset {
             x: fpos.x as i32,
             y: fpos.y as i32,
         };
+        let pos = if is_parallax {
+            BgPosKind::Parallax(adjusted_pos)
+        } else {
+            BgPosKind::Free(adjusted_pos)
+        };
         BgOffset {
-            pos: adjusted_pos,
+            pos,
             base_scale: scale,
             ..default()
         }
@@ -92,6 +132,7 @@ pub struct PlacedBgBundle {
 }
 impl PlacedBgBundle {
     /// Creates a bg bundle at the given fraction of the screen (should be between 0.5 and -0.5)
+    /// This bundle will have pos-type Free and will NOT have a parallax effect
     pub fn basic_stationary(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
         let depth = BgDepth {
             depth,
@@ -99,7 +140,24 @@ impl PlacedBgBundle {
             snap_to_pixel: Some(true),
             wrap: Some(3.0),
         };
-        let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale);
+        let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale, false);
+        Self {
+            _marker: BgMarker,
+            depth,
+            offset,
+        }
+    }
+
+    /// Creates a bg bundle at the given fraction of the screen (should be between 0.5 and -0.5)
+    /// This bundle will have pos-type Parallax and will NOT have a parallax effect
+    pub fn basic_parallax(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
+        let depth = BgDepth {
+            depth,
+            shrink: Some(true),
+            snap_to_pixel: Some(true),
+            wrap: Some(3.0),
+        };
+        let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale, true);
         Self {
             _marker: BgMarker,
             depth,
@@ -126,19 +184,30 @@ fn move_bg_entities(
         return;
     };
     let og_screen_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
+    let wrap_pos = |mut pos: IVec2, ref_screen_size: Vec2, wrap_num: f32| -> IVec2 {
+        if pos.as_vec2().x.abs() > ref_screen_size.x * wrap_num * 0.5 {
+            let rem = (pos.x as f32).rem_euclid(ref_screen_size.x);
+            pos.x = (-ref_screen_size.x * wrap_num * 0.5 + rem) as i32;
+        }
+        if pos.as_vec2().y.abs() > ref_screen_size.y * wrap_num * 0.5 {
+            let rem = (pos.y as f32).rem_euclid(ref_screen_size.y);
+            pos.y = (-ref_screen_size.y * wrap_num * 0.5 + rem) as i32;
+        }
+        pos
+    };
+    let wrapped_camera = wrap_pos(camera.pos.truncate(), og_screen_size * 100.0, 3.0);
     for (id, mut tran, depth, mut offset, spleen) in objects.iter_mut() {
         // We move the objects in much the same way that we move dynos
         let would_move = offset.vel + offset.rem;
         let move_x = would_move.x.round() as i32;
         let move_y = would_move.y.round() as i32;
+        offset.pos.add_ivec(IVec2::new(move_x, move_y));
         if move_x != 0 {
-            offset.pos.x += move_x;
             offset.rem.x = would_move.x - move_x as f32;
         } else {
             offset.rem.x = would_move.x;
         }
         if move_y != 0 {
-            offset.pos.y += move_y;
             offset.rem.y = would_move.y - move_y as f32;
         } else {
             offset.rem.y = would_move.y;
@@ -146,32 +215,13 @@ fn move_bg_entities(
         // Then place them on screen accounting for their "depth"
         let dmult_translation = depth.dmult_translation();
         let ref_screen_size = og_screen_size * dmult_translation;
-        // Wrap if needed
         if let Some(wrap) = depth.wrap {
-            if offset.pos.as_vec2().x.abs() > ref_screen_size.x * wrap * 0.5 {
-                let rem = (offset.pos.x as f32).rem_euclid(ref_screen_size.x);
-                offset.pos.x = (-ref_screen_size.x * wrap + rem) as i32;
-            }
-            if offset.pos.as_vec2().y.abs() > ref_screen_size.y * wrap * 0.5 {
-                let rem = (offset.pos.y as f32).rem_euclid(ref_screen_size.y);
-                offset.pos.y = (-ref_screen_size.y * wrap + rem) as i32;
-            }
+            let new_pos = wrap_pos(offset.pos.pos(), ref_screen_size, wrap);
+            offset.pos.set_pos(new_pos);
         }
-        let placing_pos = if let Some(cam_offset) = offset.camera_offset {
-            let mut total = cam_offset - camera.pos.truncate();
-            if let Some(wrap) = depth.wrap {
-                if total.as_vec2().x.abs() > ref_screen_size.x * wrap * 0.5 {
-                    let rem = (total.x as f32).rem_euclid(ref_screen_size.x);
-                    total.x = (-ref_screen_size.x * wrap + rem) as i32;
-                }
-                if total.as_vec2().y.abs() > ref_screen_size.y * wrap * 0.5 {
-                    let rem = (total.y as f32).rem_euclid(ref_screen_size.y);
-                    total.y = (-ref_screen_size.y * wrap + rem) as i32;
-                }
-            }
-            total
-        } else {
-            offset.pos
+        let placing_pos = match offset.pos {
+            BgPosKind::Free(pos) => pos,
+            BgPosKind::Parallax(pos) => pos - wrapped_camera,
         };
         // The relative position on the screen. If on the screen, x and y will be in (-0.5, 0.5)
         let ref_frac = placing_pos.as_vec2() / ref_screen_size;
@@ -248,9 +298,7 @@ fn update_background(
                         y: -0.5 + rng.gen::<f32>(),
                     };
                     let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
-                    let mut placement = PlacedBgBundle::basic_stationary(depth, frac_pos, scale);
-                    placement.offset.camera_offset = Some(placement.offset.pos);
-                    placement.offset.pos = IVec2::ZERO;
+                    let placement = PlacedBgBundle::basic_parallax(depth, frac_pos, scale);
                     let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
                     let sprite = SpriteBundle {
                         texture: asset_server.load("sprites/stars/7a.png"),
@@ -275,7 +323,7 @@ impl Plugin for BackgroundPlugin {
         app.insert_resource(BackgroundType::None);
         app.insert_resource(LastBackgroundType(BackgroundType::None));
         app.add_systems(Startup, setup_background);
-        app.add_systems(FixedUpdate, move_bg_entities);
+        app.add_systems(FixedUpdate, move_bg_entities.after(camera_movement));
         app.add_systems(Update, update_background);
     }
 }

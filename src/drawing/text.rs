@@ -1,5 +1,3 @@
-use crate::meta::consts::{window_to_screen_ratio, SCREEN_HEIGHT, SCREEN_WIDTH};
-
 use super::{effects::Sizeable, layering::menu_layer};
 use bevy::{prelude::*, sprite::Anchor};
 use std::time::Duration;
@@ -67,7 +65,7 @@ impl TextBox {
         &self,
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
-        z: f32,
+        _z: f32,
     ) -> Entity {
         let bund = Text2dBundle {
             text: Text::from_section(
@@ -80,11 +78,11 @@ impl TextBox {
                 },
             ),
             text_anchor: self.align.to_anchor(),
-            transform: Transform::from_translation(Vec3 {
-                x: (-(SCREEN_WIDTH as f32) / 2.0 + self.left as f32) * window_to_screen_ratio(),
-                y: ((SCREEN_HEIGHT as f32) / 2.0 - self.top as f32) * window_to_screen_ratio(),
-                z,
-            }),
+            // transform: Transform::from_translation(Vec3 {
+            //     x: (-(SCREEN_WIDTH as f32) / 2.0 + self.left as f32) * window_to_screen_ratio(),
+            //     y: ((SCREEN_HEIGHT as f32) / 2.0 - self.top as f32) * window_to_screen_ratio(),
+            //     z,
+            // }),
             ..default()
         };
         let mut ent = commands.spawn((bund, menu_layer()));

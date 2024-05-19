@@ -1,7 +1,6 @@
 use crate::{
     camera::CameraMarker,
     math::{lerp, Spleen},
-    meta::consts::WINDOW_WIDTH,
 };
 use bevy::prelude::*;
 
@@ -144,7 +143,7 @@ fn setup_zoom_to_black(mut commands: Commands) {
             effect_val: EffectVal::blank(0.0),
             sprite: SpriteBundle {
                 transform: Transform {
-                    scale: Vec3::ONE * WINDOW_WIDTH as f32,
+                    scale: Vec3::ONE,
                     translation: Vec2::ZERO.extend(50.0),
                     ..default()
                 },
@@ -235,7 +234,7 @@ fn setup_fade_to_black(mut commands: Commands) {
             effect_val: EffectVal::blank(0.0),
             sprite: SpriteBundle {
                 transform: Transform {
-                    scale: Vec3::ONE * WINDOW_WIDTH as f32,
+                    scale: Vec3::ONE,
                     translation: Vec2::ZERO.extend(50.0),
                     ..default()
                 },

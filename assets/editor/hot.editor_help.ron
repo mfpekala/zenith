@@ -1,21 +1,21 @@
 EditorHelpConfig(
     box_top_left: IVec2(
-        -400,
-        -350,
+        -480,
+        -220,
     ),
     box_bottom_right: IVec2(
-        -200,
-        -400,
+        -280,
+        -270,
     ),
     box_font_size: 18.0,
 
     bar_top_left: IVec2(
-        -150,
-        -325,
+        100,
+        -220,
     ),
     bar_bottom_right: IVec2(
-        400,
-        -400,
+        480,
+        -270,
     ),
     bar_font_size: 18.0,
 )

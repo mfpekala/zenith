@@ -12,7 +12,7 @@ pub mod ship;
 pub mod sound;
 pub mod uid;
 
-use bevy::{prelude::*, window::WindowResolution};
+use bevy::{ecs::system::SystemState, prelude::*, window::PrimaryWindow, winit::WinitWindows};
 use bevy_common_assets::ron::RonAssetPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::register_camera;
@@ -23,7 +23,7 @@ use environment::EnvironmentPlugin;
 use input::register_input;
 use menu::{menu_asset::MenuAsset, register_menus};
 use meta::{
-    consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE, WINDOW_HEIGHT, WINDOW_WIDTH},
+    consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE},
     game_state::register_game_state,
     MetaPlugin,
 };
@@ -34,6 +34,8 @@ use uid::UIdPlugin;
 
 pub fn main_setup() {}
 
+fn get_size(q_windows: Query<&Window, With<PrimaryWindow>>) {}
+
 fn main() {
     env_logger::init();
     let mut app = App::new();
@@ -41,9 +43,9 @@ fn main() {
         DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window {
-                    resolution: WindowResolution::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
-                    resizable: false,
+                    resizable: true,
                     title: "Zenith".to_string(),
+                    // mode: bevy::window::WindowMode::BorderlessFullscreen,
                     ..default()
                 }),
                 ..default()

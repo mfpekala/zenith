@@ -5,8 +5,6 @@ use crate::camera::CameraMarker;
 use crate::camera::DynamicCameraBundle;
 use crate::meta::consts::SCREEN_HEIGHT;
 use crate::meta::consts::SCREEN_WIDTH;
-use crate::meta::consts::WINDOW_HEIGHT;
-use crate::meta::consts::WINDOW_WIDTH;
 use crate::physics::dyno::IntMoveable;
 use bevy::core_pipeline::bloom::BloomCompositeMode;
 use bevy::core_pipeline::bloom::BloomPrefilterSettings;
@@ -138,7 +136,7 @@ const BLEND_ADD: BlendState = BlendState {
 };
 
 #[derive(AsBindGroup, TypePath, Asset, Debug, Clone)]
-struct BlendTexturesMaterial {
+pub(super) struct BlendTexturesMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub texture1: Handle<Image>,
@@ -168,7 +166,7 @@ impl Material2d for BlendTexturesMaterial {
 }
 
 #[derive(AsBindGroup, TypePath, Asset, Debug, Clone)]
-struct ReducedMaterial {
+pub(super) struct ReducedMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub texture: Handle<Image>,
@@ -199,7 +197,7 @@ impl Material2d for ReducedMaterial {
 }
 
 #[derive(Resource, Default)]
-struct CameraTargets {
+pub(super) struct CameraTargets {
     pub bg_sprite_target: Handle<Image>,
     pub bg_light_target: Handle<Image>,
     pub sprite_target: Handle<Image>,
@@ -216,8 +214,8 @@ impl CameraTargets {
             ..default()
         };
         let menu_size = Extent3d {
-            width: WINDOW_WIDTH as u32,
-            height: WINDOW_HEIGHT as u32,
+            width: SCREEN_WIDTH as u32,
+            height: SCREEN_HEIGHT as u32,
             ..default()
         };
 
@@ -486,6 +484,36 @@ const REDUCED_MATERIAL: Handle<ReducedMaterial> = Handle::weak_from_u128(5237414
 const MENU_QUAD: Handle<Mesh> = Handle::weak_from_u128(36467206864860383170);
 const MENU_MATERIAL: Handle<AnimationMaterial> = Handle::weak_from_u128(29374148673136432070);
 
+#[derive(Component)]
+pub(super) struct ScaledOutputQuad;
+
+pub(super) fn remake_layering_materials(
+    camera_targets: &CameraTargets,
+    materials: &mut ResMut<Assets<BlendTexturesMaterial>>,
+    dum_materials: &mut ResMut<Assets<ReducedMaterial>>,
+    anim_materials: &mut ResMut<Assets<AnimationMaterial>>,
+) {
+    let bg_material = BlendTexturesMaterial {
+        texture1: camera_targets.bg_sprite_target.clone(),
+        texture2: camera_targets.bg_light_target.clone(),
+    };
+    let material = BlendTexturesMaterial {
+        texture1: camera_targets.sprite_target.clone(),
+        texture2: camera_targets.light_target.clone(),
+    };
+    let reduced_material = ReducedMaterial {
+        texture: camera_targets.reduced_target.clone(),
+        num_pixels_w: SCREEN_WIDTH as f32,
+        num_pixels_h: SCREEN_HEIGHT as f32,
+    };
+    let menu_material =
+        AnimationMaterial::from_handle(camera_targets.menu_target.clone(), 1, Vec2::ONE);
+    materials.insert(BG_PP_MATERIAL.clone(), bg_material);
+    materials.insert(PP_MATERIAL.clone(), material);
+    dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);
+    anim_materials.insert(MENU_MATERIAL.clone(), menu_material);
+}
+
 fn setup_post_processing_camera(
     mut commands: Commands,
     mut camera_targets: ResMut<CameraTargets>,
@@ -501,34 +529,17 @@ fn setup_post_processing_camera(
     meshes.insert(BG_PP_QUAD.clone(), quad.clone());
     meshes.insert(PP_QUAD.clone(), quad.clone());
     meshes.insert(REDUCED_QUAD.clone(), quad.clone());
-    let menu_quad = Mesh::from(Rectangle::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32));
+    let menu_quad = Mesh::from(Rectangle::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32));
     meshes.insert(MENU_QUAD.clone(), menu_quad.clone());
 
     *camera_targets = CameraTargets::create(&mut images, &primary_size);
 
-    let bg_material = BlendTexturesMaterial {
-        texture1: camera_targets.bg_sprite_target.clone(),
-        texture2: camera_targets.bg_light_target.clone(),
-    };
-
-    let material = BlendTexturesMaterial {
-        texture1: camera_targets.sprite_target.clone(),
-        texture2: camera_targets.light_target.clone(),
-    };
-
-    let reduced_material = ReducedMaterial {
-        texture: camera_targets.reduced_target.clone(),
-        num_pixels_w: SCREEN_WIDTH as f32,
-        num_pixels_h: SCREEN_HEIGHT as f32,
-    };
-
-    let menu_material =
-        AnimationMaterial::from_handle(camera_targets.menu_target.clone(), 1, Vec2::ONE);
-
-    materials.insert(BG_PP_MATERIAL.clone(), bg_material);
-    materials.insert(PP_MATERIAL.clone(), material);
-    dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);
-    anim_materials.insert(MENU_MATERIAL.clone(), menu_material);
+    remake_layering_materials(
+        &camera_targets,
+        &mut materials,
+        &mut dum_materials,
+        &mut anim_materials,
+    );
 
     let reduced_layer = RenderLayers::from_layers(CAMERA_LAYER_REDUCED);
     let output_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
@@ -562,13 +573,14 @@ fn setup_post_processing_camera(
     ));
 
     commands.spawn((
+        ScaledOutputQuad,
         PostProcessingQuad,
         MaterialMesh2dBundle {
             mesh: REDUCED_QUAD.clone().into(),
             material: REDUCED_MATERIAL.clone(),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 0.0),
-                scale: Vec3::ONE * (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32),
+                scale: Vec3::ONE,
                 ..default()
             },
             ..default()

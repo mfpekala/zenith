@@ -12,6 +12,9 @@ use crate::{
 };
 use bevy::prelude::*;
 
+#[derive(Resource)]
+pub struct ScreenMults(pub u32);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraScale {
     Quarter,
@@ -193,6 +196,7 @@ pub fn camera_movement(
 pub fn register_camera(app: &mut App) {
     app.add_plugins(LayeringPlugin);
     app.add_plugins(PostPixelPlugin);
+    app.insert_resource(ScreenMults(1));
     app.add_systems(Update, camera_input.run_if(in_editor.or_else(in_level)));
     app.add_systems(
         FixedUpdate,

@@ -227,7 +227,11 @@ pub fn apply_fields(
                 if active.is_some() && !active.unwrap().0 {
                     continue;
                 }
-                diff += field.dir * field.strength.to_f32() * *mult * bullet_time.factor();
+                diff += field.dir
+                    * field.strength.to_f32()
+                    * *mult
+                    * bullet_time.factor()
+                    * bullet_time.factor();
                 // slowdown *= (1.0 - field.drag.to_f32()).powf(*mult);
             }
         }

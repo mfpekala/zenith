@@ -4,19 +4,10 @@ use std::collections::HashMap;
 /// Framerate
 pub const FRAMERATE: f64 = 24.0;
 
-/// Size of the window's width
-pub const WINDOW_WIDTH: usize = 800;
-/// Size of the window's height
-pub const WINDOW_HEIGHT: usize = 800;
-
 /// Number of pixels to show in screen width (should divide WINDOW_WIDTH)
-pub const SCREEN_WIDTH: usize = 160;
+pub const SCREEN_WIDTH: usize = 320;
 /// Number of pixels to show in screen height (should divide WINDOW_HEIGHT)
-pub const SCREEN_HEIGHT: usize = 160;
-
-pub fn window_to_screen_ratio() -> f32 {
-    (WINDOW_WIDTH as f32) / (SCREEN_WIDTH as f32)
-}
+pub const SCREEN_HEIGHT: usize = 180;
 
 pub fn fscreen_size() -> Vec2 {
     Vec2 {
