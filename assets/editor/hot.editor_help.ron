@@ -1,13 +1,13 @@
 EditorHelpConfig(
     box_size: IVec2(
+        480,
         160,
-        80,
     ),
-    box_font_size: 18.0,
+    box_font_size: 48.0,
 
     bar_size: IVec2(
-        320,
-        80,
+        720,
+        160,
     ),
-    bar_font_size: 18.0,
+    bar_font_size: 48.0,
 )

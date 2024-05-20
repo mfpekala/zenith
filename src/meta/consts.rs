@@ -9,6 +9,14 @@ pub const SCREEN_WIDTH: usize = 320;
 /// Number of pixels to show in screen height (should divide WINDOW_HEIGHT)
 pub const SCREEN_HEIGHT: usize = 180;
 
+/// How much bigger the menu canvas is than the regular canvas
+pub const MENU_GROWTH: usize = 8;
+
+/// Number of pixels to show in menu width
+pub const MENU_WIDTH: usize = SCREEN_WIDTH * MENU_GROWTH;
+/// Number of pixels to show in menu height
+pub const MENU_HEIGHT: usize = SCREEN_HEIGHT * MENU_GROWTH;
+
 pub fn fscreen_size() -> Vec2 {
     Vec2 {
         x: SCREEN_WIDTH as f32,

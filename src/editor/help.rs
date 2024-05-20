@@ -3,7 +3,7 @@ use crate::{
     camera::ScreenMults,
     drawing::layering::menu_layer,
     meta::{
-        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+        consts::{MENU_HEIGHT, MENU_WIDTH},
         game_state::{EditingMode, EditorState, GameState, SetGameState},
     },
 };
@@ -81,16 +81,14 @@ add_hot_resource!(
     update_editor_help_config
 );
 
-fn get_box_center(help_config: &Res<EditorHelpConfig>, screen_mults: &Res<ScreenMults>) -> IVec2 {
-    let bottom_left = IVec2::new(-(SCREEN_WIDTH as i32 / 2), -(SCREEN_HEIGHT as i32 / 2))
-        * (screen_mults.0 as i32);
+fn get_box_center(help_config: &Res<EditorHelpConfig>) -> IVec2 {
+    let bottom_left = IVec2::new(-(MENU_WIDTH as i32 / 2), -(MENU_HEIGHT as i32 / 2));
     let box_center = bottom_left + help_config.box_size / 2;
     box_center
 }
 
-fn get_bar_center(help_config: &Res<EditorHelpConfig>, screen_mults: &Res<ScreenMults>) -> IVec2 {
-    let bottom_right =
-        IVec2::new(SCREEN_WIDTH as i32 / 2, -(SCREEN_HEIGHT as i32) / 2) * (screen_mults.0 as i32);
+fn get_bar_center(help_config: &Res<EditorHelpConfig>) -> IVec2 {
+    let bottom_right = IVec2::new(MENU_WIDTH as i32 / 2, -(MENU_HEIGHT as i32) / 2);
     let box_center = bottom_right + IVec2::new(-help_config.bar_size.x, help_config.bar_size.y) / 2;
     box_center
 }
@@ -100,7 +98,7 @@ pub(super) fn setup_editor_help(
     help_config: Res<EditorHelpConfig>,
     screen_mults: Res<ScreenMults>,
 ) {
-    let box_center = get_box_center(&help_config, &screen_mults);
+    let box_center = get_box_center(&help_config);
     commands
         .spawn((
             EditorHelpBox,
@@ -136,7 +134,11 @@ pub(super) fn setup_editor_help(
                     value: "".to_string(),
                 },
                 text: Text2dBundle {
-                    transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+                    // transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+                    transform: Transform {
+                        translation: Vec3::new(0.0, 0.0, 1.0),
+                        ..default()
+                    },
                     text_anchor: bevy::sprite::Anchor::Center,
                     ..default()
                 },
@@ -145,7 +147,7 @@ pub(super) fn setup_editor_help(
         });
 
     // Help/command bar
-    let bar_center = get_bar_center(&help_config, &screen_mults);
+    let bar_center = get_bar_center(&help_config);
     commands
         .spawn((
             HelpBarData {
@@ -226,10 +228,9 @@ pub(super) fn update_editor_help_box(
     help_config: Res<EditorHelpConfig>,
     mut editor_help: Query<&mut Transform, With<EditorHelpBox>>,
     mut gray_box: Query<&mut Transform, (With<EditorGrayHelpBox>, Without<EditorHelpBox>)>,
-    screen_mults: Res<ScreenMults>,
 ) {
     let mode = gs.get_editing_mode();
-    let center = get_box_center(&help_config, &screen_mults);
+    let center = get_box_center(&help_config);
     let width = help_config.box_size.x;
     let height = help_config.box_size.y;
     let Ok(mut editor_help) = editor_help.get_single_mut() else {
@@ -304,7 +305,6 @@ pub(super) fn update_editor_help_bar(
             Without<HelpBarInput>,
         ),
     >,
-    screen_mults: Res<ScreenMults>,
 ) {
     let (
         Ok(mut help_bar),
@@ -323,7 +323,7 @@ pub(super) fn update_editor_help_bar(
         return;
     };
     // Update all the transforms
-    let bar_center = get_bar_center(&help_config, &screen_mults);
+    let bar_center = get_bar_center(&help_config);
     let bar_width = help_config.bar_size.x;
     let bar_height = help_config.bar_size.y;
     let input_center = IVec2::new(0, -bar_height / 4);

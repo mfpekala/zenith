@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::{
-    camera::{camera_movement, CameraMarker, CameraMode, WindowDims},
+    camera::{camera_movement, CameraMarker, CameraMode, ScreenMults, WindowDims},
     cutscenes::is_not_in_cutscene,
     drawing::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
@@ -10,7 +10,7 @@ use crate::{
     },
     editor::is_testing,
     meta::{
-        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+        consts::{MENU_GROWTH, SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
     ship::Ship,
@@ -55,6 +55,8 @@ pub fn watch_mouse(
     camera_n_tran: Query<(&Transform, &CameraMarker)>,
     ships: Query<&Ship>,
     time: Res<Time>,
+    screen_mults: Res<ScreenMults>,
+    window_dims: Res<WindowDims>,
 ) {
     let can_shoot = ships.iter().all(|ship| ship.can_shoot);
     // Helper function to terminate a launch
@@ -90,6 +92,10 @@ pub fn watch_mouse(
         // Mouse is not in the window, don't do anything
         return;
     };
+    mouse_pos.x -= window_dims.0.x as f32 / 2.0;
+    mouse_pos.y -= window_dims.0.y as f32 / 2.0;
+    mouse_pos /= screen_mults.0 as f32;
+    mouse_pos *= MENU_GROWTH as f32;
 
     let Some((camera_tran, camera_marker)) = camera_n_tran.iter().next() else {
         // Camera not found, don't do anything
@@ -286,7 +292,6 @@ fn update_shot_arrow(
     mut arrow: Query<(&mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
     mouse_state: Res<MouseState>,
     gs: Res<GameState>,
-    window_dims: Res<WindowDims>,
 ) {
     let Ok((mut tran, mut multi)) = arrow.get_single_mut() else {
         return;
@@ -299,12 +304,12 @@ fn update_shot_arrow(
         set_invisible(&mut multi);
         return;
     }
-    tran.scale = Vec3::ONE * 4.0;
+    tran.scale = Vec3::ONE * MENU_GROWTH as f32;
     match mouse_state.pending_launch.as_ref() {
         Some(pending_launch) => {
             let start = pending_launch.launch_start.as_vec2();
-            tran.translation.x = start.x - window_dims.0.x as f32 / 2.0;
-            tran.translation.y = -start.y + window_dims.0.y as f32 / 2.0;
+            tran.translation.x = start.x;
+            tran.translation.y = -start.y;
             let end = start + pending_launch.launch_vel;
             let angle = Vec2::Y.angle_between(end - start);
             let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;

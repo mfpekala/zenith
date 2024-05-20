@@ -3,6 +3,9 @@
 
 use crate::camera::CameraMarker;
 use crate::camera::DynamicCameraBundle;
+use crate::meta::consts::MENU_GROWTH;
+use crate::meta::consts::MENU_HEIGHT;
+use crate::meta::consts::MENU_WIDTH;
 use crate::meta::consts::SCREEN_HEIGHT;
 use crate::meta::consts::SCREEN_WIDTH;
 use crate::physics::dyno::IntMoveable;
@@ -217,8 +220,8 @@ impl CameraTargets {
             ..default()
         };
         let menu_size = Extent3d {
-            width: SCREEN_WIDTH as u32,
-            height: SCREEN_HEIGHT as u32,
+            width: MENU_WIDTH as u32,
+            height: MENU_HEIGHT as u32,
             ..default()
         };
 
@@ -467,6 +470,12 @@ fn setup_sprite_camera(
                     }),
                     ..Default::default()
                 },
+                projection: OrthographicProjection {
+                    scale: 2.0,
+                    near: -1000.0,
+                    far: 1000.0,
+                    ..default()
+                },
                 ..Default::default()
             },
             MenuCameraMarker,
@@ -530,13 +539,12 @@ fn setup_post_processing_camera(
     mut anim_materials: ResMut<Assets<AnimationMaterial>>,
 ) {
     let primary_size = Vec2::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32);
-
     let quad = Mesh::from(Rectangle::new(primary_size.x, primary_size.y));
     meshes.insert(BG_PP_QUAD.clone(), quad.clone());
     meshes.insert(PP_QUAD.clone(), quad.clone());
     meshes.insert(REDUCED_QUAD.clone(), quad.clone());
-    let menu_quad = Mesh::from(Rectangle::new(SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32));
-    meshes.insert(MENU_QUAD.clone(), menu_quad.clone());
+    let quad = Mesh::from(Rectangle::new(primary_size.x * 2.0, primary_size.y * 2.0));
+    meshes.insert(MENU_QUAD.clone(), quad.clone());
 
     *camera_targets = CameraTargets::create(&mut images, &primary_size);
 
@@ -602,6 +610,7 @@ fn setup_post_processing_camera(
             material: MENU_MATERIAL.clone(),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 1.0),
+                scale: Vec3::ONE,
                 ..default()
             },
             ..default()
