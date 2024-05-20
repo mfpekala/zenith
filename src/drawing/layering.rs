@@ -77,6 +77,9 @@ pub struct MenuCameraMarker;
 pub fn menu_layer() -> RenderLayers {
     RenderLayers::from_layers(CAMERA_LAYER_MENU)
 }
+pub fn menu_layer_u8() -> u8 {
+    CAMERA_LAYER_MENU[0]
+}
 
 #[derive(Resource)]
 pub struct LayeringPluginSettings {
@@ -487,6 +490,9 @@ const MENU_MATERIAL: Handle<AnimationMaterial> = Handle::weak_from_u128(29374148
 #[derive(Component)]
 pub(super) struct ScaledOutputQuad;
 
+#[derive(Component)]
+pub(super) struct ScaledMenuQuad;
+
 pub(super) fn remake_layering_materials(
     camera_targets: &CameraTargets,
     materials: &mut ResMut<Assets<BlendTexturesMaterial>>,
@@ -589,6 +595,7 @@ fn setup_post_processing_camera(
     ));
 
     commands.spawn((
+        ScaledMenuQuad,
         PostProcessingQuad,
         MaterialMesh2dBundle {
             mesh: MENU_QUAD.clone().into(),

@@ -2,18 +2,17 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::{
-    camera::{camera_movement, CameraMarker, CameraMode},
+    camera::{camera_movement, CameraMarker, CameraMode, WindowDims},
     cutscenes::is_not_in_cutscene,
     drawing::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
-        layering::light_layer_u8,
+        layering::menu_layer_u8,
     },
     editor::is_testing,
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
-    physics::dyno::IntMoveable,
     ship::Ship,
 };
 
@@ -57,47 +56,7 @@ pub fn watch_mouse(
     ships: Query<&Ship>,
     time: Res<Time>,
 ) {
-    let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
-        // Mouse is not in the window, don't do anything
-        return;
-    };
-    let window = q_windows.single();
-    let (w, h) = (window.width(), window.height());
-    let (pw, ph) = (window.physical_width(), window.physical_height());
-    // println!("w, h: {w}, {h}");
-    // println!("pw, ph: {pw}, {ph}");
-    // println!("mouse: {}, {}", mouse_pos.x, mouse_pos.y);
-
-    let Some((camera_tran, camera_marker)) = camera_n_tran.iter().next() else {
-        // Camera not found, don't do anything
-        return;
-    };
     let can_shoot = ships.iter().all(|ship| ship.can_shoot);
-    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (SCREEN_WIDTH as f32);
-    mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
-    mouse_pos *= scale_down_to_screen;
-    let fworld_pos = camera_tran.translation.truncate()
-        - camera_marker.scale.to_f32()
-            * Vec2 {
-                x: (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
-                y: -1.0 * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
-            };
-    mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
-    mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
-
-    // Begin a launch
-    if buttons.just_pressed(MouseButton::Left) && mouse_state.pending_launch.is_none() {
-        // Beginning launch
-        mouse_state.pending_launch = Some(PendingLaunch {
-            timer: if can_shoot {
-                Some(Timer::from_seconds(1.0, TimerMode::Once))
-            } else {
-                None
-            },
-            launch_start: mouse_state.pos,
-            launch_vel: Vec2::ZERO,
-        });
-    }
     // Helper function to terminate a launch
     let send_launch = |mouse_state: &mut MouseState,
                        launch_event: &mut EventWriter<LaunchEvent>| {
@@ -106,26 +65,6 @@ pub fn watch_mouse(
             vel: pending.launch_vel,
         });
     };
-    if buttons.pressed(MouseButton::Left) {
-        // Continue updating an existing launch
-        let pos = mouse_state.pos;
-        if let Some(pending_launch) = mouse_state.pending_launch.as_mut() {
-            let mut almost_vel = (pending_launch.launch_start - pos).as_vec2();
-            almost_vel.y *= -1.0;
-            let norm = almost_vel.normalize_or_zero();
-            let mag = if almost_vel.length() > 0.1 {
-                almost_vel.length().sqrt() * MULT_THINGY
-            } else {
-                0.0
-            };
-            pending_launch.launch_vel = norm * mag;
-        }
-    } else {
-        // Mouse button released, launch should happen
-        if mouse_state.pending_launch.is_some() {
-            send_launch(&mut mouse_state, &mut launch_event);
-        }
-    }
     // Update the timer for the launch
     let has_timer = match mouse_state.pending_launch.as_ref() {
         Some(pending) => pending.timer.is_some(),
@@ -145,6 +84,60 @@ pub fn watch_mouse(
     } else if let Some(pending) = mouse_state.pending_launch.as_mut() {
         if can_shoot {
             pending.timer = Some(Timer::from_seconds(1.0, TimerMode::Once));
+        }
+    }
+    let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
+        // Mouse is not in the window, don't do anything
+        return;
+    };
+
+    let Some((camera_tran, camera_marker)) = camera_n_tran.iter().next() else {
+        // Camera not found, don't do anything
+        return;
+    };
+    let scale_down_to_screen = (SCREEN_WIDTH as f32) / (SCREEN_WIDTH as f32);
+    mouse_state.pos = IVec2::new(mouse_pos.x.round() as i32, mouse_pos.y.round() as i32);
+    mouse_pos *= scale_down_to_screen;
+    let fworld_pos = camera_tran.translation.truncate()
+        - camera_marker.scale.to_f32()
+            * Vec2 {
+                x: (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
+                y: -1.0 * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
+            };
+    mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
+    mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
+    // Begin a launch
+    if buttons.just_pressed(MouseButton::Left) && mouse_state.pending_launch.is_none() {
+        // Beginning launch
+        mouse_state.pending_launch = Some(PendingLaunch {
+            timer: if can_shoot {
+                Some(Timer::from_seconds(1.0, TimerMode::Once))
+            } else {
+                None
+            },
+            launch_start: mouse_state.pos,
+            launch_vel: Vec2::ZERO,
+        });
+    }
+
+    if buttons.pressed(MouseButton::Left) {
+        // Continue updating an existing launch
+        let pos = mouse_state.pos;
+        if let Some(pending_launch) = mouse_state.pending_launch.as_mut() {
+            let mut almost_vel = (pending_launch.launch_start - pos).as_vec2();
+            almost_vel.y *= -1.0;
+            let norm = almost_vel.normalize_or_zero();
+            let mag = if almost_vel.length() > 0.1 {
+                almost_vel.length().sqrt() * MULT_THINGY
+            } else {
+                0.0
+            };
+            pending_launch.launch_vel = norm * mag;
+        }
+    } else {
+        // Mouse button released, launch should happen
+        if mouse_state.pending_launch.is_some() {
+            send_launch(&mut mouse_state, &mut launch_event);
         }
     }
 }
@@ -267,35 +260,20 @@ impl ShotArrowBundle {
             size: UVec2::new(12, 8),
         });
         head.set_hidden(true);
+        head.set_render_layers(vec![menu_layer_u8()]);
         let mut body = AnimationManager::single_static(SpriteInfo {
             path: "sprites/arrow_body.png".to_string(),
             size: UVec2::new(6, 12),
         });
         body.set_hidden(true);
         body.set_offset(IVec3::new(0, 0, -1));
-        let mut head_light = AnimationManager::single_static(SpriteInfo {
-            path: "sprites/arrow_headL.png".to_string(),
-            size: UVec2::new(12, 8),
-        });
-        head_light.set_hidden(true);
-        head_light.set_render_layers(vec![light_layer_u8()]);
-        let mut body_light = AnimationManager::single_static(SpriteInfo {
-            path: "sprites/arrow_bodyL.png".to_string(),
-            size: UVec2::new(6, 12),
-        });
-        body_light.set_hidden(true);
-        body_light.set_render_layers(vec![light_layer_u8()]);
+        body.set_render_layers(vec![menu_layer_u8()]);
         let spatial =
             SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 102.0)));
         Self {
             marker: ShotArrowMarker,
             spatial,
-            anim: MultiAnimationManager::from_pairs(vec![
-                ("head", head),
-                ("body", body),
-                ("headL", head_light),
-                ("bodyL", body_light),
-            ]),
+            anim: MultiAnimationManager::from_pairs(vec![("head", head), ("body", body)]),
         }
     }
 }
@@ -307,40 +285,26 @@ fn spawn_shot_arrow(mut commands: Commands) {
 fn update_shot_arrow(
     mut arrow: Query<(&mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
     mouse_state: Res<MouseState>,
-    camera: Query<(&IntMoveable, &CameraMarker)>,
     gs: Res<GameState>,
+    window_dims: Res<WindowDims>,
 ) {
     let Ok((mut tran, mut multi)) = arrow.get_single_mut() else {
         return;
     };
-    let Ok((cam_im, cam_marker)) = camera.get_single() else {
-        return;
-    };
     let set_invisible = |multi: &mut Mut<MultiAnimationManager>| {
         multi.map.get_mut("head").unwrap().set_hidden(true);
-        multi.map.get_mut("headL").unwrap().set_hidden(true);
         multi.map.get_mut("body").unwrap().set_hidden(true);
-        multi.map.get_mut("bodyL").unwrap().set_hidden(true);
     };
     if !gs.is_in_level() && !is_testing(gs) {
         set_invisible(&mut multi);
         return;
     }
-    tran.scale = Vec2::new(cam_marker.scale.to_f32(), cam_marker.scale.to_f32()).extend(1.0);
+    tran.scale = Vec3::ONE * 4.0;
     match mouse_state.pending_launch.as_ref() {
         Some(pending_launch) => {
             let start = pending_launch.launch_start.as_vec2();
-            // let test = cam_im.pos
-            tran.translation.x = cam_im.pos.x as f32
-                + cam_marker.scale.to_f32()
-                    * (start.x - SCREEN_WIDTH as f32 / 2.0)
-                    * SCREEN_WIDTH as f32
-                    / SCREEN_WIDTH as f32;
-            tran.translation.y = cam_im.pos.y as f32
-                - cam_marker.scale.to_f32()
-                    * (start.y - SCREEN_HEIGHT as f32 / 2.0)
-                    * SCREEN_HEIGHT as f32
-                    / SCREEN_HEIGHT as f32;
+            tran.translation.x = start.x - window_dims.0.x as f32 / 2.0;
+            tran.translation.y = -start.y + window_dims.0.y as f32 / 2.0;
             let end = start + pending_launch.launch_vel;
             let angle = Vec2::Y.angle_between(end - start);
             let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;
@@ -353,21 +317,9 @@ fn update_shot_arrow(
                 IVec2::new(3, -body_len),
                 IVec2::new(-3, -body_len),
             ]);
-            let body_light = multi.map.get_mut("bodyL").unwrap();
-            body_light.set_angle(angle);
-            body_light.set_hidden(false);
-            body_light.set_points(vec![
-                IVec2::new(-3, 0),
-                IVec2::new(3, 0),
-                IVec2::new(3, -body_len),
-                IVec2::new(-3, -body_len),
-            ]);
             let head = multi.map.get_mut("head").unwrap();
             head.set_angle(angle);
             head.set_hidden(false);
-            let head_light = multi.map.get_mut("headL").unwrap();
-            head_light.set_angle(angle);
-            head_light.set_hidden(false);
         }
         None => {
             set_invisible(&mut multi);

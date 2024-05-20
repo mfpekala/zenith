@@ -1,7 +1,11 @@
 use crate::{
     add_hot_resource,
+    camera::ScreenMults,
     drawing::layering::menu_layer,
-    meta::game_state::{EditingMode, EditorState, GameState, SetGameState},
+    meta::{
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+        game_state::{EditingMode, EditorState, GameState, SetGameState},
+    },
 };
 use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
 use std::fmt;
@@ -63,12 +67,10 @@ pub(super) struct HelpBarEvent(pub String);
     Default,
 )]
 pub struct EditorHelpConfig {
-    pub box_top_left: IVec2,
-    pub box_bottom_right: IVec2,
+    pub box_size: IVec2,
     pub box_font_size: f32,
 
-    pub bar_top_left: IVec2,
-    pub bar_bottom_right: IVec2,
+    pub bar_size: IVec2,
     pub bar_font_size: f32,
 }
 
@@ -79,10 +81,26 @@ add_hot_resource!(
     update_editor_help_config
 );
 
-pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorHelpConfig>) {
-    let box_center = (help_config.box_top_left + help_config.box_bottom_right) / 2;
-    let box_width = help_config.box_bottom_right.x - help_config.box_top_left.x;
-    let box_height = help_config.box_top_left.y - help_config.box_bottom_right.y;
+fn get_box_center(help_config: &Res<EditorHelpConfig>, screen_mults: &Res<ScreenMults>) -> IVec2 {
+    let bottom_left = IVec2::new(-(SCREEN_WIDTH as i32 / 2), -(SCREEN_HEIGHT as i32 / 2))
+        * (screen_mults.0 as i32);
+    let box_center = bottom_left + help_config.box_size / 2;
+    box_center
+}
+
+fn get_bar_center(help_config: &Res<EditorHelpConfig>, screen_mults: &Res<ScreenMults>) -> IVec2 {
+    let bottom_right =
+        IVec2::new(SCREEN_WIDTH as i32 / 2, -(SCREEN_HEIGHT as i32) / 2) * (screen_mults.0 as i32);
+    let box_center = bottom_right + IVec2::new(-help_config.bar_size.x, help_config.bar_size.y) / 2;
+    box_center
+}
+
+pub(super) fn setup_editor_help(
+    mut commands: Commands,
+    help_config: Res<EditorHelpConfig>,
+    screen_mults: Res<ScreenMults>,
+) {
+    let box_center = get_box_center(&help_config, &screen_mults);
     commands
         .spawn((
             EditorHelpBox,
@@ -101,7 +119,11 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
                     },
                     transform: Transform {
                         translation: Vec3::new(0.0, 0.0, -1.0),
-                        scale: Vec3::new(box_width as f32, box_height as f32, 1.0),
+                        scale: Vec3::new(
+                            help_config.box_size.x as f32,
+                            help_config.box_size.y as f32,
+                            1.0,
+                        ),
                         ..default()
                     },
                     ..default()
@@ -123,9 +145,7 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
         });
 
     // Help/command bar
-    let bar_center = (help_config.bar_top_left + help_config.bar_bottom_right) / 2;
-    let bar_width = help_config.bar_bottom_right.x - help_config.bar_top_left.x;
-    let bar_height = help_config.bar_top_left.y - help_config.bar_bottom_right.y;
+    let bar_center = get_bar_center(&help_config, &screen_mults);
     commands
         .spawn((
             HelpBarData {
@@ -140,9 +160,9 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
         ))
         .with_children(|parent| {
             // Input bar
-            let input_center = IVec2::new(0, -bar_height / 4);
-            let input_width = bar_width;
-            let input_height = bar_height / 2;
+            let input_center = IVec2::new(0, -help_config.bar_size.y / 4);
+            let input_width = help_config.bar_size.x;
+            let input_height = help_config.bar_size.y / 2;
             parent.spawn((
                 HelpBarInput,
                 SpriteBundle {
@@ -169,9 +189,9 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
                 menu_layer(),
             ));
             // Output bar
-            let output_center = IVec2::new(0, bar_height / 4);
-            let output_width = bar_width;
-            let output_height = bar_height / 2;
+            let output_center = IVec2::new(0, help_config.bar_size.y / 4);
+            let output_width = help_config.bar_size.x;
+            let output_height = help_config.bar_size.y / 2;
             parent.spawn((
                 HelpBarOutput,
                 SpriteBundle {
@@ -206,11 +226,12 @@ pub(super) fn update_editor_help_box(
     help_config: Res<EditorHelpConfig>,
     mut editor_help: Query<&mut Transform, With<EditorHelpBox>>,
     mut gray_box: Query<&mut Transform, (With<EditorGrayHelpBox>, Without<EditorHelpBox>)>,
+    screen_mults: Res<ScreenMults>,
 ) {
     let mode = gs.get_editing_mode();
-    let center = (help_config.box_top_left + help_config.box_bottom_right) / 2;
-    let width = help_config.box_bottom_right.x - help_config.box_top_left.x;
-    let height = help_config.box_top_left.y - help_config.box_bottom_right.y;
+    let center = get_box_center(&help_config, &screen_mults);
+    let width = help_config.box_size.x;
+    let height = help_config.box_size.y;
     let Ok(mut editor_help) = editor_help.get_single_mut() else {
         return;
     };
@@ -283,6 +304,7 @@ pub(super) fn update_editor_help_bar(
             Without<HelpBarInput>,
         ),
     >,
+    screen_mults: Res<ScreenMults>,
 ) {
     let (
         Ok(mut help_bar),
@@ -301,9 +323,9 @@ pub(super) fn update_editor_help_bar(
         return;
     };
     // Update all the transforms
-    let bar_center = (help_config.bar_top_left + help_config.bar_bottom_right) / 2;
-    let bar_width = help_config.bar_bottom_right.x - help_config.bar_top_left.x;
-    let bar_height = help_config.bar_top_left.y - help_config.bar_bottom_right.y;
+    let bar_center = get_bar_center(&help_config, &screen_mults);
+    let bar_width = help_config.bar_size.x;
+    let bar_height = help_config.bar_size.y;
     let input_center = IVec2::new(0, -bar_height / 4);
     let input_width = bar_width;
     let input_height = bar_height / 2;

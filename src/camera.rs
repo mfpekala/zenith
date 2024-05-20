@@ -5,6 +5,7 @@ use crate::{
     },
     input::{CameraControlState, CameraZoomEvent, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
         level_data::LevelRoot,
     },
@@ -14,6 +15,9 @@ use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct ScreenMults(pub u32);
+
+#[derive(Resource)]
+pub struct WindowDims(pub UVec2);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraScale {
@@ -197,6 +201,10 @@ pub fn register_camera(app: &mut App) {
     app.add_plugins(LayeringPlugin);
     app.add_plugins(PostPixelPlugin);
     app.insert_resource(ScreenMults(1));
+    app.insert_resource(WindowDims(UVec2::new(
+        SCREEN_WIDTH as u32,
+        SCREEN_HEIGHT as u32,
+    )));
     app.add_systems(Update, camera_input.run_if(in_editor.or_else(in_level)));
     app.add_systems(
         FixedUpdate,
