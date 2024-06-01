@@ -1,8 +1,5 @@
 use crate::{
-    drawing::{
-        layering::{LayeringPlugin, LightCameraMarker, SpriteCameraMarker},
-        post_pixel::PostPixelPlugin,
-    },
+    drawing::layering::{LayeringPlugin, LightCameraMarker, SpriteCameraMarker},
     input::{CameraControlState, CameraZoomEvent, SetCameraModeEvent, SwitchCameraModeEvent},
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
@@ -13,6 +10,8 @@ use crate::{
 };
 use bevy::prelude::*;
 
+/// Need a way to track how many multiples of the screen there are so that the distance dragged
+/// for mouse launches can be correctly adjusted
 #[derive(Resource)]
 pub struct ScreenMults(pub u32);
 
@@ -199,7 +198,7 @@ pub fn camera_movement(
 
 pub fn register_camera(app: &mut App) {
     app.add_plugins(LayeringPlugin);
-    app.add_plugins(PostPixelPlugin);
+    // app.add_plugins(PostPixelPlugin);
     app.insert_resource(ScreenMults(1));
     app.insert_resource(WindowDims(UVec2::new(
         SCREEN_WIDTH as u32,

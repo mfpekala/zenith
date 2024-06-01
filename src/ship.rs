@@ -11,7 +11,7 @@ use crate::input::LongKeyPress;
 use crate::math::Spleen;
 use crate::meta::game_state::{GameState, MetaState, SetGameState};
 use crate::meta::level_data::LevelRoot;
-use crate::physics::collider::{ColliderActive, ColliderTrigger};
+use crate::physics::collider::ColliderActive;
 use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::{should_apply_physics, BulletTime};
 use bevy::prelude::*;

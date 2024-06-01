@@ -6,7 +6,7 @@ use crate::{
     uid::{UId, UIdMarker},
 };
 
-use super::{dyno::IntDyno, BulletTime};
+use super::dyno::IntDyno;
 
 #[derive(Component, Debug)]
 pub struct ColliderBoundary {
@@ -176,7 +176,6 @@ pub(super) fn resolve_static_collisions(
         Option<&ColliderActive>,
         &Parent,
     )>,
-    bullet_time: &Res<BulletTime>,
 ) -> bool {
     let mut fpos = dyno.fpos.truncate();
     let mut min_dist_sq: Option<f32> = None;

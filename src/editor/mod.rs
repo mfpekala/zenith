@@ -1,7 +1,7 @@
 use crate::{
     camera::CameraMode,
     environment::{
-        background::BackgroundType,
+        background::BackgroundKind,
         field::{FieldDrag, FieldStrength},
         rock::RockKind,
         segment::SegmentKind,
@@ -100,7 +100,7 @@ fn setup_editor(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut set_event: EventWriter<SetCameraModeEvent>,
-    mut bg_type: ResMut<BackgroundType>,
+    mut bg_kind: ResMut<BackgroundKind>,
 ) {
     let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
     commands.spawn(LevelEditingHandle(handle));
@@ -112,7 +112,7 @@ fn setup_editor(
     set_event.send(SetCameraModeEvent {
         mode: CameraMode::Free,
     });
-    *bg_type = BackgroundType::ParallaxStars;
+    *bg_kind = BackgroundKind::ParallaxStars;
 }
 
 fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {

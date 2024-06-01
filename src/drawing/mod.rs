@@ -16,7 +16,6 @@ pub mod effects;
 pub mod layering;
 pub mod light;
 pub mod mesh;
-pub mod post_pixel;
 pub mod resize;
 pub mod sunrise_mat;
 pub mod text;

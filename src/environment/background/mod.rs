@@ -9,13 +9,13 @@ use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 
 #[derive(Resource, PartialEq, Copy, Clone)]
-pub enum BackgroundType {
+pub enum BackgroundKind {
     None,
     ParallaxStars,
 }
 
 #[derive(Resource)]
-struct LastBackgroundType(BackgroundType);
+struct LastBackgroundKind(BackgroundKind);
 
 #[derive(Component, Clone)]
 /// A struct to mark things as being in the background layer for clearing purposes
@@ -265,8 +265,8 @@ fn setup_background(mut commands: Commands) {
 }
 
 fn update_background(
-    mut last_bg_type: ResMut<LastBackgroundType>,
-    bg_type: Res<BackgroundType>,
+    mut last_bg_kind: ResMut<LastBackgroundKind>,
+    bg_kind: Res<BackgroundKind>,
     mut commands: Commands,
     bg_root: Query<Entity, With<BackgroundRoot>>,
     asset_server: Res<AssetServer>,
@@ -275,16 +275,16 @@ fn update_background(
         error!("Weird stuff happening in updatebackground");
         return;
     };
-    if last_bg_type.0 == *bg_type {
+    if last_bg_kind.0 == *bg_kind {
         return;
     }
-    last_bg_type.0 = *bg_type;
+    last_bg_kind.0 = *bg_kind;
     commands.entity(root_eid).despawn_descendants();
     commands
         .entity(root_eid)
-        .with_children(|parent| match *bg_type {
-            BackgroundType::None => (),
-            BackgroundType::ParallaxStars => {
+        .with_children(|parent| match *bg_kind {
+            BackgroundKind::None => (),
+            BackgroundKind::ParallaxStars => {
                 let num_stars = 300;
                 let depth_min = 5;
                 let depth_max = 14;
@@ -320,8 +320,8 @@ pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BackgroundType::None);
-        app.insert_resource(LastBackgroundType(BackgroundType::None));
+        app.insert_resource(BackgroundKind::None);
+        app.insert_resource(LastBackgroundKind(BackgroundKind::None));
         app.add_systems(Startup, setup_background);
         app.add_systems(FixedUpdate, move_bg_entities.after(camera_movement));
         app.add_systems(Update, update_background);

@@ -1,6 +1,5 @@
 use crate::{
     add_hot_resource,
-    camera::ScreenMults,
     drawing::layering::menu_layer,
     meta::{
         consts::{MENU_HEIGHT, MENU_WIDTH},
@@ -93,11 +92,7 @@ fn get_bar_center(help_config: &Res<EditorHelpConfig>) -> IVec2 {
     box_center
 }
 
-pub(super) fn setup_editor_help(
-    mut commands: Commands,
-    help_config: Res<EditorHelpConfig>,
-    screen_mults: Res<ScreenMults>,
-) {
+pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorHelpConfig>) {
     let box_center = get_box_center(&help_config);
     commands
         .spawn((

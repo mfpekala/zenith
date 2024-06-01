@@ -12,7 +12,7 @@ pub mod ship;
 pub mod sound;
 pub mod uid;
 
-use bevy::{ecs::system::SystemState, prelude::*, window::PrimaryWindow, winit::WinitWindows};
+use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::register_camera;
@@ -21,10 +21,10 @@ use drawing::register_drawing;
 use editor::EditorPlugin;
 use environment::EnvironmentPlugin;
 use input::register_input;
-use menu::{menu_asset::MenuAsset, register_menus};
+use menu::register_menus;
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE},
-    game_state::register_game_state,
+    game_state::{register_game_state, GameState},
     MetaPlugin,
 };
 use physics::PhysicsPlugin;
@@ -34,7 +34,9 @@ use uid::UIdPlugin;
 
 pub fn main_setup() {}
 
-fn get_size(q_windows: Query<&Window, With<PrimaryWindow>>) {}
+pub fn main_update(_gs: Res<GameState>) {
+    // println!("Hey gamestate is: {_gs:?}");
+}
 
 fn main() {
     env_logger::init();
@@ -53,9 +55,9 @@ fn main() {
             .set(ImagePlugin::default_nearest()),
     )
     .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
-    .add_systems(Startup, main_setup);
+    .add_systems(Startup, main_setup)
+    .add_systems(Update, main_update);
     app.insert_resource(Time::<Fixed>::from_hz(FRAMERATE));
-    app.add_plugins(RonAssetPlugin::<MenuAsset>::new(&["menu.ron"]));
     app.add_plugins(UIdPlugin);
     app.add_plugins(TuneableConstsPlugin);
     app.add_plugins(RonAssetPlugin::<TuneableConsts>::new(&["consts.ron"]));

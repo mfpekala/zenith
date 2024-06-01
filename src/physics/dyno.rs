@@ -117,7 +117,7 @@ pub(super) fn move_int_dyno_helper(
             }
         };
         dyno.fpos += dyno.vel.normalize_or_zero().extend(0.0) * this_step;
-        resolve_static_collisions(dyno, statics, bullet_time);
+        resolve_static_collisions(dyno, statics);
         resolve_trigger_collisions(dyno, triggers);
         let mut killing_ids = HashSet::new();
         let mut sprung = false;

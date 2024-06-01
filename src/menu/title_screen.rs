@@ -1,38 +1,18 @@
-use super::menu_asset::MenuAssetComponent;
 use crate::{
-    // environment::background::{HyperSpace, BASE_TITLE_HYPERSPACE_SPEED, MAX_HYPERSPACE_SPEED},
-    environment::background::{BgOffset, BgOffsetSpleen, PlacedBgBundle},
+    environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
     math::Spleen,
-    meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetGameState},
-    when_becomes_false,
-    when_becomes_true,
+    meta::game_state::{GameState, MenuState, MetaState, SetGameState},
+    when_becomes_false, when_becomes_true,
 };
-use bevy::{prelude::*, render::view::RenderLayers};
-
-const TITLE_SCREEN_RON_PATH: &'static str = "menus/title_screen.ron";
+use bevy::prelude::*;
 
 #[derive(Component)]
 struct TitleScreenDeath {
     pub timer: Timer,
 }
 
-#[derive(Component)]
-pub struct ColorMarker(pub Color);
-
-#[derive(Bundle)]
-struct TitleBgStarBundle {
-    placement: PlacedBgBundle,
-    sprite: SpriteBundle,
-    color: ColorMarker,
-    layers: RenderLayers,
-}
-
-fn setup_title_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
-    MenuAssetComponent::spawn(
-        &asset_server,
-        &mut commands,
-        TITLE_SCREEN_RON_PATH.to_string(),
-    );
+fn setup_title_screen(mut bg_kind: ResMut<BackgroundKind>) {
+    *bg_kind = BackgroundKind::ParallaxStars;
 }
 
 fn update_title_screen(
@@ -58,9 +38,6 @@ fn update_title_screen(
             timer: Timer::from_seconds(transition_time + 0.25, TimerMode::Once),
         });
     }
-    gs_writer.send(SetGameState(GameState {
-        meta: MetaState::Editor(EditorState::Editing(EditingState::blank())),
-    }));
     let Ok((id, mut death)) = death.get_single_mut() else {
         return;
     };
@@ -82,14 +59,7 @@ fn update_title_screen(
     }
 }
 
-fn destroy_title_screen(mut commands: Commands, mac: Query<(Entity, &MenuAssetComponent)>) {
-    for (id, mac) in mac.iter() {
-        if mac.path != TITLE_SCREEN_RON_PATH.to_string() {
-            continue;
-        }
-        commands.entity(id).despawn_recursive();
-    }
-}
+fn destroy_title_screen() {}
 
 fn is_in_title_screen_helper(gs: &GameState) -> bool {
     match gs.meta {

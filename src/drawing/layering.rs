@@ -3,7 +3,6 @@
 
 use crate::camera::CameraMarker;
 use crate::camera::DynamicCameraBundle;
-use crate::meta::consts::MENU_GROWTH;
 use crate::meta::consts::MENU_HEIGHT;
 use crate::meta::consts::MENU_WIDTH;
 use crate::meta::consts::SCREEN_HEIGHT;
