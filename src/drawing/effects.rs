@@ -1,19 +1,21 @@
+use std::collections::VecDeque;
+
 use crate::{
-    camera::CameraMarker,
     math::{lerp, Spleen},
+    meta::consts::{MENU_HEIGHT, MENU_WIDTH},
 };
 use bevy::prelude::*;
 
 use super::layering::menu_layer;
 
 #[derive(Component)]
-pub struct EffectVal<const EFFECT_ID: i32> {
+pub struct EffectVal {
     start_val: f32,
     goal_val: f32,
     spleen: Spleen,
     timer: Timer,
 }
-impl<const EFFECT_ID: i32> EffectVal<EFFECT_ID> {
+impl EffectVal {
     pub fn blank(initial_val: f32) -> Self {
         Self {
             start_val: initial_val,
@@ -38,253 +40,98 @@ impl<const EFFECT_ID: i32> EffectVal<EFFECT_ID> {
     }
 }
 
-#[derive(Component)]
-pub struct Sizeable {
-    cur_val: f32,
-}
-impl Sizeable {
-    pub const fn id() -> i32 {
-        0
-    }
-
-    pub fn new() -> Self {
-        Self { cur_val: 1.0 }
-    }
-
-    pub fn start_effect(
-        &self,
-        id: Entity,
-        commands: &mut Commands,
-        goal_val: f32,
-        spleen: Spleen,
-        duration: f32,
-    ) {
-        commands.entity(id).remove::<EffectVal<{ Self::id() }>>();
-        commands.entity(id).insert(EffectVal::<{ Self::id() }>::new(
-            self.cur_val,
-            goal_val,
-            spleen,
-            duration,
-        ));
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ScreenEffect {
+    None,
+    FadeToBlack,
+    UnfadeToBlack,
 }
 
-fn update_sizeables(
-    mut commands: Commands,
-    mut sizeables_q: Query<(
-        Entity,
-        &mut Transform,
-        &mut Sizeable,
-        Option<&mut EffectVal<{ Sizeable::id() }>>,
-    )>,
-    time: Res<Time>,
-) {
-    for (id, mut tran, mut sizeable, effect_opt) in sizeables_q.iter_mut() {
-        match effect_opt {
-            None => {
-                // Spawn the effect value if it doesn't exist
-                commands
-                    .entity(id)
-                    .insert(EffectVal::<{ Sizeable::id() }>::blank(sizeable.cur_val));
-            }
-            Some(mut effect_val) => {
-                effect_val.timer.tick(time.delta());
-                let val = effect_val.interp();
-                sizeable.cur_val = val;
-                tran.scale = (Vec2::ONE.extend(0.0)) * val;
-            }
+#[derive(Resource)]
+pub struct ScreenEffectManager {
+    current_kind: ScreenEffect,
+    current_val: EffectVal,
+    queued_effects: VecDeque<ScreenEffect>,
+}
+impl ScreenEffectManager {
+    fn blank() -> Self {
+        Self {
+            current_kind: ScreenEffect::None,
+            current_val: EffectVal::blank(0.0),
+            queued_effects: VecDeque::new(),
+        }
+    }
+
+    pub fn queue_effect(&mut self, effect: ScreenEffect) {
+        self.queued_effects.push_back(effect);
+    }
+
+    fn update_current(&mut self, time: &Res<Time>) {
+        self.current_val.timer.tick(time.delta());
+        if self.current_val.timer.finished()
+            && !self.current_val.timer.just_finished()
+            && (self.current_kind != ScreenEffect::None || self.queued_effects.len() > 0)
+        {
+            let kind = self
+                .queued_effects
+                .pop_front()
+                .unwrap_or(ScreenEffect::None);
+            let timer_time = if kind == ScreenEffect::None { 0.0 } else { 1.0 };
+            self.current_kind = kind;
+            self.current_val = EffectVal::new(0.0, 1.0, Spleen::EaseInOutCubic, timer_time);
         }
     }
 }
 
 #[derive(Component)]
-struct ZoomToBlack {
-    cur_val: f32,
-}
-impl ZoomToBlack {
-    const fn id() -> i32 {
-        1
-    }
+struct ScreenBlackBox;
 
-    pub fn new() -> Self {
-        Self { cur_val: 0.0 }
-    }
-
-    pub fn start_default_effect(
-        &self,
-        goal_val: f32,
-        id: Entity,
-        commands: &mut Commands,
-        duration: f32,
-    ) {
-        commands.entity(id).remove::<EffectVal<{ Self::id() }>>();
-        commands.entity(id).insert(EffectVal::<{ Self::id() }>::new(
-            self.cur_val,
-            goal_val,
-            Spleen::EaseInOutCubic,
-            duration,
-        ));
-    }
-}
-
-#[derive(Bundle)]
-struct ZoomToBlackBundle {
-    ztb: ZoomToBlack,
-    effect_val: EffectVal<{ ZoomToBlack::id() }>,
-    sprite: SpriteBundle,
-}
-
-fn setup_zoom_to_black(mut commands: Commands) {
-    let mut clear_black = Color::BLACK;
-    clear_black.set_a(0.0);
-    commands
-        .spawn(ZoomToBlackBundle {
-            ztb: ZoomToBlack::new(),
-            effect_val: EffectVal::blank(0.0),
-            sprite: SpriteBundle {
-                transform: Transform {
-                    scale: Vec3::ONE,
-                    translation: Vec2::ZERO.extend(50.0),
-                    ..default()
-                },
-                sprite: Sprite {
-                    color: clear_black,
-                    ..default()
-                },
+fn spawn_screen_black_box(mut commands: Commands) {
+    commands.spawn((
+        ScreenBlackBox,
+        Name::new("screen_black_box"),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgba(0.0, 0.0, 0.0, 0.0),
                 ..default()
             },
-        })
-        .insert(menu_layer());
-}
-
-fn update_zoom_to_black(
-    mut commands: Commands,
-    mut ztb_q: Query<(
-        Entity,
-        &mut ZoomToBlack,
-        &mut EffectVal<{ ZoomToBlack::id() }>,
-        &mut Sprite,
-    )>,
-    mut cam: Query<&mut OrthographicProjection, With<CameraMarker>>,
-    time: Res<Time>,
-    mut triggers: EventReader<TriggerZoomToBlack>,
-) {
-    let Ok((id, mut ztb, mut effect_val, mut sprite)) = ztb_q.get_single_mut() else {
-        return;
-    };
-    effect_val.timer.tick(time.delta());
-    let val = effect_val.interp();
-    ztb.cur_val = val;
-    sprite.color.set_a(val);
-    for mut cam in cam.iter_mut() {
-        cam.scale = 1.0 / (1.0 + val * 10.0);
-    }
-    if let Some(trigger) = triggers.read().last() {
-        ztb.start_default_effect(trigger.0 .0, id, &mut commands, trigger.0 .1);
-    }
-}
-
-#[derive(Event)]
-/// Just a thin wrapper around (goal, duration)
-pub struct TriggerZoomToBlack(pub (f32, f32));
-
-#[derive(Component)]
-struct FadeToBlack {
-    cur_val: f32,
-}
-impl FadeToBlack {
-    const fn id() -> i32 {
-        1
-    }
-
-    pub fn new() -> Self {
-        Self { cur_val: 0.0 }
-    }
-
-    pub fn start_default_effect(
-        &self,
-        goal_val: f32,
-        id: Entity,
-        commands: &mut Commands,
-        duration: f32,
-    ) {
-        commands.entity(id).remove::<EffectVal<{ Self::id() }>>();
-        commands.entity(id).insert(EffectVal::<{ Self::id() }>::new(
-            self.cur_val,
-            goal_val,
-            Spleen::EaseInOutCubic,
-            duration,
-        ));
-    }
-}
-
-#[derive(Bundle)]
-struct FadeToBlackBundle {
-    ftb: FadeToBlack,
-    effect_val: EffectVal<{ FadeToBlack::id() }>,
-    sprite: SpriteBundle,
-}
-
-fn setup_fade_to_black(mut commands: Commands) {
-    let mut clear_black = Color::BLACK;
-    clear_black.set_a(0.0);
-    commands
-        .spawn(FadeToBlackBundle {
-            ftb: FadeToBlack::new(),
-            effect_val: EffectVal::blank(0.0),
-            sprite: SpriteBundle {
-                transform: Transform {
-                    scale: Vec3::ONE,
-                    translation: Vec2::ZERO.extend(50.0),
-                    ..default()
-                },
-                sprite: Sprite {
-                    color: clear_black,
-                    ..default()
-                },
+            transform: Transform {
+                scale: Vec3::new(MENU_WIDTH as f32, MENU_HEIGHT as f32, 1.0),
+                translation: Vec3::new(0.0, 0.0, 100.0),
                 ..default()
             },
-        })
-        .insert(menu_layer());
+            ..default()
+        },
+        menu_layer(),
+    ));
 }
 
-fn update_fade_to_black(
-    mut commands: Commands,
-    mut ftb_q: Query<(
-        Entity,
-        &mut FadeToBlack,
-        &mut EffectVal<{ FadeToBlack::id() }>,
-        &mut Sprite,
-    )>,
+fn manage_screen_effects(
+    mut screen_effect: ResMut<ScreenEffectManager>,
     time: Res<Time>,
-    mut triggers: EventReader<TriggerFadeToBlack>,
+    mut black_box: Query<&mut Sprite, With<ScreenBlackBox>>,
 ) {
-    let Ok((id, mut ftb, mut effect_val, mut sprite)) = ftb_q.get_single_mut() else {
-        return;
-    };
-    effect_val.timer.tick(time.delta());
-    let val = effect_val.interp();
-    ftb.cur_val = val;
-    sprite.color.set_a(val);
-    if let Some(trigger) = triggers.read().last() {
-        ftb.start_default_effect(trigger.0 .0, id, &mut commands, trigger.0 .1);
+    screen_effect.update_current(&time);
+    let mut black_box = black_box.single_mut();
+    match screen_effect.current_kind {
+        ScreenEffect::None => (),
+        ScreenEffect::FadeToBlack => {
+            let interp = screen_effect.current_val.interp();
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, interp);
+        }
+        ScreenEffect::UnfadeToBlack => {
+            let interp = screen_effect.current_val.interp();
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, 1.0 - interp);
+        }
     }
 }
-
-#[derive(Event)]
-/// Just a thin wrapper around (goal, duration)
-pub struct TriggerFadeToBlack(pub (f32, f32));
 
 pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<TriggerZoomToBlack>();
-        app.add_event::<TriggerFadeToBlack>();
-        app.add_systems(Startup, (setup_zoom_to_black, setup_fade_to_black));
-        app.add_systems(
-            Update,
-            (update_sizeables, update_zoom_to_black, update_fade_to_black),
-        );
+        app.insert_resource(ScreenEffectManager::blank());
+        app.add_systems(Startup, spawn_screen_black_box);
+        app.add_systems(Update, manage_screen_effects);
     }
 }

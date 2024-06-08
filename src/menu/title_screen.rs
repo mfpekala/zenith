@@ -1,4 +1,8 @@
 use crate::{
+    drawing::{
+        animation::{AnimationManager, AnimationNode, SpriteInfo},
+        layering::menu_layer_u8,
+    },
     environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
     math::Spleen,
     meta::game_state::{GameState, MenuState, MetaState, SetGameState},
@@ -6,13 +10,55 @@ use crate::{
 };
 use bevy::prelude::*;
 
+use super::placement::GameRelativePlacementBundle;
+
+/// Root of the title screen, will be destroyed on destroy
+#[derive(Component)]
+struct TitleScreenRoot;
+
 #[derive(Component)]
 struct TitleScreenDeath {
     pub timer: Timer,
 }
 
-fn setup_title_screen(mut bg_kind: ResMut<BackgroundKind>) {
-    *bg_kind = BackgroundKind::ParallaxStars;
+fn setup_title_screen(mut commands: Commands, mut bg_kind: ResMut<BackgroundKind>) {
+    *bg_kind = BackgroundKind::ParallaxStars(500);
+    commands
+        .spawn((
+            SpatialBundle::default(),
+            Name::new("title_screen_root"),
+            TitleScreenRoot,
+        ))
+        .with_children(|parent| {
+            // ZENITH
+            let mut zenith_man = AnimationManager::single_static(SpriteInfo {
+                path: "sprites/menu/title/ZENITH.png".to_string(),
+                size: UVec2::new(185, 53),
+            });
+            zenith_man.set_render_layers(vec![menu_layer_u8()]);
+            parent.spawn((
+                GameRelativePlacementBundle::new(IVec3::new(0, 40, 0), 0.75),
+                zenith_man,
+            ));
+            // Press any button to start
+            let mut press_man = AnimationManager::from_nodes(vec![(
+                "press",
+                AnimationNode {
+                    sprite: SpriteInfo {
+                        path: "sprites/menu/title/press.png".to_string(),
+                        size: UVec2::new(260, 14),
+                    },
+                    length: 2,
+                    next: None,
+                    pace: Some(12),
+                },
+            )]);
+            press_man.set_render_layers(vec![menu_layer_u8()]);
+            parent.spawn((
+                GameRelativePlacementBundle::new(IVec3::new(0, -50, 0), 0.75),
+                press_man,
+            ));
+        });
 }
 
 fn update_title_screen(
@@ -59,7 +105,11 @@ fn update_title_screen(
     }
 }
 
-fn destroy_title_screen() {}
+fn destroy_title_screen(mut commands: Commands, markers: Query<Entity, With<TitleScreenRoot>>) {
+    for eid in markers.iter() {
+        commands.entity(eid).despawn_recursive();
+    }
+}
 
 fn is_in_title_screen_helper(gs: &GameState) -> bool {
     match gs.meta {

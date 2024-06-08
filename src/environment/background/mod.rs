@@ -11,7 +11,7 @@ use rand::{thread_rng, Rng};
 #[derive(Resource, PartialEq, Copy, Clone)]
 pub enum BackgroundKind {
     None,
-    ParallaxStars,
+    ParallaxStars(usize),
 }
 
 #[derive(Resource)]
@@ -148,8 +148,8 @@ impl PlacedBgBundle {
         }
     }
 
-    /// Creates a bg bundle at the given fraction of the screen (should be between 0.5 and -0.5)
-    /// This bundle will have pos-type Parallax and will NOT have a parallax effect
+    /// Creates a bg bundle at the given fraction of the screen
+    /// This bundle will have pos-type Parallax and will have a parallax effect
     pub fn basic_parallax(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
         let depth = BgDepth {
             depth,
@@ -284,8 +284,7 @@ fn update_background(
         .entity(root_eid)
         .with_children(|parent| match *bg_kind {
             BackgroundKind::None => (),
-            BackgroundKind::ParallaxStars => {
-                let num_stars = 300;
+            BackgroundKind::ParallaxStars(num_stars) => {
                 let depth_min = 5;
                 let depth_max = 14;
                 let scale_min = 1.0;

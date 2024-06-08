@@ -1,4 +1,3 @@
-use crate::drawing::effects::TriggerFadeToBlack;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -75,22 +74,11 @@ impl CutsceneFadeKiller {
 
 fn update_fade_killers(
     mut commands: Commands,
-    mut ftb_writer: EventWriter<TriggerFadeToBlack>,
-    mut stop_writer: EventWriter<StopCutscene>,
     mut killers: Query<(Entity, &mut CutsceneFadeKiller)>,
     time: Res<Time>,
 ) {
     for (id, mut killer) in killers.iter_mut() {
-        if !killer.fade_started_in {
-            ftb_writer.send(TriggerFadeToBlack((1.0, CutsceneFadeKiller::duration())));
-            killer.fade_started_in = true;
-        }
         killer.timer.tick(time.delta());
-        if killer.timer.finished() && !killer.fade_started_out {
-            ftb_writer.send(TriggerFadeToBlack((0.0, CutsceneFadeKiller::duration())));
-            stop_writer.send(StopCutscene(killer.kill_to));
-            killer.fade_started_out = true;
-        }
         killer.padding_timer.tick(time.delta());
         if killer.padding_timer.finished() {
             commands.entity(id).despawn_recursive();

@@ -21,7 +21,7 @@ use drawing::register_drawing;
 use editor::EditorPlugin;
 use environment::EnvironmentPlugin;
 use input::register_input;
-use menu::register_menus;
+use menu::MenuPlugin;
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE},
     game_state::{register_game_state, GameState},
@@ -68,6 +68,7 @@ fn main() {
     app.add_plugins(PhysicsPlugin);
     app.add_plugins(MetaPlugin);
     app.add_plugins(EnvironmentPlugin);
+    app.add_plugins(MenuPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();
@@ -81,7 +82,6 @@ fn main() {
     register_camera(&mut app);
     register_drawing(&mut app);
     register_input(&mut app);
-    register_menus(&mut app);
     register_ship(&mut app);
     app.run();
 }

@@ -37,6 +37,19 @@ impl IntMoveable {
     }
 }
 
+#[derive(Bundle)]
+pub struct IntMoveableBundle {
+    im: IntMoveable,
+    spatial: SpatialBundle,
+}
+impl IntMoveableBundle {
+    pub fn new(pos: IVec3) -> Self {
+        let im = IntMoveable::new(pos);
+        let spatial = SpatialBundle::from_transform(Transform::from_translation(pos.as_vec3()));
+        Self { im, spatial }
+    }
+}
+
 pub(super) fn move_int_moveables(
     mut moveables: Query<(&mut Transform, &mut IntMoveable)>,
     bullet_time: Res<BulletTime>,

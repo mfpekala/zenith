@@ -112,7 +112,7 @@ fn setup_editor(
     set_event.send(SetCameraModeEvent {
         mode: CameraMode::Free,
     });
-    *bg_kind = BackgroundKind::ParallaxStars;
+    *bg_kind = BackgroundKind::ParallaxStars(300);
 }
 
 fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {

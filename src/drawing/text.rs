@@ -1,4 +1,4 @@
-use super::{effects::Sizeable, layering::menu_layer};
+use super::layering::menu_layer;
 use bevy::{prelude::*, sprite::Anchor};
 use std::time::Duration;
 
@@ -93,7 +93,6 @@ impl TextBox {
                 is_on: true,
             });
         }
-        ent.insert(Sizeable::new());
         ent.id()
     }
 }
