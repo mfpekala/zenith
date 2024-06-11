@@ -1,15 +1,14 @@
 use crate::{
     drawing::{
-        animation::{AnimationManager, SpriteInfo},
         effects::{ScreenEffect, ScreenEffectManager},
-        layering::menu_layer_u8,
+        text::{TextAlign, TextBoxBundle, TextWeight},
     },
     meta::game_state::{GameState, LevelState, MenuState, MetaState, SetGameState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
 
-use super::placement::{GameRelativePlacement, GameRelativePlacementBundle};
+use super::placement::GameRelativePlacement;
 
 /// Root of the constellation screen. Destroyed on on_destroy
 #[derive(Component)]
@@ -28,7 +27,7 @@ pub struct ConstellationScreenData {
 #[derive(Component)]
 pub struct ConstellationScreenOption(pub i32);
 
-fn setup_constellation_screen(mut commands: Commands) {
+fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             SpatialBundle::default(),
@@ -38,36 +37,38 @@ fn setup_constellation_screen(mut commands: Commands) {
         .with_children(|parent| {
             parent.spawn(ConstellationScreenData { selection: -1 });
             // Spawn the instruction text
-            let mut zenith_man = AnimationManager::single_static(SpriteInfo {
-                path: "sprites/menu/constellation/use.png".to_string(),
-                size: UVec2::new(357, 16),
-            });
-            zenith_man.set_render_layers(vec![menu_layer_u8()]);
-            parent.spawn((
-                GameRelativePlacementBundle::new(IVec3::new(0, -60, 0), 0.6),
-                zenith_man,
-            ));
-            // Spawn the instruction text
-            let mut left_man = AnimationManager::single_static(SpriteInfo {
-                path: "sprites/menu/constellation/A.png".to_string(),
-                size: UVec2::new(15, 21),
-            });
-            left_man.set_render_layers(vec![menu_layer_u8()]);
-            parent.spawn((
-                GameRelativePlacementBundle::new(IVec3::new(-80, 0, 0), 1.25),
-                ConstellationScreenOption(0),
-                left_man,
-            ));
-            let mut right_man = AnimationManager::single_static(SpriteInfo {
-                path: "sprites/menu/constellation/B.png".to_string(),
-                size: UVec2::new(15, 21),
-            });
-            right_man.set_render_layers(vec![menu_layer_u8()]);
-            parent.spawn((
-                GameRelativePlacementBundle::new(IVec3::new(80, 0, 0), 1.25),
-                ConstellationScreenOption(1),
-                right_man,
-            ));
+            let instruction_bund = TextBoxBundle::new_menu_text(
+                "use arrow keys to select",
+                24.0,
+                GameRelativePlacement::new(IVec3::new(0, -60, 0), 0.5),
+                Color::WHITE,
+                TextWeight::default(),
+                TextAlign::Center,
+                &asset_server,
+            );
+            parent.spawn(instruction_bund);
+            // Spawn the A
+            let a_bund = TextBoxBundle::new_menu_text(
+                "A",
+                72.0,
+                GameRelativePlacement::new(IVec3::new(-80, 10, 0), 0.75),
+                Color::WHITE,
+                TextWeight::default(),
+                TextAlign::Center,
+                &asset_server,
+            );
+            parent.spawn((a_bund, ConstellationScreenOption(0)));
+            // Spawn the B
+            let b_bund = TextBoxBundle::new_menu_text(
+                "B",
+                72.0,
+                GameRelativePlacement::new(IVec3::new(80, 10, 0), 0.75),
+                Color::WHITE,
+                TextWeight::default(),
+                TextAlign::Center,
+                &asset_server,
+            );
+            parent.spawn((b_bund, ConstellationScreenOption(1)));
         });
 }
 
@@ -93,9 +94,9 @@ fn update_constellation_screen(
             }
             for (option, mut placement) in options.iter_mut() {
                 if screen_data.selection == option.0 {
-                    placement.scale = 2.0;
+                    placement.scale = 1.5;
                 } else {
-                    placement.scale = 1.2;
+                    placement.scale = 0.75;
                 }
             }
             if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {

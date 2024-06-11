@@ -1,5 +1,7 @@
+use crate::menu::placement::GameRelativePlacement;
+
 use super::layering::menu_layer;
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor};
 use std::time::Duration;
 
 pub struct ZenithTextPlugin;
@@ -41,63 +43,61 @@ impl TextAlign {
     }
 }
 
+#[derive(Bundle)]
+pub struct TextBoxBundle {
+    inner: Text2dBundle,
+    render_layers: RenderLayers,
+}
+impl TextBoxBundle {
+    pub fn new_menu_text(
+        content: &str,
+        size: f32,
+        placement: GameRelativePlacement,
+        color: Color,
+        weight: TextWeight,
+        align: TextAlign,
+        asset_server: &Res<AssetServer>,
+    ) -> impl Bundle {
+        (
+            Self {
+                inner: Text2dBundle {
+                    text: Text::from_section(
+                        content.to_string(),
+                        TextStyle {
+                            font: weight.to_handle(asset_server),
+                            font_size: size,
+                            color,
+                            ..default()
+                        },
+                    ),
+                    text_anchor: align.to_anchor(),
+                    transform: Transform::from_translation(placement.pos.as_vec3()),
+                    ..default()
+                },
+                render_layers: menu_layer(),
+            },
+            placement,
+        )
+    }
+}
+
 #[derive(Component)]
-pub struct FlashingText {
+pub struct Flashing {
     pub times: (f32, f32),
     pub timer: Timer,
     pub is_on: bool,
 }
-
-#[derive(serde::Deserialize, Debug, Clone, Default, PartialEq, PartialOrd)]
-pub struct TextBox {
-    pub content: String,
-    pub weight: TextWeight,
-    pub align: TextAlign,
-    pub size: f32,
-    pub top: u32,
-    pub left: u32,
-    pub color: (f32, f32, f32, f32),
-    /// On time, off time
-    pub flash: Option<(f32, f32)>,
-}
-impl TextBox {
-    pub fn spawn(
-        &self,
-        commands: &mut Commands,
-        asset_server: &Res<AssetServer>,
-        _z: f32,
-    ) -> Entity {
-        let bund = Text2dBundle {
-            text: Text::from_section(
-                self.content.clone(),
-                TextStyle {
-                    font: self.weight.to_handle(asset_server),
-                    font_size: self.size as f32,
-                    color: Color::rgba(self.color.0, self.color.1, self.color.2, self.color.3),
-                    ..default()
-                },
-            ),
-            text_anchor: self.align.to_anchor(),
-            // transform: Transform::from_translation(Vec3 {
-            //     x: (-(SCREEN_WIDTH as f32) / 2.0 + self.left as f32) * window_to_screen_ratio(),
-            //     y: ((SCREEN_HEIGHT as f32) / 2.0 - self.top as f32) * window_to_screen_ratio(),
-            //     z,
-            // }),
-            ..default()
-        };
-        let mut ent = commands.spawn((bund, menu_layer()));
-        if let Some((on, off)) = self.flash {
-            ent.insert(FlashingText {
-                times: (on, off),
-                timer: Timer::new(Duration::from_secs_f32(on), TimerMode::Once),
-                is_on: true,
-            });
+impl Flashing {
+    pub fn new(time_on: f32, time_off: f32) -> Self {
+        Self {
+            times: (time_on, time_off),
+            timer: Timer::new(Duration::from_secs_f32(time_on), TimerMode::Once),
+            is_on: true,
         }
-        ent.id()
     }
 }
 
-fn update_flashing_text(mut texts: Query<(&mut Text, &mut FlashingText)>, time: Res<Time>) {
+fn update_flashing_text(mut texts: Query<(&mut Text, &mut Flashing)>, time: Res<Time>) {
     for (mut text, mut flash) in texts.iter_mut() {
         flash.timer.tick(time.delta());
         if flash.timer.finished() {

@@ -1,7 +1,8 @@
 use crate::{
     drawing::{
-        animation::{AnimationManager, AnimationNode, SpriteInfo},
+        animation::{AnimationManager, SpriteInfo},
         layering::menu_layer_u8,
+        text::{Flashing, TextAlign, TextBoxBundle, TextWeight},
     },
     environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
     math::Spleen,
@@ -10,7 +11,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
-use super::placement::GameRelativePlacementBundle;
+use super::placement::{GameRelativePlacement, GameRelativePlacementBundle};
 
 /// Root of the title screen, will be destroyed on destroy
 #[derive(Component)]
@@ -21,7 +22,11 @@ struct TitleScreenDeath {
     pub timer: Timer,
 }
 
-fn setup_title_screen(mut commands: Commands, mut bg_kind: ResMut<BackgroundKind>) {
+fn setup_title_screen(
+    mut commands: Commands,
+    mut bg_kind: ResMut<BackgroundKind>,
+    asset_server: Res<AssetServer>,
+) {
     *bg_kind = BackgroundKind::ParallaxStars(500);
     commands
         .spawn((
@@ -41,23 +46,19 @@ fn setup_title_screen(mut commands: Commands, mut bg_kind: ResMut<BackgroundKind
                 zenith_man,
             ));
             // Press any button to start
-            let mut press_man = AnimationManager::from_nodes(vec![(
-                "press",
-                AnimationNode {
-                    sprite: SpriteInfo {
-                        path: "sprites/menu/title/press.png".to_string(),
-                        size: UVec2::new(260, 14),
-                    },
-                    length: 2,
-                    next: None,
-                    pace: Some(12),
-                },
-            )]);
-            press_man.set_render_layers(vec![menu_layer_u8()]);
-            parent.spawn((
-                GameRelativePlacementBundle::new(IVec3::new(0, -50, 0), 0.75),
-                press_man,
-            ));
+            let text_bund = (
+                TextBoxBundle::new_menu_text(
+                    "* press any key to start *",
+                    36.0,
+                    GameRelativePlacement::new(IVec3::new(0, -50, 0), 0.5),
+                    Color::WHITE,
+                    TextWeight::default(),
+                    TextAlign::Center,
+                    &asset_server,
+                ),
+                Flashing::new(1.0, 0.5),
+            );
+            parent.spawn(text_bund);
         });
 }
 

@@ -1,5 +1,5 @@
 pub mod constellation_screen;
-mod placement;
+pub mod placement;
 pub mod title_screen;
 
 use bevy::prelude::*;

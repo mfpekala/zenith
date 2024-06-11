@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::meta::consts::MENU_GROWTH;
 
 #[derive(Component)]
-pub(super) struct GameRelativePlacement {
+pub struct GameRelativePlacement {
     pub pos: IVec3,
     pub scale: f32,
 }
@@ -18,7 +18,7 @@ impl GameRelativePlacement {
 }
 
 #[derive(Bundle)]
-pub(super) struct GameRelativePlacementBundle {
+pub struct GameRelativePlacementBundle {
     game_relative: GameRelativePlacement,
     spatial: SpatialBundle,
 }
