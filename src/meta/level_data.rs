@@ -4,6 +4,7 @@ use bevy::{
 };
 
 use crate::{
+    camera::CameraMarker,
     editor::{
         planet::EPlanet,
         point::EPoint,
@@ -18,6 +19,7 @@ use crate::{
         segment::SegmentKind,
         start::{StartBundle, StartSize},
     },
+    physics::dyno::IntMoveable,
     ship::ShipBundle,
     uid::{UId, UIdMarker, UIdTranslator},
 };
@@ -207,6 +209,7 @@ pub struct LevelRoot;
 pub(super) fn spawn_level(
     In((uid, level_data, home)): In<(UId, LevelData, IVec2)>,
     mut commands: Commands,
+    mut camera_q: Query<&mut IntMoveable, With<CameraMarker>>,
 ) {
     commands
         .spawn((
@@ -233,4 +236,7 @@ pub(super) fn spawn_level(
                 parent.spawn(repl.rehydrate());
             }
         });
+    if let Ok(mut camera) = camera_q.get_single_mut() {
+        camera.pos = home.extend(0);
+    }
 }

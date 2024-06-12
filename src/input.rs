@@ -107,8 +107,8 @@ pub fn watch_mouse(
     let fworld_pos = camera_tran.translation.truncate()
         - camera_marker.scale.to_f32()
             * Vec2 {
-                x: (SCREEN_WIDTH as f32 / 2.0 - mouse_pos.x),
-                y: -1.0 * (SCREEN_HEIGHT as f32 / 2.0 - mouse_pos.y),
+                x: -mouse_pos.x / MENU_GROWTH as f32,
+                y: mouse_pos.y / MENU_GROWTH as f32,
             };
     mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
     mouse_state.left_pressed = buttons.pressed(MouseButton::Left);

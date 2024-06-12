@@ -10,7 +10,7 @@ use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
 use std::fmt;
 
 use super::{
-    save::{LoadEditorEvent, SaveEditorEvent},
+    save::{ExportLevelEvent, LoadEditorEvent, SaveEditorEvent},
     start_goal::{EGoal, EStart},
 };
 
@@ -428,6 +428,7 @@ pub(super) fn run_help_bar_command(
         EventWriter<HelpBarEvent>,
         EventWriter<SaveEditorEvent>,
         EventWriter<LoadEditorEvent>,
+        EventWriter<ExportLevelEvent>,
         EventWriter<SetGameState>,
         Query<&EStart>,
         Query<&EGoal>,
@@ -438,6 +439,7 @@ pub(super) fn run_help_bar_command(
         mut event,
         mut save_editor_writer,
         mut load_editor_writer,
+        mut export_level_writer,
         mut gs_writer,
         estart_q,
         egoal_q,
@@ -451,6 +453,17 @@ pub(super) fn run_help_bar_command(
     let mut send_output = |msg: &str| {
         event.send(HelpBarEvent(msg.to_string()));
     };
+    let mut get_one_nonempty_param = |input: &str, prefix: &str| {
+        let Some(name) = input.strip_prefix(prefix) else {
+            send_output(&format!("Invalid get_one_nonempty_param: {}", input));
+            return None;
+        };
+        if name.len() == 0 {
+            send_output(&format!("Invalid get_one_nonempty_param: empty param"));
+            return None;
+        }
+        Some(name.to_string())
+    };
 
     let input = help_bar.input.clone();
     help_bar.submitted = false;
@@ -462,10 +475,20 @@ pub(super) fn run_help_bar_command(
             println!("{}", thing);
         }
         send_output("HelpBar output printed to terminal");
-    } else if &input == "save" {
-        save_editor_writer.send(SaveEditorEvent);
-    } else if &input == "load" {
-        load_editor_writer.send(LoadEditorEvent);
+    } else if input.starts_with("save ") {
+        match get_one_nonempty_param(&input, "save ") {
+            Some(name) => {
+                save_editor_writer.send(SaveEditorEvent(name));
+            }
+            None => send_output("Must save to a name"),
+        }
+    } else if input.starts_with("load ") {
+        match get_one_nonempty_param(&input, "load ") {
+            Some(name) => {
+                load_editor_writer.send(LoadEditorEvent(name));
+            }
+            None => send_output("Must load from a name"),
+        }
     } else if &input == "test" {
         if estart_q.iter().len() == 0 {
             send_output("You must spawn a start position before testing");
@@ -476,6 +499,17 @@ pub(super) fn run_help_bar_command(
         }
     } else if &input == "edit" {
         gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+    } else if input.starts_with("export ") {
+        let Some(name) = input.strip_prefix("export ") else {
+            send_output(&format!("Invalid export: {}", input));
+            return;
+        };
+        if name.len() == 0 {
+            send_output(&format!("Invalid export: name cannot be empty"));
+            return;
+        }
+
+        export_level_writer.send(ExportLevelEvent(name.to_string()));
     } else {
         send_output(&format!("INVALID COMMAND: {}", input));
     }

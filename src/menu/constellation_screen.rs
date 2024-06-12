@@ -112,7 +112,7 @@ fn update_constellation_screen(
                 commands.entity(id).despawn_recursive();
                 // TODO: If there is >0% completion, should go to galaxy overworld
                 gs_writer.send(SetGameState(GameState {
-                    meta: MetaState::Level(LevelState::fresh_from_id("L1".to_string())),
+                    meta: MetaState::Level(LevelState::fresh_from_id("basic".to_string())),
                 }));
             }
         }

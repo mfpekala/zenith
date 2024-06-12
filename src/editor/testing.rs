@@ -29,11 +29,7 @@ pub(super) fn start_testing(
                 .run_system_with_input(level_oneshots.spawn_level_id, (1, level_data, TESTING_HOME))
                 .unwrap();
             let (_, mut camera_q, mut event) = params.get_mut(world);
-            let Ok(mut camera) = camera_q.get_single_mut() else {
-                event.send(HelpBarEvent("Couldn't get camera".to_string()));
-                return;
-            };
-            camera.pos = TESTING_HOME.extend(0);
+            
         }
         Err(_) => {
             let (_, _, mut event) = params.get_mut(world);

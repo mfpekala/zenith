@@ -4,6 +4,7 @@ pub mod drawing;
 pub mod editor;
 pub mod environment;
 pub mod input;
+pub mod leveler;
 pub mod math;
 pub mod menu;
 pub mod meta;
@@ -21,6 +22,7 @@ use drawing::register_drawing;
 use editor::EditorPlugin;
 use environment::EnvironmentPlugin;
 use input::register_input;
+use leveler::LevelerPlugin;
 use menu::MenuPlugin;
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE},
@@ -69,6 +71,7 @@ fn main() {
     app.add_plugins(MetaPlugin);
     app.add_plugins(EnvironmentPlugin);
     app.add_plugins(MenuPlugin);
+    app.add_plugins(LevelerPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();

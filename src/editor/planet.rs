@@ -733,34 +733,6 @@ pub(super) fn drive_planet_meshes(
             is_coup = true;
         }
         multi.is_coup = is_coup;
-
-        // Then update each of the field meshes
-        // for field in eplanet.fields.iter() {
-        //     let mut mesh_points = vec![];
-        //     for pid in field.field_points.iter() {
-        //         let Some(ent) = ut.get_entity(*pid) else {
-        //             continue;
-        //         };
-        //         if let Ok((_, _, epoint, mv, parent)) = points.get(ent) {
-        //             match epoint.kind {
-        //                 EPointKind::Rock => {
-        //                     mesh_points.push(mv.pos.truncate());
-        //                 }
-        //                 EPointKind::Field => {
-        //                     let (_, _, _, parent_mv, _) = points.get(parent.get()).unwrap();
-        //                     mesh_points.push(parent_mv.pos.truncate() + mv.pos.truncate());
-        //                 }
-        //                 EPointKind::Wild => (),
-        //             }
-        //         }
-        //     }
-        //     if let Some(eid) = ut.get_entity(field.mesh_uid) {
-        //         if let Ok(mut head) = mesh_heads.get_mut(eid) {
-        //             head.points = mesh_points;
-        //             head.scroll = field.dir / 4.0;
-        //         }
-        //     }
-        // }
     }
 }
 

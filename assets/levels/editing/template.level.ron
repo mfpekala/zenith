@@ -9,4 +9,6 @@ LevelData(
     ),
     rocks: [],
     fields: [],
+    segments: [],
+    replenishes: [],
 )

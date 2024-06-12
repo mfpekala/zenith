@@ -87,6 +87,14 @@ pub enum MetaState {
     Editor(EditorState),
     Level(LevelState),
 }
+impl MetaState {
+    pub fn get_level_state(&self) -> Option<LevelState> {
+        match &self {
+            MetaState::Level(state) => Some(state.clone()),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Resource, Clone, Debug)]
 pub struct GameState {
@@ -115,10 +123,7 @@ impl GameState {
     }
 
     pub fn get_level_state(&self) -> Option<LevelState> {
-        match &self.meta {
-            MetaState::Level(state) => Some(state.clone()),
-            _ => None,
-        }
+        self.meta.get_level_state()
     }
 
     pub fn into_prev(self) -> PrevGameState {

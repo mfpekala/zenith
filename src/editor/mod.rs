@@ -17,6 +17,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
+use save::{export_level, ExportLevelEvent};
 use serde::{Deserialize, Serialize};
 
 use self::{
@@ -102,7 +103,7 @@ fn setup_editor(
     mut set_event: EventWriter<SetCameraModeEvent>,
     mut bg_kind: ResMut<BackgroundKind>,
 ) {
-    let handle = asset_server.load::<LevelData>("levels/editing.level.ron");
+    let handle = asset_server.load::<LevelData>("levels/editing/template.level.ron");
     commands.spawn(LevelEditingHandle(handle));
     commands.spawn((
         EditingSceneRoot,
@@ -151,8 +152,10 @@ impl Plugin for EditorPlugin {
         app.insert_resource(FuckySceneResource::default());
         app.add_event::<SaveEditorEvent>();
         app.add_event::<LoadEditorEvent>();
+        app.add_event::<ExportLevelEvent>();
         app.add_systems(Update, save_editor.run_if(in_editor));
         app.add_systems(Update, load_editor.run_if(in_editor));
+        app.add_systems(Update, export_level.run_if(in_editor));
         app.add_systems(Update, connect_parents.run_if(in_editor));
         app.add_systems(Update, fix_after_load.run_if(in_editor));
         app.register_type::<EditingSceneRoot>();

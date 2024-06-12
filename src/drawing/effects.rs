@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::Duration};
 
 use crate::{
     math::{lerp, Spleen},
@@ -120,8 +120,13 @@ fn manage_screen_effects(
             black_box.color = Color::rgba(0.0, 0.0, 0.0, interp);
         }
         ScreenEffect::UnfadeToBlack => {
-            let interp = screen_effect.current_val.interp();
-            black_box.color = Color::rgba(0.0, 0.0, 0.0, 1.0 - interp);
+            if black_box.color.a() < 0.0001 {
+                black_box.color.set_a(0.0);
+                screen_effect.current_val.timer.tick(Duration::new(100, 0));
+            } else {
+                let interp = screen_effect.current_val.interp();
+                black_box.color = Color::rgba(0.0, 0.0, 0.0, 1.0 - interp);
+            }
         }
     }
 }

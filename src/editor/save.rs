@@ -1,4 +1,8 @@
-use std::{fs, ops::Deref};
+use std::{
+    fs::{self, File},
+    io::Write,
+    ops::Deref,
+};
 
 use bevy::{
     ecs::{entity::EntityHashMap, system::SystemState},
@@ -15,7 +19,10 @@ use super::{
 };
 use crate::{
     drawing::animation_mat::AnimationMaterial,
-    meta::game_state::{EditingMode, SetGameState},
+    meta::{
+        game_state::{EditingMode, SetGameState},
+        level_data::LevelDataOneshots,
+    },
 };
 
 #[derive(Component, Default, Reflect, Serialize, Deserialize)]
@@ -23,10 +30,13 @@ use crate::{
 pub struct SaveMarker;
 
 #[derive(Event)]
-pub(super) struct SaveEditorEvent;
+pub(super) struct SaveEditorEvent(pub String);
 
 #[derive(Event)]
-pub(super) struct LoadEditorEvent;
+pub(super) struct LoadEditorEvent(pub String);
+
+#[derive(Event)]
+pub(super) struct ExportLevelEvent(pub String);
 
 fn unfuck_serialization(fucked: String) -> String {
     let mut result = String::new();
@@ -187,9 +197,10 @@ pub(super) fn save_editor(
     )>,
 ) {
     let (mut events, eroot_q, _, parent_q, _) = params.get(world);
-    if events.read().count() <= 0 {
+    let Some(save_event) = events.read().last() else {
         return;
-    }
+    };
+    let save_name = save_event.0.clone();
     let Ok(eroot) = eroot_q.get_single() else {
         return;
     };
@@ -223,10 +234,18 @@ pub(super) fn save_editor(
 
     match serialized_scene {
         Ok(text) => {
-            fs::write("assets/test.scn.ron", text.clone()).expect("Unable to write file");
+            fs::write(
+                format!("assets/levels/editing/{}.scn.ron", save_name),
+                text.clone(),
+            )
+            .expect("Unable to write file");
             let unfucked = unfuck_serialization(text);
             world.send_event(HelpBarEvent("Saved scene successfully".to_string()));
-            fs::write("assets/test.scn.ron", unfucked.clone()).expect("Unable to write file");
+            fs::write(
+                format!("assets/levels/editing/{}.scn.ron", save_name),
+                unfucked.clone(),
+            )
+            .expect("Unable to write file");
         }
         Err(e) => {
             println!("{:?}", e);
@@ -250,11 +269,13 @@ pub(super) fn load_editor(
     )>,
 ) {
     let (mut loads, _, _, _) = params.get_mut(world);
-    if loads.read().count() <= 0 {
+    let Some(load_event) = loads.read().last() else {
         return;
-    }
+    };
+    let load_name = load_event.0.clone();
     let (_, asset_server, mut fucky_scene, mut set_gs) = params.get_mut(world);
-    let scene_handle: Handle<DynamicScene> = asset_server.load("test.scn.ron");
+    let scene_handle: Handle<DynamicScene> =
+        asset_server.load(format!("levels/editing/{}.scn.ron", load_name));
     *fucky_scene = FuckySceneResource(Some(scene_handle));
     set_gs.send(SetGameState(EditingMode::Free.to_game_state()));
 }
@@ -329,5 +350,43 @@ pub(super) fn connect_parents(
         .chain(orphan_goal.iter())
     {
         commands.entity(eroot).push_children(&[id]);
+    }
+}
+
+pub(super) fn export_level(
+    world: &mut World,
+    params: &mut SystemState<(
+        Res<LevelDataOneshots>,
+        EventReader<ExportLevelEvent>,
+        EventWriter<HelpBarEvent>,
+    )>,
+) {
+    let (level_oneshots, mut export_events, _) = params.get_mut(world);
+    let Some(event) = export_events.read().last() else {
+        return;
+    };
+    let name = event.0.clone();
+    let level_oneshots = level_oneshots.clone();
+    match world.run_system(level_oneshots.crystallize_level_data_id) {
+        Ok(level_data) => {
+            let (_, _, mut event_writer) = params.get_mut(world);
+            let Ok(mut file) = File::create(format!("assets/levels/{}.level.ron", name)) else {
+                event_writer.send(HelpBarEvent("Failed to open file to export to".to_string()));
+                return;
+            };
+            let Ok(level_string) = ron::to_string(&level_data) else {
+                event_writer.send(HelpBarEvent(
+                    "Failed to serialize level_data to ron string".to_string(),
+                ));
+                return;
+            };
+            file.write_all(level_string.as_bytes()).ok();
+        }
+        Err(_) => {
+            let (_, _, mut event_writer) = params.get_mut(world);
+            event_writer.send(HelpBarEvent(
+                "Failed to crystallize level data (system)".to_string(),
+            ));
+        }
     }
 }

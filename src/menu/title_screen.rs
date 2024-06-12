@@ -6,7 +6,7 @@ use crate::{
     },
     environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
     math::Spleen,
-    meta::game_state::{GameState, MenuState, MetaState, SetGameState},
+    meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetGameState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -72,8 +72,14 @@ fn update_title_screen(
 ) {
     let transition_time = 0.75;
     if keys.is_changed() && !keys.is_added() && death.iter().len() == 0 {
+        if keys.pressed(KeyCode::KeyE) {
+            // Activate the editor by pressing E
+            gs_writer.send(SetGameState(GameState {
+                meta: MetaState::Editor(EditorState::Editing(EditingState::blank())),
+            }));
+            return;
+        }
         for (id, offset) in bgs.iter() {
-            commands.entity(id).remove::<BgOffsetSpleen>();
             commands.entity(id).insert(BgOffsetSpleen {
                 vel_start: offset.vel,
                 vel_goal: Vec2::new(2.0, 0.2) * 2_010.4,
