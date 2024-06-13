@@ -34,7 +34,7 @@ impl BulletTime {
 }
 
 pub fn should_apply_physics(gs: Res<GameState>) -> bool {
-    if gs.paused {
+    if gs.pause.is_some() {
         return false;
     }
     match gs.meta {

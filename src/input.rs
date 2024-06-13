@@ -261,6 +261,7 @@ struct ShotArrowBundle {
     marker: ShotArrowMarker,
     spatial: SpatialBundle,
     anim: MultiAnimationManager,
+    name: Name,
 }
 impl ShotArrowBundle {
     pub fn new() -> Self {
@@ -283,6 +284,7 @@ impl ShotArrowBundle {
             marker: ShotArrowMarker,
             spatial,
             anim: MultiAnimationManager::from_pairs(vec![("head", head), ("body", body)]),
+            name: Name::new("shot_arrow_marker"),
         }
     }
 }

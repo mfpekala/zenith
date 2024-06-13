@@ -86,7 +86,7 @@ fn update_title_screen(
         for (id, offset) in bgs.iter() {
             commands.entity(id).insert(BgOffsetSpleen {
                 vel_start: offset.vel,
-                vel_goal: Vec2::new(2.0, 0.2) * 2_010.4,
+                vel_goal: -Vec2::new(2.0, 0.2) * 2_010.4,
                 timer: Timer::from_seconds(transition_time, TimerMode::Once),
                 spleen: Spleen::EaseInQuintic,
             });

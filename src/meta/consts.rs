@@ -71,7 +71,10 @@ macro_rules! add_hot_resource {
             let handle = asset_server.load::<$res_struct>($ron_path);
             // NOTE: This (kind of) dangling handle just ensures the constants never get unloaded
             commands.insert_resource($res_struct::default());
-            commands.spawn(handle);
+            commands.spawn((
+                handle,
+                Name::new(format!("hot_resource_{}", stringify!($res_struct))),
+            ));
         }
 
         pub(super) fn $update_fname(

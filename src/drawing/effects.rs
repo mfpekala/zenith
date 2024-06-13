@@ -130,7 +130,7 @@ fn manage_screen_effects(
             if interp >= 0.9999 {
                 if let Some(gs) = gs {
                     meta_writer.send(SetMetaState(gs.meta.clone()));
-                    pause_writer.send(SetPaused(gs.paused));
+                    pause_writer.send(SetPaused(gs.pause));
                 }
             }
         }

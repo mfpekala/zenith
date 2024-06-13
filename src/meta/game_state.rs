@@ -90,10 +90,19 @@ impl MetaState {
     }
 }
 
+/// What kind of pause are we in. Contains kind of duplicate data as meta,
+/// but probably fine because it gets implementational simplicity
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PauseState {
+    Level,
+    Editor,
+    Settings,
+}
+
 #[derive(Resource, Clone, Debug, PartialEq)]
 pub struct GameState {
     pub meta: MetaState,
-    pub paused: bool,
+    pub pause: Option<PauseState>,
 }
 impl GameState {
     pub fn is_in_menu(&self) -> bool {
@@ -124,7 +133,7 @@ impl GameState {
     pub fn into_prev(self) -> PrevGameState {
         PrevGameState {
             meta: self.meta,
-            paused: self.paused,
+            pause: self.pause,
         }
     }
 
@@ -139,13 +148,13 @@ impl GameState {
 #[derive(Resource, Clone, Debug)]
 pub struct PrevGameState {
     pub meta: MetaState,
-    pub paused: bool,
+    pub pause: Option<PauseState>,
 }
 impl PrevGameState {
     pub fn into_game_state(self) -> GameState {
         GameState {
             meta: self.meta,
-            paused: self.paused,
+            pause: self.pause,
         }
     }
 }
@@ -154,7 +163,7 @@ impl PrevGameState {
 pub struct SetMetaState(pub MetaState);
 
 #[derive(Event)]
-pub struct SetPaused(pub bool);
+pub struct SetPaused(pub Option<PauseState>);
 
 fn translate_events(
     mut state_change: EventReader<SetMetaState>,
@@ -167,7 +176,7 @@ fn translate_events(
         gs.meta = new_state.clone();
     };
     if let Some(SetPaused(new_paused)) = paused_change.read().last() {
-        gs.paused = *new_paused;
+        gs.pause = *new_paused;
     };
 }
 
@@ -184,11 +193,11 @@ pub fn register_game_state(app: &mut App) {
     });
     app.insert_resource(GameState {
         meta: initial_state.clone(),
-        paused: false,
+        pause: None,
     });
     app.insert_resource(PrevGameState {
         meta: initial_state,
-        paused: false,
+        pause: None,
     });
     app.add_event::<SetMetaState>();
     app.add_event::<SetPaused>();

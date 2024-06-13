@@ -568,6 +568,7 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
+        Name::new("bg_reduced_layer"),
         reduced_layer,
     ));
 
@@ -582,6 +583,7 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
+        Name::new("reduced_layer"),
         reduced_layer,
     ));
 
@@ -598,6 +600,7 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
+        Name::new("reduced_output_layer"),
         output_layer,
     ));
 
@@ -614,6 +617,7 @@ fn setup_post_processing_camera(
             },
             ..default()
         },
+        Name::new("menu_output_layer"),
         output_layer,
     ));
 
