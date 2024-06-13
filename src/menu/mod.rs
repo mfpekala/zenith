@@ -23,6 +23,6 @@ impl Plugin for MenuPlugin {
         app.add_systems(Update, update_pause.run_if(is_paused));
         app.add_systems(Update, destroy_pause.run_if(did_pause_end));
         app.add_systems(Update, materialize_buttons.after(setup_pause));
-        app.add_systems(Update, materialize_button_backgrounds);
+        app.add_systems(FixedUpdate, materialize_button_backgrounds);
     }
 }
