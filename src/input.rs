@@ -8,11 +8,11 @@ use crate::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
         layering::menu_layer_u8,
     },
-    editor::is_testing,
     meta::{
-        consts::{MENU_GROWTH, SCREEN_HEIGHT, SCREEN_WIDTH},
+        consts::{MENU_GROWTH, SCREEN_WIDTH},
         game_state::{in_editor, in_level, GameState},
     },
+    physics::should_apply_physics,
     ship::Ship,
 };
 
@@ -57,6 +57,7 @@ pub fn watch_mouse(
     time: Res<Time>,
     screen_mults: Res<ScreenMults>,
     window_dims: Res<WindowDims>,
+    gs: Res<GameState>,
 ) {
     let can_shoot = ships.iter().all(|ship| ship.can_shoot);
     // Helper function to terminate a launch
@@ -67,25 +68,27 @@ pub fn watch_mouse(
             vel: pending.launch_vel,
         });
     };
-    // Update the timer for the launch
-    let has_timer = match mouse_state.pending_launch.as_ref() {
-        Some(pending) => pending.timer.is_some(),
-        None => false,
-    };
-    if has_timer {
-        let did_timer_expire = match mouse_state.pending_launch.as_mut() {
-            Some(pending) => {
-                pending.timer.as_mut().unwrap().tick(time.delta());
-                pending.timer.as_ref().unwrap().finished()
-            }
+    if should_apply_physics(gs) {
+        // Update the timer for the launch
+        let has_timer = match mouse_state.pending_launch.as_ref() {
+            Some(pending) => pending.timer.is_some(),
             None => false,
         };
-        if did_timer_expire {
-            send_launch(&mut mouse_state, &mut launch_event);
-        }
-    } else if let Some(pending) = mouse_state.pending_launch.as_mut() {
-        if can_shoot {
-            pending.timer = Some(Timer::from_seconds(1.0, TimerMode::Once));
+        if has_timer {
+            let did_timer_expire = match mouse_state.pending_launch.as_mut() {
+                Some(pending) => {
+                    pending.timer.as_mut().unwrap().tick(time.delta());
+                    pending.timer.as_ref().unwrap().finished()
+                }
+                None => false,
+            };
+            if did_timer_expire {
+                send_launch(&mut mouse_state, &mut launch_event);
+            }
+        } else if let Some(pending) = mouse_state.pending_launch.as_mut() {
+            if can_shoot {
+                pending.timer = Some(Timer::from_seconds(1.0, TimerMode::Once));
+            }
         }
     }
     let Some(mut mouse_pos) = q_windows.single().cursor_position() else {
@@ -300,7 +303,7 @@ fn update_shot_arrow(
         multi.map.get_mut("head").unwrap().set_hidden(true);
         multi.map.get_mut("body").unwrap().set_hidden(true);
     };
-    if !gs.is_in_level() && !is_testing(gs) {
+    if !should_apply_physics(gs) {
         set_invisible(&mut multi);
         return;
     }

@@ -20,7 +20,7 @@ use super::{
 use crate::{
     drawing::animation_mat::AnimationMaterial,
     meta::{
-        game_state::{EditingMode, SetGameState},
+        game_state::{EditingMode, SetMetaState},
         level_data::LevelDataOneshots,
     },
 };
@@ -265,7 +265,7 @@ pub(super) fn load_editor(
         EventReader<LoadEditorEvent>,
         Res<AssetServer>,
         ResMut<FuckySceneResource>,
-        EventWriter<SetGameState>,
+        EventWriter<SetMetaState>,
     )>,
 ) {
     let (mut loads, _, _, _) = params.get_mut(world);
@@ -277,7 +277,7 @@ pub(super) fn load_editor(
     let scene_handle: Handle<DynamicScene> =
         asset_server.load(format!("levels/editing/{}.scn.ron", load_name));
     *fucky_scene = FuckySceneResource(Some(scene_handle));
-    set_gs.send(SetGameState(EditingMode::Free.to_game_state()));
+    set_gs.send(SetMetaState(EditingMode::Free.to_meta_state()));
 }
 
 pub(super) fn fix_after_load(

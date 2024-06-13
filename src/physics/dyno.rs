@@ -17,7 +17,7 @@ use super::{
         resolve_static_collisions, resolve_trigger_collisions, update_triggers, ColliderActive,
         ColliderBoundary, ColliderStatic, ColliderTrigger,
     },
-    BulletTime,
+    should_apply_physics, BulletTime,
 };
 
 #[derive(Component, Debug, Default, Clone, Reflect, Serialize, Deserialize)]
@@ -256,8 +256,14 @@ pub fn apply_fields(
 pub fn register_int_dynos(app: &mut App) {
     app.add_systems(
         FixedUpdate,
-        (move_int_dynos, update_triggers, apply_fields).chain(),
+        (move_int_dynos, update_triggers, apply_fields)
+            .chain()
+            .run_if(should_apply_physics),
     );
-
-    app.add_systems(FixedUpdate, move_int_moveables.after(move_int_dynos));
+    app.add_systems(
+        FixedUpdate,
+        move_int_moveables
+            .after(move_int_dynos)
+            .run_if(should_apply_physics),
+    );
 }

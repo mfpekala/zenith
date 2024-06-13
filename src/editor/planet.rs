@@ -16,7 +16,7 @@ use crate::{
     environment::rock::RockKind,
     input::MouseState,
     math::MathLine,
-    meta::game_state::{EditingMode, GameState, SetGameState},
+    meta::game_state::{EditingMode, GameState, SetMetaState},
     physics::dyno::IntMoveable,
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
@@ -93,7 +93,7 @@ impl EPlanetBundle {
 pub(super) fn planet_state_input(
     mut commands: Commands,
     gs: Res<GameState>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_state: Res<MouseState>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
@@ -109,14 +109,14 @@ pub(super) fn planet_state_input(
             if keyboard.just_pressed(KeyCode::KeyP) {
                 let bund = EPlanetBundle::new(mouse_state.world_pos);
                 let id = commands.spawn(bund).id();
-                gs_writer.send(SetGameState(
-                    EditingMode::CreatingPlanet(id).to_game_state(),
+                gs_writer.send(SetMetaState(
+                    EditingMode::CreatingPlanet(id).to_meta_state(),
                 ));
             } else if mouse_buttons.just_pressed(MouseButton::Left) {
                 for (point, parent) in points.iter() {
                     if point.is_hovered && eplanets.get(parent.get()).is_ok() {
-                        gs_writer.send(SetGameState(
-                            EditingMode::EditingPlanet(parent.get()).to_game_state(),
+                        gs_writer.send(SetMetaState(
+                            EditingMode::EditingPlanet(parent.get()).to_meta_state(),
                         ));
                         return;
                     }
@@ -126,7 +126,7 @@ pub(super) fn planet_state_input(
         EditingMode::CreatingPlanet(_) | EditingMode::EditingPlanet(_) => {
             if mouse_buttons.just_pressed(MouseButton::Left) {
                 if num_points_hovered == 0 {
-                    gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+                    gs_writer.send(SetMetaState(EditingMode::Free.to_meta_state()));
                 }
             }
         }

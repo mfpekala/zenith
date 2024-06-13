@@ -16,6 +16,14 @@ impl GameRelativePlacement {
         Self { pos, scale }
     }
 }
+impl Default for GameRelativePlacement {
+    fn default() -> Self {
+        Self {
+            pos: IVec3::ZERO,
+            scale: 1.0,
+        }
+    }
+}
 
 #[derive(Bundle)]
 pub struct GameRelativePlacementBundle {
@@ -23,6 +31,10 @@ pub struct GameRelativePlacementBundle {
     spatial: SpatialBundle,
 }
 impl GameRelativePlacementBundle {
+    pub(super) fn from_inner(game_relative: GameRelativePlacement) -> Self {
+        Self::new(game_relative.pos, game_relative.scale)
+    }
+
     pub(super) fn new(pos: IVec3, scale: f32) -> Self {
         let spatial = SpatialBundle::from_transform(Transform {
             translation: pos.as_vec3() * MENU_GROWTH as f32,

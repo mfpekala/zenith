@@ -7,7 +7,7 @@ use crate::{
     camera::CameraMarker,
     drawing::layering::sprite_layer,
     math::{lerp, lerp_color, Spleen},
-    physics::BulletTime,
+    physics::{should_apply_physics, BulletTime},
 };
 
 #[derive(Component)]
@@ -374,6 +374,7 @@ pub fn register_particles(app: &mut App) {
             size_particles,
             color_particles,
             light_particles,
-        ),
+        )
+            .run_if(should_apply_physics),
     );
 }

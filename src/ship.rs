@@ -9,7 +9,7 @@ use crate::environment::rock::{Rock, RockKind};
 use crate::input::LaunchEvent;
 use crate::input::LongKeyPress;
 use crate::math::Spleen;
-use crate::meta::game_state::{GameState, MetaState, SetGameState};
+use crate::meta::game_state::{GameState, MetaState, SetMetaState};
 use crate::meta::level_data::LevelRoot;
 use crate::physics::collider::ColliderActive;
 use crate::physics::dyno::{apply_fields, IntDyno};
@@ -79,7 +79,7 @@ pub fn launch_ship(
     mut ship_q: Query<(&mut IntDyno, &mut Ship)>,
     mut launch_events: EventReader<LaunchEvent>,
     gs: Res<GameState>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
     bullet_time: Res<BulletTime>,
 ) {
     let level_state = gs.get_level_state();
@@ -92,9 +92,7 @@ pub fn launch_ship(
             ship.can_shoot = false;
             if let Some(mut ls) = level_state.clone() {
                 ls.num_shots += 1;
-                gs_writer.send(SetGameState(GameState {
-                    meta: MetaState::Level(ls.clone()),
-                }));
+                gs_writer.send(SetMetaState(MetaState::Level(ls.clone())));
             }
         }
     }

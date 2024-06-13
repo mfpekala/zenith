@@ -5,7 +5,7 @@ use crate::{
     drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
     input::MouseState,
     meta::game_state::{
-        EditingMode, EditingState, EditorState, GameState, MetaState, SetGameState,
+        EditingMode, EditingState, EditorState, GameState, MetaState, SetMetaState,
     },
     physics::dyno::IntMoveable,
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
@@ -137,7 +137,7 @@ pub(super) fn spawn_points(
     gs: Res<GameState>,
     mut eplanets: Query<(&mut EPlanet, &IntMoveable)>,
     points: Query<(Entity, &EPoint, &IntMoveable, &UIdMarker)>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
     ut: Res<UIdTranslator>,
 ) {
     let Some(mode) = gs.get_editing_mode() else {
@@ -161,11 +161,11 @@ pub(super) fn spawn_points(
                     .1
                     .is_hovered;
             if closing {
-                gs_writer.send(SetGameState(GameState {
-                    meta: MetaState::Editor(EditorState::Editing(EditingState {
+                gs_writer.send(SetMetaState(MetaState::Editor(EditorState::Editing(
+                    EditingState {
                         mode: EditingMode::EditingPlanet(planet_id),
-                    })),
-                }));
+                    },
+                ))));
             } else {
                 commands.entity(planet_id).with_children(|parent| {
                     let bund = EPointBundle::new(
@@ -440,7 +440,7 @@ pub(super) fn delete_points(
     points: Query<(Entity, &EPoint, &Parent, &UIdMarker)>,
     key_buttons: Res<ButtonInput<KeyCode>>,
     gs: Res<GameState>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
 ) {
     if key_buttons.pressed(KeyCode::Backspace) {
         // Despawn the point, and then remove it from it's parent rock/field list
@@ -483,7 +483,7 @@ pub(super) fn delete_points(
             match gs.get_editing_mode() {
                 Some(EditingMode::CreatingPlanet(id)) | Some(EditingMode::EditingPlanet(id)) => {
                     if planet_id == id {
-                        gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+                        gs_writer.send(SetMetaState(EditingMode::Free.to_meta_state()));
                     }
                 }
                 _ => (),

@@ -3,7 +3,7 @@ use crate::{
         effects::{ScreenEffect, ScreenEffectManager},
         text::{TextAlign, TextBoxBundle, TextWeight},
     },
-    meta::game_state::{GameState, LevelState, MenuState, MetaState, SetGameState},
+    meta::game_state::{GameState, LevelState, MenuState, MetaState, SetMetaState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -78,7 +78,7 @@ fn update_constellation_screen(
     mut death: Query<(Entity, &mut ConstellationScreenDeath)>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
     mut options: Query<(&ConstellationScreenOption, &mut GameRelativePlacement)>,
     mut screen_effect: ResMut<ScreenEffectManager>,
 ) {
@@ -111,9 +111,9 @@ fn update_constellation_screen(
             if death.timer.finished() {
                 commands.entity(id).despawn_recursive();
                 // TODO: If there is >0% completion, should go to galaxy overworld
-                gs_writer.send(SetGameState(GameState {
-                    meta: MetaState::Level(LevelState::fresh_from_id("basic".to_string())),
-                }));
+                gs_writer.send(SetMetaState(MetaState::Level(LevelState::fresh_from_id(
+                    "basic".to_string(),
+                ))));
             }
         }
     };

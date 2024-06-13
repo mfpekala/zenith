@@ -3,7 +3,7 @@ use crate::{
     drawing::layering::menu_layer,
     meta::{
         consts::{MENU_HEIGHT, MENU_WIDTH},
-        game_state::{EditingMode, EditorState, GameState, SetGameState},
+        game_state::{EditingMode, EditorState, GameState, SetMetaState},
     },
 };
 use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
@@ -429,7 +429,7 @@ pub(super) fn run_help_bar_command(
         EventWriter<SaveEditorEvent>,
         EventWriter<LoadEditorEvent>,
         EventWriter<ExportLevelEvent>,
-        EventWriter<SetGameState>,
+        EventWriter<SetMetaState>,
         Query<&EStart>,
         Query<&EGoal>,
     )>,
@@ -495,10 +495,10 @@ pub(super) fn run_help_bar_command(
         } else if egoal_q.iter().len() == 0 {
             send_output("You must spawn a goal position before testing");
         } else {
-            gs_writer.send(SetGameState(EditorState::Testing.to_game_state()));
+            gs_writer.send(SetMetaState(EditorState::Testing.to_meta_state()));
         }
     } else if &input == "edit" {
-        gs_writer.send(SetGameState(EditingMode::Free.to_game_state()));
+        gs_writer.send(SetMetaState(EditingMode::Free.to_meta_state()));
     } else if input.starts_with("export ") {
         let Some(name) = input.strip_prefix("export ") else {
             send_output(&format!("Invalid export: {}", input));

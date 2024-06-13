@@ -6,7 +6,7 @@ use crate::{
     },
     environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
     math::Spleen,
-    meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetGameState},
+    meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetMetaState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -67,16 +67,16 @@ fn update_title_screen(
     mut death: Query<(Entity, &mut TitleScreenDeath)>,
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut gs_writer: EventWriter<SetGameState>,
+    mut gs_writer: EventWriter<SetMetaState>,
     bgs: Query<(Entity, &BgOffset)>,
 ) {
     let transition_time = 0.75;
     if keys.is_changed() && !keys.is_added() && death.iter().len() == 0 {
         if keys.pressed(KeyCode::KeyE) {
             // Activate the editor by pressing E
-            gs_writer.send(SetGameState(GameState {
-                meta: MetaState::Editor(EditorState::Editing(EditingState::blank())),
-            }));
+            gs_writer.send(SetMetaState(MetaState::Editor(EditorState::Editing(
+                EditingState::blank(),
+            ))));
             return;
         }
         for (id, offset) in bgs.iter() {
@@ -106,9 +106,9 @@ fn update_title_screen(
             });
         }
         commands.entity(id).despawn_recursive();
-        gs_writer.send(SetGameState(GameState {
-            meta: MetaState::Menu(MenuState::ConstellationSelect),
-        }));
+        gs_writer.send(SetMetaState(MetaState::Menu(
+            MenuState::ConstellationSelect,
+        )));
     }
 }
 

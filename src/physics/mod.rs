@@ -34,6 +34,9 @@ impl BulletTime {
 }
 
 pub fn should_apply_physics(gs: Res<GameState>) -> bool {
+    if gs.paused {
+        return false;
+    }
     match gs.meta {
         MetaState::Menu(_) => false,
         MetaState::Editor(editor_state) => match editor_state {

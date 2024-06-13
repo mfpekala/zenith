@@ -1,4 +1,4 @@
-use crate::menu::placement::GameRelativePlacement;
+use crate::menu::placement::{GameRelativePlacement, GameRelativePlacementBundle};
 
 use super::layering::menu_layer;
 use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor};
@@ -41,11 +41,19 @@ impl TextAlign {
             Self::Center => Anchor::Center,
         }
     }
+
+    pub fn to_justify(&self) -> JustifyText {
+        match *self {
+            Self::Left => JustifyText::Left,
+            Self::Center => JustifyText::Center,
+            Self::Right => JustifyText::Right,
+        }
+    }
 }
 
 #[derive(Bundle)]
 pub struct TextBoxBundle {
-    inner: Text2dBundle,
+    pub inner: Text2dBundle,
     render_layers: RenderLayers,
 }
 impl TextBoxBundle {
@@ -57,7 +65,7 @@ impl TextBoxBundle {
         weight: TextWeight,
         align: TextAlign,
         asset_server: &Res<AssetServer>,
-    ) -> impl Bundle {
+    ) -> (Self, GameRelativePlacement) {
         (
             Self {
                 inner: Text2dBundle {
@@ -69,7 +77,8 @@ impl TextBoxBundle {
                             color,
                             ..default()
                         },
-                    ),
+                    )
+                    .with_justify(align.to_justify()),
                     text_anchor: align.to_anchor(),
                     transform: Transform::from_translation(placement.pos.as_vec3()),
                     ..default()

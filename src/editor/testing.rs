@@ -15,24 +15,18 @@ const TESTING_HOME: IVec2 = IVec2::new(6000, 6000);
 
 pub(super) fn start_testing(
     world: &mut World,
-    params: &mut SystemState<(
-        Res<LevelDataOneshots>,
-        Query<&mut IntMoveable, With<CameraMarker>>,
-        EventWriter<HelpBarEvent>,
-    )>,
+    params: &mut SystemState<(Res<LevelDataOneshots>, EventWriter<HelpBarEvent>)>,
 ) {
-    let (level_oneshots, _, _) = params.get_mut(world);
+    let (level_oneshots, _) = params.get_mut(world);
     let level_oneshots = level_oneshots.clone();
     match world.run_system(level_oneshots.crystallize_level_data_id) {
         Ok(level_data) => {
             world
                 .run_system_with_input(level_oneshots.spawn_level_id, (1, level_data, TESTING_HOME))
                 .unwrap();
-            let (_, mut camera_q, mut event) = params.get_mut(world);
-            
         }
         Err(_) => {
-            let (_, _, mut event) = params.get_mut(world);
+            let (_, mut event) = params.get_mut(world);
             event.send(HelpBarEvent(
                 "Failed to crystallize level data (system)".to_string(),
             ));

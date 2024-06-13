@@ -14,10 +14,8 @@ pub enum EditingMode {
     EditingPlanet(Entity),
 }
 impl EditingMode {
-    pub fn to_game_state(&self) -> GameState {
-        GameState {
-            meta: MetaState::Editor(EditorState::Editing(EditingState { mode: *self })),
-        }
+    pub fn to_meta_state(&self) -> MetaState {
+        MetaState::Editor(EditorState::Editing(EditingState { mode: *self }))
     }
 }
 
@@ -32,10 +30,8 @@ impl EditingState {
         }
     }
 
-    pub fn to_game_state(&self) -> GameState {
-        GameState {
-            meta: MetaState::Editor(EditorState::Editing(self.clone())),
-        }
+    pub fn to_meta_state(&self) -> MetaState {
+        MetaState::Editor(EditorState::Editing(self.clone()))
     }
 }
 
@@ -56,10 +52,8 @@ impl EditorState {
         }
     }
 
-    pub fn to_game_state(&self) -> GameState {
-        GameState {
-            meta: MetaState::Editor(self.clone()),
-        }
+    pub fn to_meta_state(&self) -> MetaState {
+        MetaState::Editor(self.clone())
     }
 }
 
@@ -99,6 +93,7 @@ impl MetaState {
 #[derive(Resource, Clone, Debug)]
 pub struct GameState {
     pub meta: MetaState,
+    pub paused: bool,
 }
 impl GameState {
     pub fn is_in_menu(&self) -> bool {
@@ -127,7 +122,10 @@ impl GameState {
     }
 
     pub fn into_prev(self) -> PrevGameState {
-        PrevGameState { meta: self.meta }
+        PrevGameState {
+            meta: self.meta,
+            paused: self.paused,
+        }
     }
 
     pub fn get_editing_mode(&self) -> Option<EditingMode> {
@@ -141,32 +139,40 @@ impl GameState {
 #[derive(Resource, Clone, Debug)]
 pub struct PrevGameState {
     pub meta: MetaState,
+    pub paused: bool,
 }
 impl PrevGameState {
     pub fn into_game_state(self) -> GameState {
-        GameState { meta: self.meta }
+        GameState {
+            meta: self.meta,
+            paused: self.paused,
+        }
     }
 }
 
 #[derive(Event)]
-pub struct SetGameState(pub GameState);
+pub struct SetMetaState(pub MetaState);
+
+#[derive(Event)]
+pub struct SetPaused(pub bool);
 
 fn translate_events(
-    mut state_change: EventReader<SetGameState>,
+    mut state_change: EventReader<SetMetaState>,
+    mut paused_change: EventReader<SetPaused>,
     mut prev_gs: ResMut<PrevGameState>,
     mut gs: ResMut<GameState>,
 ) {
     *prev_gs = gs.clone().into_prev();
-    let Some(SetGameState(new_state)) = state_change.read().last() else {
-        return;
+    if let Some(SetMetaState(new_state)) = state_change.read().last() {
+        gs.meta = new_state.clone();
     };
-    *gs = new_state.clone();
+    if let Some(SetPaused(new_paused)) = paused_change.read().last() {
+        gs.paused = *new_paused;
+    };
 }
 
-fn set_initial_game_state(mut gs_writer: EventWriter<SetGameState>) {
-    gs_writer.send(SetGameState(GameState {
-        meta: MetaState::Menu(MenuState::Title),
-    }));
+fn set_initial_game_state(mut gs_writer: EventWriter<SetMetaState>) {
+    gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Title)));
 }
 
 pub fn register_game_state(app: &mut App) {
@@ -178,11 +184,14 @@ pub fn register_game_state(app: &mut App) {
     });
     app.insert_resource(GameState {
         meta: initial_state.clone(),
+        paused: false,
     });
     app.insert_resource(PrevGameState {
         meta: initial_state,
+        paused: false,
     });
-    app.add_event::<SetGameState>();
+    app.add_event::<SetMetaState>();
+    app.add_event::<SetPaused>();
     app.add_systems(Startup, set_initial_game_state);
     app.add_systems(PostUpdate, translate_events);
 }
