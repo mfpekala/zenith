@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MenuState {
     Title,
     ConstellationSelect,
@@ -19,7 +19,7 @@ impl EditingMode {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EditingState {
     pub mode: EditingMode,
 }
@@ -35,7 +35,7 @@ impl EditingState {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EditorState {
     Editing(EditingState),
     Testing,
@@ -57,7 +57,7 @@ impl EditorState {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LevelState {
     pub id: String,
     pub next_id: Option<String>,
@@ -75,7 +75,7 @@ impl LevelState {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MetaState {
     Menu(MenuState),
     Editor(EditorState),
@@ -90,7 +90,7 @@ impl MetaState {
     }
 }
 
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, PartialEq)]
 pub struct GameState {
     pub meta: MetaState,
     pub paused: bool,

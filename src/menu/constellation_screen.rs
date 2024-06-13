@@ -3,7 +3,7 @@ use crate::{
         effects::{ScreenEffect, ScreenEffectManager},
         text::{TextAlign, TextBoxBundle, TextWeight},
     },
-    meta::game_state::{GameState, LevelState, MenuState, MetaState, SetMetaState},
+    meta::game_state::{GameState, LevelState, MenuState, MetaState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -13,11 +13,6 @@ use super::placement::GameRelativePlacement;
 /// Root of the constellation screen. Destroyed on on_destroy
 #[derive(Component)]
 struct ConstellationScreenRoot;
-
-#[derive(Component)]
-struct ConstellationScreenDeath {
-    pub timer: Timer,
-}
 
 #[derive(Component, Debug)]
 pub struct ConstellationScreenData {
@@ -73,50 +68,33 @@ fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetSer
 }
 
 fn update_constellation_screen(
-    mut commands: Commands,
     mut screen_data: Query<&mut ConstellationScreenData>,
-    mut death: Query<(Entity, &mut ConstellationScreenDeath)>,
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    mut gs_writer: EventWriter<SetMetaState>,
     mut options: Query<(&ConstellationScreenOption, &mut GameRelativePlacement)>,
     mut screen_effect: ResMut<ScreenEffectManager>,
 ) {
-    let transition_time = 1.0;
-    match death.get_single_mut() {
-        Err(_) => {
-            // Player has not yet selected a save file
-            let mut screen_data = screen_data.single_mut();
-            if keys.pressed(KeyCode::ArrowLeft) {
-                screen_data.selection = 0;
-            } else if keys.pressed(KeyCode::ArrowRight) {
-                screen_data.selection = 1;
-            }
-            for (option, mut placement) in options.iter_mut() {
-                if screen_data.selection == option.0 {
-                    placement.scale = 1.5;
-                } else {
-                    placement.scale = 0.75;
-                }
-            }
-            if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
-                screen_effect.queue_effect(ScreenEffect::FadeToBlack);
-                commands.spawn(ConstellationScreenDeath {
-                    timer: Timer::from_seconds(transition_time + 0.05, TimerMode::Once),
-                });
+    if screen_effect.is_none() {
+        // Player has not yet selected a save file
+        let mut screen_data = screen_data.single_mut();
+        if keys.pressed(KeyCode::ArrowLeft) {
+            screen_data.selection = 0;
+        } else if keys.pressed(KeyCode::ArrowRight) {
+            screen_data.selection = 1;
+        }
+        for (option, mut placement) in options.iter_mut() {
+            if screen_data.selection == option.0 {
+                placement.scale = 1.5;
+            } else {
+                placement.scale = 0.75;
             }
         }
-        Ok((id, mut death)) => {
-            death.timer.tick(time.delta());
-            if death.timer.finished() {
-                commands.entity(id).despawn_recursive();
-                // TODO: If there is >0% completion, should go to galaxy overworld
-                gs_writer.send(SetMetaState(MetaState::Level(LevelState::fresh_from_id(
-                    "basic".to_string(),
-                ))));
-            }
+        if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
+            screen_effect.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+                meta: MetaState::Level(LevelState::fresh_from_id("basic".to_string())),
+                paused: false,
+            })));
         }
-    };
+    }
 }
 
 fn destroy_constellation_screen(

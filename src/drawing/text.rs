@@ -1,4 +1,4 @@
-use crate::menu::placement::{GameRelativePlacement, GameRelativePlacementBundle};
+use crate::menu::placement::GameRelativePlacement;
 
 use super::layering::menu_layer;
 use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor};

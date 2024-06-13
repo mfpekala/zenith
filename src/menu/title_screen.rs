@@ -69,8 +69,12 @@ fn update_title_screen(
     keys: Res<ButtonInput<KeyCode>>,
     mut gs_writer: EventWriter<SetMetaState>,
     bgs: Query<(Entity, &BgOffset)>,
+    root: Query<Entity, With<TitleScreenRoot>>,
 ) {
     let transition_time = 0.75;
+    let Ok(root) = root.get_single() else {
+        return;
+    };
     if keys.is_changed() && !keys.is_added() && death.iter().len() == 0 {
         if keys.pressed(KeyCode::KeyE) {
             // Activate the editor by pressing E
@@ -87,8 +91,10 @@ fn update_title_screen(
                 spleen: Spleen::EaseInQuintic,
             });
         }
-        commands.spawn(TitleScreenDeath {
-            timer: Timer::from_seconds(transition_time + 0.25, TimerMode::Once),
+        commands.entity(root).with_children(|parent| {
+            parent.spawn(TitleScreenDeath {
+                timer: Timer::from_seconds(transition_time + 0.25, TimerMode::Once),
+            });
         });
     }
     let Ok((id, mut death)) = death.get_single_mut() else {

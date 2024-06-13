@@ -187,13 +187,17 @@ fn replenish_shot(
 pub fn spawn_trail(
     mut commands: Commands,
     ship: Query<&GlobalTransform, With<Ship>>,
-    mut mats: ResMut<Assets<ColorMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    level_root: Query<Entity, With<LevelRoot>>,
 ) {
     let Ok(tran) = ship.get_single() else {
         return;
     };
-    ParticleBundle::spawn_options(
+    // TODO: I should attach a particle spawner to the ship, and then have the particle spawner
+    // handle doing this
+    let Ok(level_root) = level_root.get_single() else {
+        return;
+    };
+    let id = ParticleBundle::spawn_options(
         &mut commands,
         ParticleBody {
             pos: tran.translation().truncate(),
@@ -212,9 +216,8 @@ pub fn spawn_trail(
             }),
             ..default()
         },
-        &mut mats,
-        &mut meshes,
     );
+    commands.entity(level_root).add_child(id);
 }
 
 pub fn register_ship(app: &mut App) {

@@ -67,3 +67,9 @@ pub(super) fn actively_load(
         screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
     }
 }
+
+pub(super) fn destroy_level(level_roots: Query<Entity, With<LevelRoot>>, mut commands: Commands) {
+    for eid in level_roots.iter() {
+        commands.entity(eid).despawn_recursive();
+    }
+}

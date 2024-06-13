@@ -149,8 +149,6 @@ impl ParticleBundle {
         body: ParticleBody,
         lifespan: f32,
         options: ParticleOptions,
-        _mats: &mut ResMut<Assets<ColorMaterial>>,
-        _meshes: &mut ResMut<Assets<Mesh>>,
     ) -> Entity {
         let id = commands.spawn(Self::new(body, lifespan)).id();
         if let Some(sizing) = options.sizing {
@@ -158,19 +156,6 @@ impl ParticleBundle {
         }
         if let Some(coloring) = options.coloring {
             commands.entity(id).insert(coloring);
-        }
-        if let Some(_lighting) = options.lighting {
-            // commands.entity(id).with_children(|parent| {
-            //     let lb = ParticleLightingBundle::new(
-            //         12,
-            //         lighting.radius,
-            //         lighting.color,
-            //         lighting.spleen,
-            //         mats,
-            //         meshes,
-            //     );
-            //     parent.spawn(lb);
-            // });
         }
         id
     }
@@ -303,8 +288,6 @@ fn update_spawners(
     mut commands: Commands,
     mut spawners: Query<(&mut ParticleSpawner, &GlobalTransform)>,
     time: Res<Time>,
-    mut mats: ResMut<Assets<ColorMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     bullet_time: Res<BulletTime>,
 ) {
     let mut rng = thread_rng();
@@ -350,8 +333,6 @@ fn update_spawners(
                 },
                 lifespan,
                 spawner.options.clone(),
-                &mut mats,
-                &mut meshes,
             );
         }
     }

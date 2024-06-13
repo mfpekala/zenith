@@ -2,7 +2,10 @@ use std::{collections::VecDeque, time::Duration};
 
 use crate::{
     math::{lerp, Spleen},
-    meta::consts::{MENU_HEIGHT, MENU_WIDTH},
+    meta::{
+        consts::{MENU_HEIGHT, MENU_WIDTH},
+        game_state::{GameState, SetMetaState, SetPaused},
+    },
 };
 use bevy::prelude::*;
 
@@ -40,10 +43,10 @@ impl EffectVal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ScreenEffect {
     None,
-    FadeToBlack,
+    FadeToBlack(Option<GameState>),
     UnfadeToBlack,
 }
 
@@ -76,10 +79,14 @@ impl ScreenEffectManager {
                 .queued_effects
                 .pop_front()
                 .unwrap_or(ScreenEffect::None);
-            let timer_time = if kind == ScreenEffect::None { 0.0 } else { 1.0 };
+            let timer_time = if kind == ScreenEffect::None { 0.0 } else { 0.3 };
             self.current_kind = kind;
             self.current_val = EffectVal::new(0.0, 1.0, Spleen::EaseInOutCubic, timer_time);
         }
+    }
+
+    pub fn is_none(&self) -> bool {
+        self.current_kind == ScreenEffect::None
     }
 }
 
@@ -110,14 +117,22 @@ fn manage_screen_effects(
     mut screen_effect: ResMut<ScreenEffectManager>,
     time: Res<Time>,
     mut black_box: Query<&mut Sprite, With<ScreenBlackBox>>,
+    mut meta_writer: EventWriter<SetMetaState>,
+    mut pause_writer: EventWriter<SetPaused>,
 ) {
     screen_effect.update_current(&time);
     let mut black_box = black_box.single_mut();
-    match screen_effect.current_kind {
+    match &screen_effect.current_kind {
         ScreenEffect::None => (),
-        ScreenEffect::FadeToBlack => {
+        ScreenEffect::FadeToBlack(gs) => {
             let interp = screen_effect.current_val.interp();
             black_box.color = Color::rgba(0.0, 0.0, 0.0, interp);
+            if interp >= 0.9999 {
+                if let Some(gs) = gs {
+                    meta_writer.send(SetMetaState(gs.meta.clone()));
+                    pause_writer.send(SetPaused(gs.paused));
+                }
+            }
         }
         ScreenEffect::UnfadeToBlack => {
             if black_box.color.a() < 0.0001 {

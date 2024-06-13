@@ -1,15 +1,18 @@
 use bevy::prelude::*;
 
 use crate::{
-    drawing::layering::menu_layer,
+    drawing::{
+        effects::{ScreenEffect, ScreenEffectManager},
+        layering::menu_layer,
+    },
     meta::{
         consts::{MENU_HEIGHT, MENU_WIDTH},
-        game_state::{GameState, MetaState, PrevGameState, SetPaused},
+        game_state::{GameState, MenuState, MetaState, PrevGameState, SetPaused},
     },
 };
 
 use super::{
-    button::{MenuButton, MenuButtonBundle},
+    button::{MenuButton, MenuButtonBundle, MenuButtonPressed},
     placement::GameRelativePlacement,
 };
 
@@ -25,13 +28,27 @@ pub fn is_paused(state: Res<GameState>) -> bool {
     state.paused
 }
 
+pub fn is_unpaused(state: Res<GameState>) -> bool {
+    !state.paused
+}
+
 pub(super) fn start_pause(
     mut pause_writer: EventWriter<SetPaused>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) && !gs.is_in_menu() {
+    if keyboard.just_pressed(KeyCode::Escape) && !gs.paused && !gs.is_in_menu() {
         pause_writer.send(SetPaused(true));
+    }
+}
+
+pub(super) fn stop_pause(
+    mut pause_writer: EventWriter<SetPaused>,
+    gs: Res<GameState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) && gs.paused {
+        pause_writer.send(SetPaused(false));
     }
 }
 
@@ -47,7 +64,11 @@ impl PauseRoot {
     }
 }
 
-pub(super) fn setup_pause(mut gs: ResMut<GameState>, mut commands: Commands) {
+pub(super) fn setup_pause(
+    gs: Res<GameState>,
+    mut commands: Commands,
+    mut set_paused_writer: EventWriter<SetPaused>,
+) {
     if !gs.paused {
         // Shouldn't happen
         return;
@@ -69,32 +90,48 @@ pub(super) fn setup_pause(mut gs: ResMut<GameState>, mut commands: Commands) {
     };
     match &gs.meta {
         MetaState::Menu(_) => {
-            gs.paused = false;
+            set_paused_writer.send(SetPaused(false));
             return;
         }
-        MetaState::Level(level_state) => {
+        MetaState::Level(_) => {
             commands
                 .spawn(PauseRoot::new_root("level"))
                 .with_children(|parent| {
                     spawn_background(parent, Color::rgba(0.2, 0.2, 0.2, 0.8));
                     parent.spawn(MenuButtonBundle::new(
-                        MenuButton::basic("test", "Test"),
+                        MenuButton::basic("exit_menu", "Exit to main menu"),
                         GameRelativePlacement::new(IVec3::new(0, 0, 12), 1.0),
                     ));
                 });
         }
-        MetaState::Editor(editor_state) => {}
+        MetaState::Editor(_) => {}
     }
 }
 
 pub(super) fn update_pause(
-    mut set_paused: EventWriter<SetPaused>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut button_pressed: EventReader<MenuButtonPressed>,
+    gs: Res<GameState>,
+    mut screen_effects: ResMut<ScreenEffectManager>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) {
-        // You can always press escape to exit a pause
-        set_paused.send(SetPaused(false));
-        return;
+    let last_button = button_pressed.read().last();
+    match &gs.meta {
+        MetaState::Menu(_) => (),
+        MetaState::Level(_) => {
+            let Some(last_button) = last_button else {
+                return;
+            };
+            match last_button.0.as_str() {
+                "exit_menu" => {
+                    screen_effects.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+                        meta: MetaState::Menu(MenuState::Title),
+                        paused: false,
+                    })));
+                    screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
+                }
+                _ => panic!("Bad button press on menu"),
+            }
+        }
+        MetaState::Editor(_) => {}
     }
 }
 
