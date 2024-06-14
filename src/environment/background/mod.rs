@@ -1,28 +1,93 @@
+use std::collections::VecDeque;
+
 use crate::{
     camera::{camera_movement, CameraMarker},
-    drawing::layering::{bg_light_layer, bg_sprite_layer},
+    drawing::{
+        effects::EffectVal,
+        layering::{bg_light_layer, bg_sprite_layer},
+    },
     math::Spleen,
-    meta::consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+    meta::{
+        consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
+        game_state::{GameState, SetMetaState, SetPaused},
+    },
     physics::{dyno::IntMoveable, BulletTime},
 };
 use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 
-#[derive(Resource, PartialEq, Copy, Clone)]
-pub enum BackgroundKind {
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum BgKind {
     None,
     ParallaxStars(usize),
 }
 
-#[derive(Resource)]
-struct LastBackgroundKind(BackgroundKind);
+#[derive(PartialEq, Clone, Debug)]
+pub enum BgEffect {
+    ScrollStars(Vec2, f32, Spleen, Option<GameState>),
+}
 
-#[derive(Component, Clone)]
-/// A struct to mark things as being in the background layer for clearing purposes
-pub struct BgMarker;
+#[derive(Resource)]
+pub struct BgManager {
+    current_kind: BgKind,
+    next_kind: Option<BgKind>,
+    current_effect: Option<(BgEffect, EffectVal)>,
+    queued_effects: VecDeque<BgEffect>,
+}
+impl BgManager {
+    fn blank() -> Self {
+        Self {
+            current_kind: BgKind::None,
+            next_kind: None,
+            current_effect: None,
+            queued_effects: VecDeque::new(),
+        }
+    }
+
+    pub fn queue_effect(&mut self, effect: BgEffect) {
+        self.queued_effects.push_back(effect)
+    }
+
+    /// Marks that the kind should change
+    pub fn set_kind(&mut self, kind: BgKind) {
+        self.next_kind = Some(kind);
+    }
+
+    /// Updates the current effect, returning (started_effect, finished_effect)
+    fn update_effect(&mut self, time: &Res<Time>) -> (Option<BgEffect>, Option<BgEffect>) {
+        let can_pop_front = match self.current_effect.as_mut() {
+            Some((_effect, val)) => {
+                val.timer.tick(time.delta());
+                val.timer.finished() && !val.timer.just_finished()
+            }
+            None => true,
+        };
+        if can_pop_front {
+            let finished_effect = self.current_effect.take().map(|thing| thing.0);
+            let new_effect = match self.queued_effects.pop_front() {
+                Some(effect) => {
+                    let time = match &effect {
+                        _ => 1.0,
+                    };
+                    self.current_effect = Some((
+                        effect.clone(),
+                        EffectVal::new(0.0, 1.0, Spleen::EaseInOutCubic, time),
+                    ));
+                    Some(effect)
+                }
+                None => {
+                    self.current_effect = None;
+                    None
+                }
+            };
+            return (new_effect, finished_effect);
+        }
+        (None, None)
+    }
+}
 
 #[derive(Component, Clone, Debug, Default)]
-pub struct BgDepth {
+pub(super) struct BgDepth {
     /// The logical depth of the entity. Effects position of the element.
     pub depth: u8,
     /// Should the entity shrink according to it's depth?
@@ -80,7 +145,7 @@ impl BgPosKind {
 
 #[derive(Component, Clone, Debug, Default)]
 /// Component driving the positioning of background elements, along with BgDepth
-pub struct BgOffset {
+pub(super) struct BgOffset {
     pub vel: Vec2,
     pub pos: BgPosKind,
     pub placed: Vec2,
@@ -117,7 +182,7 @@ impl BgOffset {
 }
 
 #[derive(Component, Clone, Debug)]
-pub struct BgOffsetSpleen {
+pub(super) struct BgOffsetSpleen {
     pub vel_start: Vec2,
     pub vel_goal: Vec2,
     pub spleen: Spleen,
@@ -125,15 +190,14 @@ pub struct BgOffsetSpleen {
 }
 
 #[derive(Bundle, Clone)]
-pub struct PlacedBgBundle {
-    pub _marker: BgMarker,
+pub(super) struct PlacedBgBundle {
     pub depth: BgDepth,
     pub offset: BgOffset,
 }
 impl PlacedBgBundle {
     /// Creates a bg bundle at the given fraction of the screen (should be between 0.5 and -0.5)
     /// This bundle will have pos-type Free and will NOT have a parallax effect
-    pub fn basic_stationary(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
+    pub(super) fn _basic_stationary(depth: u8, frac_pos: Vec2, scale: f32) -> Self {
         let depth = BgDepth {
             depth,
             shrink: Some(true),
@@ -141,11 +205,7 @@ impl PlacedBgBundle {
             wrap: Some(3.0),
         };
         let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale, false);
-        Self {
-            _marker: BgMarker,
-            depth,
-            offset,
-        }
+        Self { depth, offset }
     }
 
     /// Creates a bg bundle at the given fraction of the screen
@@ -158,11 +218,7 @@ impl PlacedBgBundle {
             wrap: Some(3.0),
         };
         let offset = BgOffset::from_frac_pos(&depth, frac_pos, scale, true);
-        Self {
-            _marker: BgMarker,
-            depth,
-            offset,
-        }
+        Self { depth, offset }
     }
 }
 
@@ -254,73 +310,102 @@ fn move_bg_entities(
 }
 
 #[derive(Component)]
-pub struct BackgroundRoot;
+pub struct BgRoot;
 
 fn setup_background(mut commands: Commands) {
-    commands.spawn((
-        Name::new("BackgroundRoot"),
-        BackgroundRoot,
-        SpatialBundle::default(),
-    ));
+    commands.spawn((Name::new("bg_root"), BgRoot, SpatialBundle::default()));
 }
 
 fn update_background(
-    mut last_bg_kind: ResMut<LastBackgroundKind>,
-    bg_kind: Res<BackgroundKind>,
+    mut bg_manager: ResMut<BgManager>,
     mut commands: Commands,
-    bg_root: Query<Entity, With<BackgroundRoot>>,
+    bg_root: Query<Entity, With<BgRoot>>,
     asset_server: Res<AssetServer>,
+    time: Res<Time>,
+    mut meta_writer: EventWriter<SetMetaState>,
+    mut pause_writer: EventWriter<SetPaused>,
+    bgs: Query<(Entity, &BgOffset)>,
 ) {
     let Ok(root_eid) = bg_root.get_single() else {
-        error!("Weird stuff happening in updatebackground");
+        error!("Weird stuff happening in update background");
         return;
     };
-    if last_bg_kind.0 == *bg_kind {
-        return;
+
+    // First handle the kind
+    if let Some(next_kind) = bg_manager.next_kind.take() {
+        if next_kind != bg_manager.current_kind {
+            bg_manager.current_kind = next_kind.clone();
+            commands.entity(root_eid).despawn_descendants();
+            commands
+                .entity(root_eid)
+                .with_children(|parent| match next_kind {
+                    BgKind::None => (),
+                    BgKind::ParallaxStars(num_stars) => {
+                        let depth_min = 5;
+                        let depth_max = 14;
+                        let scale_min = 1.0;
+                        let scale_max = 5.0;
+                        let mut rng = thread_rng();
+                        for _ in 0..num_stars {
+                            let depth: u8 = rng.gen_range(depth_min..depth_max) as u8;
+                            let frac_pos = Vec2 {
+                                x: -0.5 + rng.gen::<f32>(),
+                                y: -0.5 + rng.gen::<f32>(),
+                            };
+                            let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
+                            let placement = PlacedBgBundle::basic_parallax(depth, frac_pos, scale);
+                            let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
+                            let sprite = SpriteBundle {
+                                texture: asset_server.load("sprites/stars/7a.png"),
+                                sprite: Sprite { color, ..default() },
+                                ..default()
+                            };
+                            let sprite_l = SpriteBundle {
+                                texture: asset_server.load("sprites/stars/7aL.png"),
+                                ..default()
+                            };
+                            parent.spawn((placement.clone(), sprite, bg_sprite_layer()));
+                            parent.spawn((placement, sprite_l, bg_light_layer()));
+                        }
+                    }
+                });
+        }
     }
-    last_bg_kind.0 = *bg_kind;
-    commands.entity(root_eid).despawn_descendants();
-    commands
-        .entity(root_eid)
-        .with_children(|parent| match *bg_kind {
-            BackgroundKind::None => (),
-            BackgroundKind::ParallaxStars(num_stars) => {
-                let depth_min = 5;
-                let depth_max = 14;
-                let scale_min = 1.0;
-                let scale_max = 5.0;
-                let mut rng = thread_rng();
-                for _ in 0..num_stars {
-                    let depth: u8 = rng.gen_range(depth_min..depth_max) as u8;
-                    let frac_pos = Vec2 {
-                        x: -0.5 + rng.gen::<f32>(),
-                        y: -0.5 + rng.gen::<f32>(),
-                    };
-                    let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
-                    let placement = PlacedBgBundle::basic_parallax(depth, frac_pos, scale);
-                    let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
-                    let sprite = SpriteBundle {
-                        texture: asset_server.load("sprites/stars/7a.png"),
-                        sprite: Sprite { color, ..default() },
-                        ..default()
-                    };
-                    let sprite_l = SpriteBundle {
-                        texture: asset_server.load("sprites/stars/7aL.png"),
-                        ..default()
-                    };
-                    parent.spawn((placement.clone(), sprite, bg_sprite_layer()));
-                    parent.spawn((placement, sprite_l, bg_light_layer()));
-                }
+
+    // Then handle the effect
+    let (started_effect, finished_effect) = bg_manager.update_effect(&time);
+    match finished_effect {
+        Some(BgEffect::ScrollStars(_vel, _time, _spleen, gs)) => {
+            for (id, _offset) in bgs.iter() {
+                commands.entity(id).remove::<BgOffsetSpleen>();
             }
-        });
+            if let Some(gs) = gs {
+                meta_writer.send(SetMetaState(gs.meta.clone()));
+                pause_writer.send(SetPaused(gs.pause));
+            }
+        }
+        None => (),
+    };
+    match started_effect {
+        Some(BgEffect::ScrollStars(vel, time, spleen, _gs)) => {
+            for (id, offset) in bgs.iter() {
+                commands.entity(id).insert(BgOffsetSpleen {
+                    vel_start: offset.vel,
+                    vel_goal: vel,
+                    timer: Timer::from_seconds(time, TimerMode::Once),
+                    spleen,
+                });
+            }
+        }
+        None => (),
+    };
 }
 
 pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BackgroundKind::None);
-        app.insert_resource(LastBackgroundKind(BackgroundKind::None));
+        app.insert_resource(BgManager::blank());
         app.add_systems(Startup, setup_background);
         app.add_systems(FixedUpdate, move_bg_entities.after(camera_movement));
         app.add_systems(Update, update_background);

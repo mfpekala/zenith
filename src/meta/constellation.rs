@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct LevelMetaData {
@@ -72,4 +72,20 @@ impl ConstellationKind {
             levels: self.to_levels(),
         }
     }
+}
+
+/// Maps constellation (enum as string) to (completed, id_of_level_on)
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::asset::Asset,
+    bevy::reflect::TypePath,
+    Debug,
+    PartialEq,
+    Clone,
+    Resource,
+    Default,
+)]
+pub struct ConstellationProgress {
+    pub map: HashMap<String, (bool, String)>,
 }

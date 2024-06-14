@@ -90,7 +90,7 @@ fn update_constellation_screen(
         }
         if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
             screen_effect.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
-                meta: MetaState::Level(LevelState::fresh_from_id("basic".to_string())),
+                meta: MetaState::Level(LevelState::fresh_from_id("cbasic_1".to_string())),
                 pause: None,
             })));
         }

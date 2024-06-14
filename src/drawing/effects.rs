@@ -16,7 +16,7 @@ pub struct EffectVal {
     start_val: f32,
     goal_val: f32,
     spleen: Spleen,
-    timer: Timer,
+    pub timer: Timer,
 }
 impl EffectVal {
     pub fn blank(initial_val: f32) -> Self {

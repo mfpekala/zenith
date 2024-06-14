@@ -4,7 +4,7 @@ use crate::{
         layering::menu_layer_u8,
         text::{Flashing, TextAlign, TextBoxBundle, TextWeight},
     },
-    environment::background::{BackgroundKind, BgOffset, BgOffsetSpleen},
+    environment::background::{BgEffect, BgKind, BgManager},
     math::Spleen,
     meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetMetaState},
     when_becomes_false, when_becomes_true,
@@ -18,16 +18,14 @@ use super::placement::{GameRelativePlacement, GameRelativePlacementBundle};
 struct TitleScreenRoot;
 
 #[derive(Component)]
-struct TitleScreenDeath {
-    pub timer: Timer,
-}
+struct TitleScreenDeath;
 
 fn setup_title_screen(
     mut commands: Commands,
-    mut bg_kind: ResMut<BackgroundKind>,
+    mut bg_manager: ResMut<BgManager>,
     asset_server: Res<AssetServer>,
 ) {
-    *bg_kind = BackgroundKind::ParallaxStars(500);
+    bg_manager.set_kind(BgKind::ParallaxStars(500));
     commands
         .spawn((
             SpatialBundle::default(),
@@ -64,14 +62,12 @@ fn setup_title_screen(
 
 fn update_title_screen(
     mut commands: Commands,
-    mut death: Query<(Entity, &mut TitleScreenDeath)>,
-    time: Res<Time>,
+    death: Query<Entity, With<TitleScreenDeath>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut gs_writer: EventWriter<SetMetaState>,
-    bgs: Query<(Entity, &BgOffset)>,
     root: Query<Entity, With<TitleScreenRoot>>,
+    mut bg_manager: ResMut<BgManager>,
 ) {
-    let transition_time = 0.75;
     let Ok(root) = root.get_single() else {
         return;
     };
@@ -83,38 +79,24 @@ fn update_title_screen(
             ))));
             return;
         }
-        for (id, offset) in bgs.iter() {
-            commands.entity(id).insert(BgOffsetSpleen {
-                vel_start: offset.vel,
-                vel_goal: -Vec2::new(2.0, 0.2) * 2_010.4,
-                timer: Timer::from_seconds(transition_time, TimerMode::Once),
-                spleen: Spleen::EaseInQuintic,
-            });
-        }
+        bg_manager.queue_effect(BgEffect::ScrollStars(
+            -Vec2::new(2.0, 0.2) * 2_010.4,
+            1.0,
+            Spleen::EaseInQuintic,
+            Some(GameState {
+                meta: MetaState::Menu(MenuState::ConstellationSelect),
+                pause: None,
+            }),
+        ));
+        bg_manager.queue_effect(BgEffect::ScrollStars(
+            Vec2::ZERO,
+            1.0,
+            Spleen::EaseOutQuintic,
+            None,
+        ));
         commands.entity(root).with_children(|parent| {
-            parent.spawn(TitleScreenDeath {
-                timer: Timer::from_seconds(transition_time + 0.25, TimerMode::Once),
-            });
+            parent.spawn(TitleScreenDeath);
         });
-    }
-    let Ok((id, mut death)) = death.get_single_mut() else {
-        return;
-    };
-    death.timer.tick(time.delta());
-    if death.timer.finished() {
-        for (id, offset) in bgs.iter() {
-            commands.entity(id).remove::<BgOffsetSpleen>();
-            commands.entity(id).insert(BgOffsetSpleen {
-                vel_start: offset.vel,
-                vel_goal: Vec2::ZERO,
-                timer: Timer::from_seconds(transition_time, TimerMode::Once),
-                spleen: Spleen::EaseOutQuintic,
-            });
-        }
-        commands.entity(id).despawn_recursive();
-        gs_writer.send(SetMetaState(MetaState::Menu(
-            MenuState::ConstellationSelect,
-        )));
     }
 }
 
