@@ -10,6 +10,7 @@ use crate::{
         field::Field,
         segment::{Segment, SegmentKind},
     },
+    meta::game_state::in_editor,
 };
 
 use super::{
@@ -264,6 +265,6 @@ pub fn register_int_dynos(app: &mut App) {
         FixedUpdate,
         move_int_moveables
             .after(move_int_dynos)
-            .run_if(should_apply_physics),
+            .run_if(should_apply_physics.or_else(in_editor)),
     );
 }

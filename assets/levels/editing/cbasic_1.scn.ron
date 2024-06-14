@@ -1,0 +1,1157 @@
+(
+  resources: {},
+  entities: {
+    4294968332: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 1238202812572692208,
+          name: "EditingRoot",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935618,
+          17179870195,
+          12884902894,
+        ]),
+        "zenith::editor::EditingSceneRoot": (),
+      },
+    ),
+    8589935608: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 5814812352040494876,
+          name: "Point",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -74.0,
+            y: 4.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -109.0,
+            y: 13.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "core": (
+              key: "solid",
+              map: {
+                "hollow": (
+                  sprite: (
+                    path: "sprites/editor/point_wild.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+                "solid": (
+                  sprite: (
+                    path: "sprites/editor/point.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-3, -3),(-3, 3),(3, 3),(3, -3),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+            "highlight": (
+              key: "sprites/editor/point_highlight.png",
+              map: {
+                "sprites/editor/point_highlight.png": (
+                  sprite: (
+                    path: "sprites/editor/point_highlight.png",
+                    size: (
+10, 10,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-5, -5),(-5, 5),(5, 5),(5, -5),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: true,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-74, 4, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589935618),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935607,
+          8589935606,
+          12884902898,
+        ]),
+        "zenith::uid::UIdMarker": (3214545726757861768),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+          selection_order: None,
+        ),
+      },
+    ),
+    8589935611: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 5814812352040494876,
+          name: "Point",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 151.0,
+            y: 1.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 116.0,
+            y: 10.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "core": (
+              key: "solid",
+              map: {
+                "hollow": (
+                  sprite: (
+                    path: "sprites/editor/point_wild.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+                "solid": (
+                  sprite: (
+                    path: "sprites/editor/point.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-3, -3),(-3, 3),(3, 3),(3, -3),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+            "highlight": (
+              key: "sprites/editor/point_highlight.png",
+              map: {
+                "sprites/editor/point_highlight.png": (
+                  sprite: (
+                    path: "sprites/editor/point_highlight.png",
+                    size: (
+10, 10,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-5, -5),(-5, 5),(5, 5),(5, -5),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: true,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (151, 1, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589935618),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935610,
+          8589935609,
+          12884902901,
+        ]),
+        "zenith::uid::UIdMarker": (17474984091316582725),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+          selection_order: None,
+        ),
+      },
+    ),
+    8589935614: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 5814812352040494876,
+          name: "Point",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 54.0,
+            y: -66.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 19.0,
+            y: -57.0,
+            z: 2.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "core": (
+              key: "solid",
+              map: {
+                "hollow": (
+                  sprite: (
+                    path: "sprites/editor/point_wild.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+                "solid": (
+                  sprite: (
+                    path: "sprites/editor/point.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-3, -3),(-3, 3),(3, 3),(3, -3),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+            "highlight": (
+              key: "sprites/editor/point_highlight.png",
+              map: {
+                "sprites/editor/point_highlight.png": (
+                  sprite: (
+                    path: "sprites/editor/point_highlight.png",
+                    size: (
+10, 10,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-5, -5),(-5, 5),(5, 5),(5, -5),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: true,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (54, -66, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589935618),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935613,
+          8589935612,
+        ]),
+        "zenith::uid::UIdMarker": (18349246400433780164),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::point::EPoint": (
+          kind: Rock,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+          selection_order: None,
+        ),
+      },
+    ),
+    8589935618: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 15480445105289579950,
+          name: "Planet",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -35.0,
+            y: 9.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -35.0,
+            y: 9.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "field_0": (
+              key: "sprites/field/field_bg.png",
+              map: {
+                "sprites/field/field_bg.png": (
+                  sprite: (
+                    path: "sprites/field/field_bg.png",
+                    size: (
+12, 12,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-74, 4),(-70, 114),(139, 112),(151, 1),              ],
+              scale: Repeat,
+              offset: (
+0, 0, -40              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+-0.0013332147, -0.099991105,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-35, 9, 0),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (4294968332),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935617,
+          8589935614,
+          8589935611,
+          8589935608,
+          8589935594,
+        ]),
+        "zenith::uid::UIdMarker": (15420594288482057285),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::planet::EPlanet": (
+          rock_points: [
+            3214545726757861768,
+            17474984091316582725,
+            18349246400433780164,
+          ],
+          rock_kind: Normal,
+          wild_points: [],
+          fields: [
+            (
+              field_points: [
+                3214545726757861768,
+                6869539716669281501,
+                12111281321970227269,
+                17474984091316582725,
+              ],
+              dir: (
+-0.013332147, -0.99991107,              ),
+            ),
+          ],
+        ),
+        "zenith::drawing::bordered_mesh::BorderedMesh": (
+          inners: [
+            ("normal", (
+              path: "textures/rock/normal_inner.png",
+              size: (
+36, 36,              ),
+            )),
+            ("simple_kill", (
+              path: "textures/rock/kill_inner.png",
+              size: (
+36, 36,              ),
+            )),
+            ("maglev", (
+              path: "textures/rock/maglev_inner.png",
+              size: (
+36, 36,              ),
+            )),
+          ],
+          outers: [
+            ("normal", (
+              path: "textures/rock/normal_outer.png",
+              size: (
+36, 36,              ),
+            )),
+            ("simple_kill", (
+              path: "textures/rock/kill_outer.png",
+              size: (
+36, 36,              ),
+            )),
+            ("maglev", (
+              path: "textures/rock/maglev_outer.png",
+              size: (
+36, 36,              ),
+            )),
+          ],
+          width: 7.0,
+          points: [
+(-74, 4),(151, 1),(54, -66),          ],
+          key: "normal",
+          is_changed: false,
+        ),
+      },
+    ),
+    12884902894: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 95.0,
+            y: 17.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 95.0,
+            y: 17.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (95, 17, 0),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (4294968332),
+        "bevy_hierarchy::components::children::Children": ([
+          8589935593,
+        ]),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::start_goal::EGoal": (
+          size: Medium,
+          strength: Medium,
+        ),
+        "zenith::editor::start_goal::EStartGoalDragOffset": (None),
+        "zenith::editor::start_goal::EStartGoalDiameter": (18),
+        "zenith::drawing::animation::AnimationManager": (
+          key: "sprites/start_goal/goal18.png",
+          map: {
+            "sprites/start_goal/goal18.png": (
+              sprite: (
+                path: "sprites/start_goal/goal18.png",
+                size: (
+18, 18,                ),
+              ),
+              length: 10,
+              next: None,
+              pace: None,
+            ),
+          },
+          points: [
+(-9, -9),(-9, 9),(9, 9),(9, -9),          ],
+          scale: Repeat,
+          offset: (
+0, 0, 0          ),
+          angle: 0.0,
+          render_layers_u8: [
+            3,
+          ],
+          hidden: false,
+          scroll: (
+0, 0,          ),
+          is_changed: false,
+          force_index: None,
+        ),
+      },
+    ),
+    12884902898: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 5814812352040494876,
+          name: "Point",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: 4.0,
+            y: 110.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -105.0,
+            y: 123.0,
+            z: 4.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "core": (
+              key: "solid",
+              map: {
+                "hollow": (
+                  sprite: (
+                    path: "sprites/editor/point_wild.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+                "solid": (
+                  sprite: (
+                    path: "sprites/editor/point.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-3, -3),(-3, 3),(3, 3),(3, -3),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+            "highlight": (
+              key: "sprites/editor/point_highlight.png",
+              map: {
+                "sprites/editor/point_highlight.png": (
+                  sprite: (
+                    path: "sprites/editor/point_highlight.png",
+                    size: (
+10, 10,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-5, -5),(-5, 5),(5, 5),(5, -5),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: true,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (4, 110, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589935608),
+        "bevy_hierarchy::components::children::Children": ([
+          12884902900,
+          12884902897,
+        ]),
+        "zenith::uid::UIdMarker": (6869539716669281501),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::point::EPoint": (
+          kind: Field,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+          selection_order: None,
+        ),
+      },
+    ),
+    12884902901: (
+      components: {
+        "bevy_core::name::Name": (
+          hash: 5814812352040494876,
+          name: "Point",
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -12.0,
+            y: 111.0,
+            z: 2.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: 104.0,
+            y: 121.0,
+            z: 4.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (false),
+        "zenith::drawing::animation::MultiAnimationManager": (
+          map: {
+            "core": (
+              key: "solid",
+              map: {
+                "hollow": (
+                  sprite: (
+                    path: "sprites/editor/point_wild.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+                "solid": (
+                  sprite: (
+                    path: "sprites/editor/point.png",
+                    size: (
+6, 6,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-3, -3),(-3, 3),(3, 3),(3, -3),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: false,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+            "highlight": (
+              key: "sprites/editor/point_highlight.png",
+              map: {
+                "sprites/editor/point_highlight.png": (
+                  sprite: (
+                    path: "sprites/editor/point_highlight.png",
+                    size: (
+10, 10,                    ),
+                  ),
+                  length: 1,
+                  next: None,
+                  pace: None,
+                ),
+              },
+              points: [
+(-5, -5),(-5, 5),(5, 5),(5, -5),              ],
+              scale: Repeat,
+              offset: (
+0, 0, 0              ),
+              angle: 0.0,
+              render_layers_u8: [
+                3,
+              ],
+              hidden: true,
+              scroll: (
+0, 0,              ),
+              is_changed: false,
+              force_index: None,
+            ),
+          },
+          is_coup: false,
+        ),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-12, 111, 2),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (8589935611),
+        "bevy_hierarchy::components::children::Children": ([
+          12884902895,
+          12884902896,
+        ]),
+        "zenith::uid::UIdMarker": (12111281321970227269),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::point::EPoint": (
+          kind: Field,
+          size: 3,
+          is_hovered: false,
+          is_selected: false,
+          drag_offset: None,
+          selection_order: None,
+        ),
+      },
+    ),
+    17179870195: (
+      components: {
+        "bevy_transform::components::transform::Transform": (
+          translation: (
+            x: -95.0,
+            y: 21.0,
+            z: 0.0,
+          ),
+          rotation: (
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 1.0,
+          ),
+          scale: (
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+          ),
+        ),
+        "bevy_transform::components::global_transform::GlobalTransform": ((
+          matrix3: (
+            x_axis: (
+              x: 1.0,
+              y: 0.0,
+              z: 0.0,
+            ),
+            y_axis: (
+              x: 0.0,
+              y: 1.0,
+              z: 0.0,
+            ),
+            z_axis: (
+              x: 0.0,
+              y: 0.0,
+              z: 1.0,
+            ),
+          ),
+          translation: (
+            x: -95.0,
+            y: 21.0,
+            z: 0.0,
+          ),
+        )),
+        "bevy_render::view::visibility::Visibility": Inherited,
+        "bevy_render::view::visibility::InheritedVisibility": (true),
+        "bevy_render::view::visibility::ViewVisibility": (true),
+        "bevy_render::view::visibility::render_layers::RenderLayers": (8),
+        "zenith::physics::dyno::IntMoveable": (
+
+    vel: (0, 0),
+    pos: (-95, 21, 0),
+    rem: (0, 0),
+),
+                    "bevy_hierarchy::components::parent::Parent": (4294968332),
+        "bevy_hierarchy::components::children::Children": ([
+          12884902893,
+        ]),
+        "zenith::editor::save::SaveMarker": (),
+        "zenith::editor::start_goal::EStart": (
+          size: Medium,
+        ),
+        "zenith::editor::start_goal::EStartGoalDragOffset": (None),
+        "zenith::editor::start_goal::EStartGoalDiameter": (18),
+        "zenith::drawing::animation::AnimationManager": (
+          key: "sprites/start_goal/start18.png",
+          map: {
+            "sprites/start_goal/start18.png": (
+              sprite: (
+                path: "sprites/start_goal/start18.png",
+                size: (
+18, 18,                ),
+              ),
+              length: 10,
+              next: None,
+              pace: None,
+            ),
+          },
+          points: [
+(-9, -9),(-9, 9),(9, 9),(9, -9),          ],
+          scale: Repeat,
+          offset: (
+0, 0, 0          ),
+          angle: 0.0,
+          render_layers_u8: [
+            3,
+          ],
+          hidden: false,
+          scroll: (
+0, 0,          ),
+          is_changed: false,
+          force_index: None,
+        ),
+      },
+    ),
+  },
+)

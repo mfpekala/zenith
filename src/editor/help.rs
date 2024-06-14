@@ -12,6 +12,7 @@ use std::fmt;
 use super::{
     save::{ExportLevelEvent, LoadEditorEvent, SaveEditorEvent},
     start_goal::{EGoal, EStart},
+    EditingSceneRoot,
 };
 
 #[derive(Component)]
@@ -100,6 +101,7 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
             SpatialBundle::from_transform(Transform::from_translation(
                 box_center.as_vec2().extend(0.0),
             )),
+            Name::new("editor_help_box"),
             menu_layer(),
         ))
         .with_children(|parent| {
@@ -154,6 +156,7 @@ pub(super) fn setup_editor_help(mut commands: Commands, help_config: Res<EditorH
             SpatialBundle::from_transform(Transform::from_translation(
                 bar_center.as_vec2().extend(0.0),
             )),
+            Name::new("help_bar_data"),
         ))
         .with_children(|parent| {
             // Input bar
@@ -404,8 +407,8 @@ pub(super) fn editor_help_input(
                     help_bar.input.pop();
                 }
             }
-            keyboard.reset_all();
         }
+        keyboard.reset_all();
     }
 }
 
@@ -432,6 +435,7 @@ pub(super) fn run_help_bar_command(
         EventWriter<SetMetaState>,
         Query<&EStart>,
         Query<&EGoal>,
+        Query<Entity, With<EditingSceneRoot>>,
     )>,
 ) {
     let (
@@ -443,10 +447,12 @@ pub(super) fn run_help_bar_command(
         mut gs_writer,
         estart_q,
         egoal_q,
+        eroot,
     ) = params.get_mut(world);
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
     };
+    let eroot = eroot.single();
     if !help_bar.submitted {
         return;
     }
@@ -510,6 +516,8 @@ pub(super) fn run_help_bar_command(
         }
 
         export_level_writer.send(ExportLevelEvent(name.to_string()));
+    } else if &input == "clear" {
+        world.entity_mut(eroot).despawn_descendants();
     } else {
         send_output(&format!("INVALID COMMAND: {}", input));
     }

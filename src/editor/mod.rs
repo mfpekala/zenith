@@ -7,6 +7,7 @@ use crate::{
         segment::SegmentKind,
     },
     input::{watch_camera_input, SetCameraModeEvent},
+    menu::paused::start_pause,
     meta::{
         game_state::{entered_editor, in_editor, left_editor, EditorState, GameState, MetaState},
         level_data::LevelData,
@@ -104,7 +105,10 @@ fn setup_editor(
     mut bg_kind: ResMut<BackgroundKind>,
 ) {
     let handle = asset_server.load::<LevelData>("levels/editing/template.level.ron");
-    commands.spawn(LevelEditingHandle(handle));
+    commands.spawn((
+        LevelEditingHandle(handle),
+        Name::new("level_editing_handle"),
+    ));
     commands.spawn((
         EditingSceneRoot,
         SpatialBundle::default(),
@@ -192,7 +196,8 @@ impl Plugin for EditorPlugin {
             Update,
             editor_help_input
                 .run_if(in_editor)
-                .before(watch_camera_input),
+                .before(watch_camera_input)
+                .before(start_pause),
         );
 
         // Points

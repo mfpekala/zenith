@@ -380,7 +380,10 @@ pub(super) fn export_level(
                 ));
                 return;
             };
-            file.write_all(level_string.as_bytes()).ok();
+            match file.write_all(level_string.as_bytes()) {
+                Ok(_) => world.send_event(HelpBarEvent("Level exported successfully".to_string())),
+                Err(e) => world.send_event(HelpBarEvent(format!("Level failed to export: {}", e))),
+            };
         }
         Err(_) => {
             let (_, _, mut event_writer) = params.get_mut(world);

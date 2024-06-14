@@ -47,7 +47,7 @@ pub fn is_unpaused(state: Res<GameState>) -> bool {
     state.pause.is_none()
 }
 
-pub(super) fn start_pause(
+pub fn start_pause(
     mut pause_writer: EventWriter<SetPaused>,
     gs: Res<GameState>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -136,6 +136,16 @@ pub(super) fn setup_specific_pause(
                     ));
                 });
         }
+        PauseState::Editor => {
+            commands
+                .spawn(PauseRoot::new_root("level"))
+                .with_children(|parent| {
+                    parent.spawn(MenuButtonBundle::new(
+                        MenuButton::basic("exit_menu", "Exit to main menu"),
+                        GameRelativePlacement::new(IVec3::new(0, 0, 12), 1.0),
+                    ));
+                });
+        }
         _ => todo!("setup_specific_pause"),
     }
 }
@@ -163,7 +173,22 @@ pub(super) fn update_pause(
                     })));
                     screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
                 }
-                _ => panic!("Bad button press on menu"),
+                _ => panic!("Bad button press on level pause menu"),
+            }
+        }
+        PauseState::Editor => {
+            let Some(last_button) = last_button else {
+                return;
+            };
+            match last_button.0.as_str() {
+                "exit_menu" => {
+                    screen_effects.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+                        meta: MetaState::Menu(MenuState::Title),
+                        pause: None,
+                    })));
+                    screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
+                }
+                _ => panic!("Bad button press on editor pause menu"),
             }
         }
         _ => todo!("pause_state update"),
