@@ -46,6 +46,9 @@ pub struct BgSpriteCameraMarker;
 pub fn bg_sprite_layer() -> RenderLayers {
     RenderLayers::from_layers(CAMERA_LAYER_BG_SPRITE)
 }
+pub fn bg_sprite_layer_u8() -> u8 {
+    CAMERA_LAYER_BG_SPRITE[0]
+}
 
 #[derive(Component)]
 pub struct SpriteCameraMarker;
@@ -60,6 +63,9 @@ pub fn sprite_layer_u8() -> u8 {
 pub struct BgLightCameraMarker;
 pub fn bg_light_layer() -> RenderLayers {
     RenderLayers::from_layers(CAMERA_LAYER_BG_LIGHT)
+}
+pub fn bg_light_layer_u8() -> u8 {
+    CAMERA_LAYER_BG_LIGHT[0]
 }
 
 #[derive(Component)]

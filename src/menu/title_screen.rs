@@ -5,7 +5,6 @@ use crate::{
         text::{Flashing, TextAlign, TextBoxBundle, TextWeight},
     },
     environment::background::{BgEffect, BgKind, BgManager},
-    math::Spleen,
     meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetMetaState},
     when_becomes_false, when_becomes_true,
 };
@@ -79,21 +78,12 @@ fn update_title_screen(
             ))));
             return;
         }
-        bg_manager.queue_effect(BgEffect::ScrollStars(
-            -Vec2::new(2.0, 0.2) * 2_010.4,
-            1.0,
-            Spleen::EaseInQuintic,
-            Some(GameState {
-                meta: MetaState::Menu(MenuState::ConstellationSelect),
-                pause: None,
-            }),
+        bg_manager.queue_effect(BgEffect::default_menu_scroll(
+            true,
+            true,
+            Some(MetaState::Menu(MenuState::ConstellationSelect)),
         ));
-        bg_manager.queue_effect(BgEffect::ScrollStars(
-            Vec2::ZERO,
-            1.0,
-            Spleen::EaseOutQuintic,
-            None,
-        ));
+        bg_manager.queue_effect(BgEffect::default_menu_scroll(true, false, None));
         commands.entity(root).with_children(|parent| {
             parent.spawn(TitleScreenDeath);
         });

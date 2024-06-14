@@ -53,6 +53,7 @@ pub struct AnimationManager {
     scroll: Vec2,
     is_changed: bool,
     force_index: Option<u32>,
+    ephemeral: bool,
 }
 impl AnimationManager {
     pub fn current_node(&self) -> AnimationNode {
@@ -203,6 +204,12 @@ impl AnimationManager {
             ..default()
         }
     }
+
+    /// Forces the animation_manager to be ephemeral
+    pub fn force_ephemeral(mut self) -> Self {
+        self.ephemeral = true;
+        self
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {
@@ -218,6 +225,7 @@ impl Default for AnimationManager {
             scroll: Vec2::ZERO,
             is_changed: true,
             force_index: Some(0),
+            ephemeral: false,
         }
     }
 }
@@ -481,7 +489,7 @@ fn update_animation_bodies(
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
         let mut mat =
             AnimationMaterial::from_handle(image_handle, length.0, Vec2::new(x_rep, y_rep));
-        mat.ephemeral = true;
+        mat.ephemeral = manager.ephemeral;
         let mat_ass = mats.add(mat);
         let mesh = points_to_mesh(&fpoints, &mut meshes);
         commands.entity(eid).insert(mat_ass);

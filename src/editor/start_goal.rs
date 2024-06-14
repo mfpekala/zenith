@@ -81,7 +81,8 @@ pub(super) fn spawn_or_update_start_goal(
                     anim: AnimationManager::single_repeating(
                         GoalSize::Medium.to_sprite_info(),
                         GoalSize::Medium.to_anim_length(),
-                    ),
+                    )
+                    .force_ephemeral(),
                     spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),
@@ -105,7 +106,8 @@ pub(super) fn spawn_or_update_start_goal(
                     anim: AnimationManager::single_repeating(
                         StartSize::Medium.to_sprite_info(),
                         StartSize::Medium.to_anim_length(),
-                    ),
+                    )
+                    .force_ephemeral(),
                     spatial: SpatialBundle::default(),
                     mv: IntMoveable::new(mouse_state.world_pos.extend(0)),
                     render_layers: sprite_layer(),

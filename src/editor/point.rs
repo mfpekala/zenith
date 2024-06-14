@@ -85,11 +85,13 @@ impl EPointBundle {
         let core_anim = AnimationManager::from_static_pairs(vec![
             ("solid", EPointKind::Rock.to_sprite_info()),
             ("hollow", EPointKind::Wild.to_sprite_info()),
-        ]);
+        ])
+        .force_ephemeral();
         let highlight_anim = AnimationManager::single_static(SpriteInfo {
             path: "sprites/editor/point_highlight.png".to_string(),
             size: UVec2::new(10, 10),
-        });
+        })
+        .force_ephemeral();
         Self {
             name: Name::new("Point"),
             uid: UIdMarker(my_uid),

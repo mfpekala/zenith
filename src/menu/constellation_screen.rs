@@ -1,9 +1,7 @@
 use crate::{
-    drawing::{
-        effects::{ScreenEffect, ScreenEffectManager},
-        text::{TextAlign, TextBoxBundle, TextWeight},
-    },
-    meta::game_state::{GameState, LevelState, MenuState, MetaState},
+    drawing::text::{TextAlign, TextBoxBundle, TextWeight},
+    environment::background::{BgEffect, BgManager},
+    meta::game_state::{GameState, MenuState, MetaState},
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -71,9 +69,9 @@ fn update_constellation_screen(
     mut screen_data: Query<&mut ConstellationScreenData>,
     keys: Res<ButtonInput<KeyCode>>,
     mut options: Query<(&ConstellationScreenOption, &mut GameRelativePlacement)>,
-    mut screen_effect: ResMut<ScreenEffectManager>,
+    mut bg_manager: ResMut<BgManager>,
 ) {
-    if screen_effect.is_none() {
+    if !bg_manager.has_active_effect() {
         // Player has not yet selected a save file
         let mut screen_data = screen_data.single_mut();
         if keys.pressed(KeyCode::ArrowLeft) {
@@ -89,10 +87,12 @@ fn update_constellation_screen(
             }
         }
         if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
-            screen_effect.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
-                meta: MetaState::Level(LevelState::fresh_from_id("cbasic_1".to_string())),
-                pause: None,
-            })));
+            bg_manager.queue_effect(BgEffect::default_menu_scroll(
+                true,
+                true,
+                Some(MetaState::Menu(MenuState::GalaxyOverworld)),
+            ));
+            bg_manager.queue_effect(BgEffect::default_menu_scroll(true, false, None));
         }
     }
 }

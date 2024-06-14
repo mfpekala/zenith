@@ -6,12 +6,9 @@ use crate::{
         layering::menu_layer,
     },
     environment::background::{BgEffect, BgManager},
-    math::Spleen,
     meta::{
         consts::{MENU_HEIGHT, MENU_WIDTH},
-        game_state::{
-            GameState, MenuState, MetaState, PauseState, PrevGameState, SetMetaState, SetPaused,
-        },
+        game_state::{GameState, MenuState, MetaState, PauseState, PrevGameState, SetPaused},
     },
 };
 
@@ -59,45 +56,35 @@ pub fn start_pause(
 ) {
     if keyboard.just_pressed(KeyCode::Escape) && gs.pause.is_none() {
         let pause_state = match &gs.meta {
-            MetaState::Menu(specific_menu) => match specific_menu {
-                MenuState::Title => None,
-                MenuState::GalaxyOverworld => {
-                    bg_manager.queue_effect(BgEffect::ScrollStars(
-                        Vec2::new(2.0, 0.2) * 2_010.4,
-                        1.0,
-                        Spleen::EaseInQuintic,
-                        Some(GameState {
-                            meta: MetaState::Menu(MenuState::Title),
-                            pause: None,
-                        }),
-                    ));
-                    bg_manager.queue_effect(BgEffect::ScrollStars(
-                        Vec2::ZERO,
-                        1.0,
-                        Spleen::EaseOutQuintic,
-                        None,
-                    ));
+            MetaState::Menu(specific_menu) => {
+                if bg_manager.has_active_effect() {
                     None
+                } else {
+                    match specific_menu {
+                        MenuState::Title => None,
+                        MenuState::ConstellationSelect => {
+                            bg_manager.queue_effect(BgEffect::default_menu_scroll(
+                                false,
+                                true,
+                                Some(MetaState::Menu(MenuState::Title)),
+                            ));
+                            bg_manager
+                                .queue_effect(BgEffect::default_menu_scroll(false, false, None));
+                            None
+                        }
+                        MenuState::GalaxyOverworld => {
+                            bg_manager.queue_effect(BgEffect::default_menu_scroll(
+                                false,
+                                true,
+                                Some(MetaState::Menu(MenuState::ConstellationSelect)),
+                            ));
+                            bg_manager
+                                .queue_effect(BgEffect::default_menu_scroll(false, false, None));
+                            None
+                        }
+                    }
                 }
-                MenuState::ConstellationSelect => {
-                    bg_manager.queue_effect(BgEffect::ScrollStars(
-                        Vec2::new(2.0, 0.2) * 2_010.4,
-                        1.0,
-                        Spleen::EaseInQuintic,
-                        Some(GameState {
-                            meta: MetaState::Menu(MenuState::Title),
-                            pause: None,
-                        }),
-                    ));
-                    bg_manager.queue_effect(BgEffect::ScrollStars(
-                        Vec2::ZERO,
-                        1.0,
-                        Spleen::EaseOutQuintic,
-                        None,
-                    ));
-                    None
-                }
-            },
+            }
             MetaState::Level(_) => Some(PauseState::Level),
             MetaState::Editor(_) => Some(PauseState::Editor),
         };

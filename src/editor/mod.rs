@@ -23,8 +23,8 @@ use serde::{Deserialize, Serialize};
 
 use self::{
     help::{
-        editor_help_input, read_editor_help_output, run_help_bar_command, setup_editor_help,
-        setup_editor_help_config, teardown_editor_help, update_editor_help_bar,
+        destroy_editor_help, editor_help_input, read_editor_help_output, run_help_bar_command,
+        setup_editor_help, setup_editor_help_config, update_editor_help_bar,
         update_editor_help_box, update_editor_help_config, EditorHelpConfig, HelpBarEvent,
     },
     planet::{
@@ -112,7 +112,7 @@ fn setup_editor(
     commands.spawn((
         EditingSceneRoot,
         SpatialBundle::default(),
-        Name::new("EditingRoot"),
+        Name::new("editing_root"),
     ));
     set_event.send(SetCameraModeEvent {
         mode: CameraMode::Free,
@@ -120,9 +120,16 @@ fn setup_editor(
     bg_manager.set_kind(BgKind::ParallaxStars(300));
 }
 
-fn teardown_editor(mut commands: Commands, handle: Query<Entity, With<LevelEditingHandle>>) {
+fn destroy_editor(
+    mut commands: Commands,
+    handle: Query<Entity, With<LevelEditingHandle>>,
+    root: Query<Entity, With<EditingSceneRoot>>,
+) {
     if let Ok(id) = handle.get_single() {
         commands.entity(id).despawn_recursive();
+    }
+    for eid in root.iter() {
+        commands.entity(eid).despawn_recursive();
     }
 }
 
@@ -149,7 +156,7 @@ impl Plugin for EditorPlugin {
         app.insert_resource(LevelEditingData(LevelData::default()));
         app.add_plugins(RonAssetPlugin::<LevelData>::new(&["level.ron"]));
         app.add_systems(Update, setup_editor.run_if(entered_editor));
-        app.add_systems(Update, teardown_editor.run_if(left_editor));
+        app.add_systems(Update, destroy_editor.run_if(left_editor));
         app.add_systems(Update, watch_level_editing_asset.run_if(in_editor));
 
         // Save system
@@ -190,7 +197,7 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, update_editor_help_box.run_if(in_editor));
         app.add_systems(Update, update_editor_help_bar.run_if(in_editor));
         app.add_systems(Update, read_editor_help_output.run_if(in_editor));
-        app.add_systems(Update, teardown_editor_help.run_if(left_editor));
+        app.add_systems(Update, destroy_editor_help.run_if(left_editor));
         app.add_systems(Update, run_help_bar_command.run_if(in_editor));
         app.add_systems(
             Update,

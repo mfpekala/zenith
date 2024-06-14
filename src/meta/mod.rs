@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use self::level_data::{crystallize_level_data, spawn_level, LevelDataOneshots};
 
-pub mod constellation;
+pub mod galaxy;
 pub mod consts;
 pub mod game_state;
 pub mod level_data;

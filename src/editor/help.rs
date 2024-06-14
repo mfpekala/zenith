@@ -452,7 +452,9 @@ pub(super) fn run_help_bar_command(
     let Ok(mut help_bar) = help_bar.get_single_mut() else {
         return;
     };
-    let eroot = eroot.single();
+    let Ok(eroot) = eroot.get_single() else {
+        return;
+    };
     if !help_bar.submitted {
         return;
     }
@@ -523,11 +525,12 @@ pub(super) fn run_help_bar_command(
     }
 }
 
-pub(super) fn teardown_editor_help(
+pub(super) fn destroy_editor_help(
     mut commands: Commands,
-    editor_help: Query<Entity, With<EditorHelpBox>>,
+    help_box: Query<Entity, With<EditorHelpBox>>,
+    help_bar: Query<Entity, With<HelpBarData>>,
 ) {
-    for id in editor_help.iter() {
-        commands.entity(id).despawn_recursive();
+    for eid in help_box.iter().chain(help_bar.iter()) {
+        commands.entity(eid).despawn_recursive();
     }
 }

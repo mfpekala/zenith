@@ -142,6 +142,7 @@ pub fn camera_movement(
     let Ok((mut moveable, mut marker)) = marker.get_single_mut() else {
         return;
     };
+    // Update the last pos (cursed vel calc for bg ents)
     // Handle movement
     match marker.mode {
         CameraMode::Follow => {

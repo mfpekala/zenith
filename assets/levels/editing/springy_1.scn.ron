@@ -94,7 +94,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -133,7 +133,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -244,7 +244,7 @@
               scroll: (
 -0.0027017163, -0.0999635,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -407,7 +407,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -446,7 +446,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -554,7 +554,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -593,7 +593,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -702,7 +702,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -741,7 +741,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -849,7 +849,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -888,7 +888,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -996,7 +996,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -1035,7 +1035,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -1143,7 +1143,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -1182,7 +1182,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -1291,7 +1291,7 @@
           scroll: (
 0, 0,          ),
           is_changed: false,
-          force_index: None,
+          force_index: None, ephemeral: true,
         ),
       },
     ),
@@ -1386,7 +1386,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -1425,7 +1425,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -1594,7 +1594,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -1633,7 +1633,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -1741,7 +1741,7 @@
           scroll: (
 0, 0,          ),
           is_changed: false,
-          force_index: None,
+          force_index: None, ephemeral: true,
         ),
       },
     ),
@@ -1836,7 +1836,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -1875,7 +1875,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -1983,7 +1983,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -2022,7 +2022,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -2136,7 +2136,7 @@
           scroll: (
 0, 0,          ),
           is_changed: false,
-          force_index: None,
+          force_index: None, ephemeral: true,
         ),
         "zenith::environment::segment::SegmentKind": Spring,
       },
@@ -2356,7 +2356,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -2395,7 +2395,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -2632,7 +2632,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -2671,7 +2671,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -2779,7 +2779,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -2818,7 +2818,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,
@@ -2926,7 +2926,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
             "core": (
               key: "solid",
@@ -2965,7 +2965,7 @@
               scroll: (
 0, 0,              ),
               is_changed: false,
-              force_index: None,
+              force_index: None, ephemeral: true,
             ),
           },
           is_coup: false,

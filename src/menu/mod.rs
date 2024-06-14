@@ -1,5 +1,6 @@
 pub mod button;
 pub mod constellation_screen;
+pub mod galaxy_screen;
 pub mod paused;
 pub mod placement;
 pub mod title_screen;
@@ -21,7 +22,10 @@ impl Plugin for MenuPlugin {
         title_screen::register_title_screen(app);
         constellation_screen::register_constellation_screen(app);
 
-        app.add_systems(FixedUpdate, placement::update_game_relative_placements);
+        app.add_systems(
+            Update,
+            placement::update_game_relative_placements.after(setup_specific_pause),
+        );
 
         app.add_systems(Update, start_pause.run_if(is_unpaused));
         app.add_systems(Update, stop_pause.run_if(is_paused));
