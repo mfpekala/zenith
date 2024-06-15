@@ -44,6 +44,7 @@ impl ShipBundle {
                 SpriteInfo {
                     path: "sprites/ship.png".to_string(),
                     size: UVec2::new(8, 8),
+                    ..default()
                 },
             ),
             (
@@ -51,12 +52,14 @@ impl ShipBundle {
                 SpriteInfo {
                     path: "sprites/ship_empty.png".to_string(),
                     size: UVec2::new(8, 8),
+                    ..default()
                 },
             ),
         ]);
         let mut light = AnimationManager::single_static(SpriteInfo {
             path: "sprites/shipL.png".to_string(),
             size: UVec2::new(64, 64),
+            ..default()
         });
         light.set_render_layers(vec![light_layer_u8()]);
         Self {

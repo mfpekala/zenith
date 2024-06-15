@@ -20,6 +20,7 @@ use super::{
 pub struct SpriteInfo {
     pub path: String,
     pub size: UVec2,
+    pub color: Color,
 }
 
 #[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
@@ -43,7 +44,7 @@ pub enum AnimationScale {
 #[reflect(Component, Serialize, Deserialize)]
 pub struct AnimationManager {
     key: String,
-    map: HashMap<String, AnimationNode>,
+    pub map: HashMap<String, AnimationNode>,
     points: Vec<IVec2>,
     scale: AnimationScale,
     offset: IVec3,
@@ -487,8 +488,12 @@ fn update_animation_bodies(
         let x_rep = mesh_size.x as f32 / current_node.sprite.size.x as f32;
         let y_rep = mesh_size.y as f32 / current_node.sprite.size.y as f32;
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
-        let mut mat =
-            AnimationMaterial::from_handle(image_handle, length.0, Vec2::new(x_rep, y_rep));
+        let mut mat = AnimationMaterial::from_handle(
+            image_handle,
+            length.0,
+            Vec2::new(x_rep, y_rep),
+            current_node.sprite.color,
+        );
         mat.ephemeral = manager.ephemeral;
         let mat_ass = mats.add(mat);
         let mesh = points_to_mesh(&fpoints, &mut meshes);
@@ -543,6 +548,9 @@ fn play_animations(
 ) {
     for (parent, mat_handle, mut index, pace, length, mut scroll, multi_marker) in bodies.iter_mut()
     {
+        if length.0 == 1 && scroll.vec == Vec2::ZERO {
+            continue;
+        }
         let mut shared_logic = |manager: &mut AnimationManager| {
             let current_node = manager.current_node();
             let Some(mat) = mats.get_mut(mat_handle.id()) else {

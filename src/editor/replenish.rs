@@ -29,12 +29,14 @@ impl EReplenishBundle {
         let replenish = AnimationManager::single_static(SpriteInfo {
             path: "sprites/replenish.png".to_string(),
             size: UVec2::new(12, 12),
+            ..default()
         })
         .force_ephemeral();
         let mut replenish_light = AnimationManager::single_repeating(
             SpriteInfo {
                 path: "sprites/replenishL.png".to_string(),
                 size: UVec2::new(16, 16),
+                ..default()
             },
             3,
         )

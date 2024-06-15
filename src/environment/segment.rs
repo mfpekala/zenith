@@ -46,6 +46,7 @@ impl SegmentKind {
                 AnimationManager::single_static(SpriteInfo {
                     path: "sprites/goodies/spike.png".to_string(),
                     size: UVec2::new(7, 7),
+                    ..default()
                 })
             }
             Self::Spring => AnimationManager::from_nodes(vec![
@@ -55,6 +56,7 @@ impl SegmentKind {
                         sprite: SpriteInfo {
                             path: "sprites/goodies/spring.png".to_string(),
                             size: UVec2::new(7, 7),
+                            ..default()
                         },
                         length: 1,
                         ..default()
@@ -66,6 +68,7 @@ impl SegmentKind {
                         sprite: SpriteInfo {
                             path: "sprites/goodies/spring_bounce.png".to_string(),
                             size: UVec2::new(7, 7),
+                            ..default()
                         },
                         length: 6,
                         next: Some("idle".to_string()),

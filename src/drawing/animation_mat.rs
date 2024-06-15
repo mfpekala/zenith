@@ -33,10 +33,21 @@ pub struct AnimationMaterial {
     pub x_repetitions: f32,
     #[uniform(8)]
     pub y_repetitions: f32,
+    #[uniform(9)]
+    pub r: f32,
+    #[uniform(10)]
+    pub g: f32,
+    #[uniform(11)]
+    pub b: f32,
     pub ephemeral: bool,
 }
 impl AnimationMaterial {
-    pub fn from_handle(handle: Handle<Image>, length: u32, repetitions: Vec2) -> Self {
+    pub fn from_handle(
+        handle: Handle<Image>,
+        length: u32,
+        repetitions: Vec2,
+        color: Color,
+    ) -> Self {
         Self {
             texture: handle,
             index: 0.0,
@@ -45,6 +56,9 @@ impl AnimationMaterial {
             y_offset: 0.0,
             x_repetitions: repetitions.x,
             y_repetitions: repetitions.y,
+            r: color.r(),
+            g: color.g(),
+            b: color.b(),
             ephemeral: false,
         }
     }

@@ -38,30 +38,36 @@ impl RockKind {
                 SpriteInfo {
                     path: "textures/rock/normal_inner.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
                 SpriteInfo {
                     path: "textures/rock/normal_outer.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
             ),
             Self::SimpleKill => (
                 SpriteInfo {
                     path: "textures/rock/kill_inner.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
                 SpriteInfo {
                     path: "textures/rock/kill_outer.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
             ),
             Self::MagLev => (
                 SpriteInfo {
                     path: "textures/rock/maglev_inner.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
                 SpriteInfo {
                     path: "textures/rock/maglev_outer.png".to_string(),
                     size: UVec2::new(36, 36),
+                    ..default()
                 },
             ),
         }

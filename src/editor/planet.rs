@@ -715,7 +715,9 @@ pub(super) fn drive_planet_meshes(
                 let mut manager = AnimationManager::single_static(SpriteInfo {
                     path: "sprites/field/field_bg.png".to_string(),
                     size: UVec2::new(12, 12),
-                }).force_ephemeral();
+                    ..default()
+                })
+                .force_ephemeral();
                 manager.set_scroll(scroll);
                 multi.map.insert(name.clone(), manager);
                 is_coup = true;

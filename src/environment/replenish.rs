@@ -46,6 +46,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenish.png".to_string(),
                         size: UVec2::new(12, 12),
+                        ..default()
                     },
                     length: 1,
                     ..default()
@@ -57,6 +58,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenish_explode.png".to_string(),
                         size: UVec2::new(12, 12),
+                        ..default()
                     },
                     length: 6,
                     next: Some("recharging".to_string()),
@@ -69,6 +71,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenish.png".to_string(),
                         size: UVec2::new(0, 0),
+                        ..default()
                     },
                     length: 1,
                     ..default()
@@ -82,6 +85,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenishL.png".to_string(),
                         size: UVec2::new(16, 16),
+                        ..default()
                     },
                     length: 3,
                     ..default()
@@ -93,6 +97,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenish_explodeL.png".to_string(),
                         size: UVec2::new(16, 16),
+                        ..default()
                     },
                     length: 6,
                     next: Some("recharging".to_string()),
@@ -105,6 +110,7 @@ impl ReplenishBundle {
                     sprite: SpriteInfo {
                         path: "sprites/replenishL.png".to_string(),
                         size: UVec2::new(0, 0),
+                        ..default()
                     },
                     length: 1,
                     ..default()

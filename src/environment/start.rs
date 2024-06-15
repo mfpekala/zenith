@@ -30,6 +30,7 @@ impl StartSize {
             Self::Medium => SpriteInfo {
                 path: "sprites/start_goal/start18.png".to_string(),
                 size: UVec2::new(self.to_diameter(), self.to_diameter()),
+                ..default()
             },
         }
     }

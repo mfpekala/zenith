@@ -526,8 +526,12 @@ pub(super) fn remake_layering_materials(
         num_pixels_w: SCREEN_WIDTH as f32,
         num_pixels_h: SCREEN_HEIGHT as f32,
     };
-    let menu_material =
-        AnimationMaterial::from_handle(camera_targets.menu_target.clone(), 1, Vec2::ONE);
+    let menu_material = AnimationMaterial::from_handle(
+        camera_targets.menu_target.clone(),
+        1,
+        Vec2::ONE,
+        Color::WHITE,
+    );
     materials.insert(BG_PP_MATERIAL.clone(), bg_material);
     materials.insert(PP_MATERIAL.clone(), material);
     dum_materials.insert(REDUCED_MATERIAL.clone(), reduced_material);

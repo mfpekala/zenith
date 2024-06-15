@@ -29,14 +29,17 @@ impl EPointKind {
             Self::Field | Self::Rock => SpriteInfo {
                 path: "sprites/editor/point.png".to_string(),
                 size: UVec2::new(6, 6),
+                ..default()
             },
             Self::Wild => SpriteInfo {
                 path: "sprites/editor/point_wild.png".to_string(),
                 size: UVec2::new(6, 6),
+                ..default()
             },
             Self::Free(_) => SpriteInfo {
                 path: "sprites/editor/point.png".to_string(),
                 size: UVec2::new(0, 0),
+                ..default()
             },
         }
     }
@@ -90,6 +93,7 @@ impl EPointBundle {
         let highlight_anim = AnimationManager::single_static(SpriteInfo {
             path: "sprites/editor/point_highlight.png".to_string(),
             size: UVec2::new(10, 10),
+            ..default()
         })
         .force_ephemeral();
         Self {

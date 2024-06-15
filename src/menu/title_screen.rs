@@ -36,6 +36,7 @@ fn setup_title_screen(
             let mut zenith_man = AnimationManager::single_static(SpriteInfo {
                 path: "sprites/menu/title/ZENITH.png".to_string(),
                 size: UVec2::new(185, 53),
+                ..default()
             });
             zenith_man.set_render_layers(vec![menu_layer_u8()]);
             parent.spawn((

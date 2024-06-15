@@ -268,12 +268,14 @@ impl ShotArrowBundle {
         let mut head = AnimationManager::single_static(SpriteInfo {
             path: "sprites/arrow_head.png".to_string(),
             size: UVec2::new(12, 8),
+            ..default()
         });
         head.set_hidden(true);
         head.set_render_layers(vec![menu_layer_u8()]);
         let mut body = AnimationManager::single_static(SpriteInfo {
             path: "sprites/arrow_body.png".to_string(),
             size: UVec2::new(6, 12),
+            ..default()
         });
         body.set_hidden(true);
         body.set_offset(IVec3::new(0, 0, -1));

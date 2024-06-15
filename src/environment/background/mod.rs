@@ -251,11 +251,13 @@ impl PlacedBgBundle {
         let mut star = AnimationManager::single_static(SpriteInfo {
             path: "sprites/stars/7a.png".to_string(),
             size: UVec2::new(7, 7),
+            ..default()
         });
         star.set_render_layers(vec![bg_sprite_layer_u8()]);
         let mut light = AnimationManager::single_static(SpriteInfo {
             path: "sprites/stars/7aL.png".to_string(),
             size: UVec2::new(7, 7),
+            ..default()
         });
         light.set_render_layers(vec![bg_light_layer_u8()]);
         let multi = MultiAnimationManager::from_pairs(vec![("star", star), ("light", light)]);
@@ -272,16 +274,20 @@ impl PlacedBgBundle {
     /// Creates a bg bundle at the given screen pos
     /// This bundle will have pos-type Parallax and will have a parallax effect
     pub fn basic_parallax(screen_pos: Vec2, depth: u8, scale: f32) -> Self {
+        let mut rng = thread_rng();
+        let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
         let placement =
             BgPlacement::from_screen_pos(screen_pos, depth, Vec2::ZERO, true, scale, Some(2.0));
         let mut star = AnimationManager::single_static(SpriteInfo {
             path: "sprites/stars/7a.png".to_string(),
             size: UVec2::new(7, 7),
+            color,
         });
         star.set_render_layers(vec![bg_sprite_layer_u8()]);
         let mut light = AnimationManager::single_static(SpriteInfo {
             path: "sprites/stars/7aL.png".to_string(),
             size: UVec2::new(7, 7),
+            color,
         });
         light.set_render_layers(vec![bg_light_layer_u8()]);
         let multi = MultiAnimationManager::from_pairs(vec![("star", star), ("light", light)]);
@@ -390,7 +396,6 @@ fn update_bg_manager(
                             let scale = scale_min + rng.gen::<f32>() * (scale_max - scale_min);
                             let placement =
                                 PlacedBgBundle::basic_parallax(screen_pos, depth, scale);
-                            let color = Color::hsla(rng.gen::<f32>() * 360.0, 0.8, 0.4, 1.0);
                             parent.spawn(placement);
                         }
                     }
