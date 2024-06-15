@@ -254,6 +254,10 @@ impl MultiAnimationManager {
     }
 }
 
+/// Marks an animation body as not needing to be queried in `play_animations`
+#[derive(Component)]
+struct AnimationStatic;
+
 #[derive(Component, Default)]
 struct AnimationBody {
     handle_map: HashMap<String, Handle<Image>>,
@@ -482,6 +486,12 @@ fn update_animation_bodies(
         scroll.vec = manager.scroll;
         scroll.reset = true;
 
+        if length.0 <= 1 && scroll.vec.length_squared() < 0.00001 {
+            commands.entity(eid).insert(AnimationStatic);
+        } else {
+            commands.entity(eid).remove::<AnimationStatic>();
+        }
+
         // Redo the mesh
         let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh_size = uvec2_bound(&fpoints);
@@ -535,22 +545,22 @@ fn dematerialize_animation_bodies(
 fn play_animations(
     mut managers: Query<&mut AnimationManager>,
     mut multis: Query<&mut MultiAnimationManager>,
-    mut bodies: Query<(
-        &Parent,
-        &Handle<AnimationMaterial>,
-        &mut AnimationIndex,
-        &AnimationPace,
-        &AnimationLength,
-        &mut AnimationScroll,
-        Option<&MultiBodyMarker>,
-    )>,
+    mut bodies: Query<
+        (
+            &Parent,
+            &Handle<AnimationMaterial>,
+            &mut AnimationIndex,
+            &AnimationPace,
+            &AnimationLength,
+            &mut AnimationScroll,
+            Option<&MultiBodyMarker>,
+        ),
+        Without<AnimationStatic>,
+    >,
     mut mats: ResMut<Assets<AnimationMaterial>>,
 ) {
     for (parent, mat_handle, mut index, pace, length, mut scroll, multi_marker) in bodies.iter_mut()
     {
-        if length.0 == 1 && scroll.vec == Vec2::ZERO {
-            continue;
-        }
         let mut shared_logic = |manager: &mut AnimationManager| {
             let current_node = manager.current_node();
             let Some(mat) = mats.get_mut(mat_handle.id()) else {
