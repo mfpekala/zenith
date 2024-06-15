@@ -80,7 +80,6 @@ impl MenuButtonBundle {
 pub(super) fn materialize_buttons(
     mut commands: Commands,
     buttons: Query<(Entity, &MenuButton), Without<Children>>,
-    asset_server: Res<AssetServer>,
 ) {
     for (eid, button_info) in buttons.iter() {
         let mut text_bundle = (
@@ -91,7 +90,6 @@ pub(super) fn materialize_buttons(
                 Color::BLACK,
                 TextWeight::Regular,
                 TextAlign::Center,
-                &asset_server,
             ),
             Name::new(button_info.id.clone()),
             MenuButtonInnerSpawnMarker,

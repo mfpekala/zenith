@@ -21,6 +21,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         title_screen::register_title_screen(app);
         constellation_screen::register_constellation_screen(app);
+        galaxy_screen::register_galaxy_screen(app);
 
         app.add_systems(
             Update,

@@ -211,6 +211,12 @@ impl AnimationManager {
         self.ephemeral = true;
         self
     }
+
+    /// Forces the animation_manager to take a single render layer
+    pub fn force_render_layer(mut self, render_layer: u8) -> Self {
+        self.render_layers_u8 = vec![render_layer];
+        self
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {

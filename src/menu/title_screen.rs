@@ -19,11 +19,7 @@ struct TitleScreenRoot;
 #[derive(Component)]
 struct TitleScreenDeath;
 
-fn setup_title_screen(
-    mut commands: Commands,
-    mut bg_manager: ResMut<BgManager>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_title_screen(mut commands: Commands, mut bg_manager: ResMut<BgManager>) {
     bg_manager.set_kind(BgKind::ParallaxStars(500));
     commands
         .spawn((
@@ -52,7 +48,6 @@ fn setup_title_screen(
                     Color::WHITE,
                     TextWeight::default(),
                     TextAlign::Center,
-                    &asset_server,
                 ),
                 Flashing::new(1.0, 0.5),
             );

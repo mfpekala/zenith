@@ -1,0 +1,6 @@
+GameProgress(
+    galaxy_map: {
+        "Basic": (false, "basic_1"),
+        "Springy": (false, "springy_1"),
+    }
+)

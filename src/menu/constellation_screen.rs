@@ -1,7 +1,10 @@
 use crate::{
     drawing::text::{TextAlign, TextBoxBundle, TextWeight},
     environment::background::{BgEffect, BgManager},
-    meta::game_state::{GameState, MenuState, MetaState},
+    meta::{
+        game_state::{GameState, MenuState, MetaState},
+        progress::{ActiveSaveFile, GameProgress},
+    },
     when_becomes_false, when_becomes_true,
 };
 use bevy::prelude::*;
@@ -20,7 +23,7 @@ pub struct ConstellationScreenData {
 #[derive(Component)]
 pub struct ConstellationScreenOption(pub i32);
 
-fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_constellation_screen(mut commands: Commands) {
     commands
         .spawn((
             SpatialBundle::default(),
@@ -37,7 +40,6 @@ fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetSer
                 Color::WHITE,
                 TextWeight::default(),
                 TextAlign::Center,
-                &asset_server,
             );
             parent.spawn(instruction_bund);
             // Spawn the A
@@ -48,7 +50,6 @@ fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetSer
                 Color::WHITE,
                 TextWeight::default(),
                 TextAlign::Center,
-                &asset_server,
             );
             parent.spawn((a_bund, ConstellationScreenOption(0)));
             // Spawn the B
@@ -59,7 +60,6 @@ fn setup_constellation_screen(mut commands: Commands, asset_server: Res<AssetSer
                 Color::WHITE,
                 TextWeight::default(),
                 TextAlign::Center,
-                &asset_server,
             );
             parent.spawn((b_bund, ConstellationScreenOption(1)));
         });
@@ -70,6 +70,8 @@ fn update_constellation_screen(
     keys: Res<ButtonInput<KeyCode>>,
     mut options: Query<(&ConstellationScreenOption, &mut GameRelativePlacement)>,
     mut bg_manager: ResMut<BgManager>,
+    save_files: Query<(Entity, &Name), With<GameProgress>>,
+    mut commands: Commands,
 ) {
     if !bg_manager.has_active_effect() {
         // Player has not yet selected a save file
@@ -87,6 +89,25 @@ fn update_constellation_screen(
             }
         }
         if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
+            let aeid = save_files
+                .iter()
+                .filter(|(_, name)| name.ends_with("a"))
+                .map(|(eid, _)| eid)
+                .next()
+                .unwrap();
+            let beid = save_files
+                .iter()
+                .filter(|(_, name)| name.ends_with("b"))
+                .map(|(eid, _)| eid)
+                .next()
+                .unwrap();
+            let (choosing, not_choosing) = if screen_data.selection == 0 {
+                (aeid, beid)
+            } else {
+                (beid, aeid)
+            };
+            commands.entity(choosing).insert(ActiveSaveFile);
+            commands.entity(not_choosing).remove::<ActiveSaveFile>();
             bg_manager.queue_effect(BgEffect::default_menu_scroll(
                 true,
                 true,
