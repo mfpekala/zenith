@@ -7,8 +7,9 @@ pub struct LevelMetaData {
     pub description: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GalaxyKind {
+    #[default]
     Basic,
     Springy,
 }

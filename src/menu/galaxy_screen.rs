@@ -5,7 +5,7 @@ use crate::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
         effects::EffectVal,
         layering::light_layer_u8,
-        text::{TextAlign, TextBoxBundle, TextManager, TextNode, TextWeight},
+        text::{TextManager, TextNode},
     },
     math::Spleen,
     meta::{
@@ -22,9 +22,11 @@ struct GalaxyScreenRoot {
     selected: GalaxyKind,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 struct GalaxyChoice {
     kind: GalaxyKind,
+    shrink_helper: Option<f32>,
+    grow_helper: Option<f32>,
 }
 
 #[derive(Component)]
@@ -143,7 +145,7 @@ impl GalaxyChoiceBundle {
             0.0,
         )));
         Self {
-            info: GalaxyChoice { kind },
+            info: GalaxyChoice { kind, ..default() },
             multi,
             name: Name::new(format!("galaxy_choice_{}", kind)),
             text,
@@ -176,7 +178,7 @@ fn setup_galaxy_screen(
 
 fn handle_galaxy_screen_input(
     mut root: Query<(Entity, &mut GalaxyScreenRoot, &Transform)>,
-    mut little_ship: Query<(Entity, &Transform), With<LittleShip>>,
+    little_ship: Query<(Entity, &Transform), With<LittleShip>>,
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
@@ -216,6 +218,50 @@ fn handle_galaxy_screen_input(
     let end_val = 0.0;
     let effect_val = EffectVal::new(start_val, end_val, Spleen::EaseInOutCubic, duration);
     commands.entity(ship_eid).insert(effect_val);
+}
+
+fn update_galaxy_sizes(
+    root: Query<(&GalaxyScreenRoot, Option<&EffectVal>)>,
+    mut galaxys: Query<(&mut GalaxyChoice, &mut Transform)>,
+) {
+    let Ok((root, root_val)) = root.get_single() else {
+        return;
+    };
+    for (mut choice, mut tran) in galaxys.iter_mut() {
+        if choice.kind == root.selected {
+            choice.shrink_helper = None;
+            tran.scale = match root_val {
+                Some(effect_val) => {
+                    let watermark = match choice.grow_helper {
+                        Some(old_scale) => old_scale,
+                        None => {
+                            choice.grow_helper = Some(tran.scale.x);
+                            tran.scale.x
+                        }
+                    };
+                    let mult = watermark + effect_val.interp_time() * (2.0 - watermark);
+                    (Vec2::ONE * mult).extend(1.0)
+                }
+                None => Vec3::ONE * 2.0,
+            };
+        } else {
+            choice.grow_helper = None;
+            tran.scale = match root_val {
+                Some(effect_val) => {
+                    let watermark = match choice.shrink_helper {
+                        Some(old_scale) => old_scale,
+                        None => {
+                            choice.shrink_helper = Some(tran.scale.x);
+                            tran.scale.x
+                        }
+                    };
+                    let mult = watermark + effect_val.interp_time() * (1.0 - watermark);
+                    (Vec2::ONE * mult).extend(1.0)
+                }
+                None => Vec3::ONE,
+            };
+        }
+    }
 }
 
 fn update_root_and_ship(
@@ -289,7 +335,11 @@ pub fn register_galaxy_screen(app: &mut App) {
     );
     app.add_systems(
         FixedUpdate,
-        (handle_galaxy_screen_input, update_root_and_ship)
+        (
+            handle_galaxy_screen_input,
+            update_galaxy_sizes,
+            update_root_and_ship,
+        )
             .chain()
             .run_if(is_in_galaxy_screen),
     );

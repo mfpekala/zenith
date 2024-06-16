@@ -45,9 +45,17 @@ impl EffectVal {
         self.goal_val
     }
 
+    pub fn get_spleen(&self) -> Spleen {
+        self.spleen
+    }
+
     pub fn interp(&self) -> f32 {
         let x = self.spleen.interp(self.timer.fraction());
         lerp(x, self.start_val, self.goal_val)
+    }
+
+    pub fn interp_time(&self) -> f32 {
+        self.spleen.interp(self.timer.fraction())
     }
 
     pub fn just_finished(&self) -> bool {
