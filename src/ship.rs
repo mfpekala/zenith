@@ -203,7 +203,7 @@ pub fn spawn_trail(
     let id = ParticleBundle::spawn_options(
         &mut commands,
         ParticleBody {
-            pos: tran.translation().truncate(),
+            pos: tran.translation() - Vec3::Z,
             vel: Vec2::ZERO,
             size: Ship::radius(),
             color: Color::YELLOW,
@@ -217,7 +217,6 @@ pub fn spawn_trail(
                 end_color: Color::BLUE,
                 spleen: Spleen::EaseInQuad,
             }),
-            ..default()
         },
     );
     commands.entity(level_root).add_child(id);

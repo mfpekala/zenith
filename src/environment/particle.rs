@@ -7,7 +7,10 @@ use crate::{
     camera::CameraMarker,
     drawing::layering::sprite_layer,
     math::{lerp, lerp_color, Spleen},
+    menu::paused::is_unpaused,
+    meta::consts::FRAMERATE,
     physics::{should_apply_physics, BulletTime},
+    ship::Ship,
 };
 
 #[derive(Component)]
@@ -27,19 +30,15 @@ impl ParticleLifespan {
         self.timer.tick(delta);
     }
 
-    pub fn is_dead(&self) -> bool {
-        self.timer.finished()
-    }
-
     /// The fraction of its lifespan that this particle has been alive for
     pub fn frac(&self) -> f32 {
-        self.timer.elapsed_secs() / self.lifespan
+        self.timer.fraction()
     }
 }
 
 #[derive(Component)]
 pub struct ParticleBody {
-    pub pos: Vec2,
+    pub pos: Vec3,
     pub vel: Vec2,
     pub size: f32,
     pub color: Color,
@@ -67,53 +66,10 @@ impl ParticleColoring {
     }
 }
 
-#[derive(Component, Clone)]
-pub struct ParticleLighting {
-    pub radius: f32,
-    pub color: Color,
-    pub spleen: Spleen,
-}
-
-// #[derive(Bundle)]
-// pub struct ParticleLightingBundle {
-//     pub light: ParticleLighting,
-//     pub mesh: MaterialMesh2dBundle<ColorMaterial>,
-//     pub render_layers: RenderLayers,
-// }
-// impl ParticleLightingBundle {
-//     pub fn new(
-//         num_sides: u32,
-//         radius: f32,
-//         color: Color,
-//         spleen: Spleen,
-//         mats: &mut ResMut<Assets<ColorMaterial>>,
-//         meshes: &mut ResMut<Assets<Mesh>>,
-//     ) -> Self {
-//         let mat = mats.add(ColorMaterial::from(Color::Hsla {
-//             hue: color.h(),
-//             saturation: color.s(),
-//             lightness: color.l(),
-//             alpha: color.a(),
-//         }));
-//         let points = regular_polygon(num_sides, 0.0, radius);
-//         let mesh = generate_new_color_mesh(&points, &mat, meshes);
-//         Self {
-//             light: ParticleLighting {
-//                 radius,
-//                 color,
-//                 spleen,
-//             },
-//             mesh,
-//             render_layers: light_layer(),
-//         }
-//     }
-// }
-
 #[derive(Default, Clone)]
 pub struct ParticleOptions {
     pub sizing: Option<ParticleSizing>,
     pub coloring: Option<ParticleColoring>,
-    pub lighting: Option<ParticleLighting>,
 }
 
 #[derive(Bundle)]
@@ -133,7 +89,7 @@ impl ParticleBundle {
                     ..default()
                 },
                 transform: Transform {
-                    translation: body.pos.extend(-1.0),
+                    translation: body.pos,
                     scale: Vec3::ONE * body.size,
                     ..default()
                 },
@@ -170,19 +126,17 @@ fn update_particles(
         &mut ParticleLifespan,
     )>,
     time: Res<Time>,
-    cam: Query<&CameraMarker>,
     bullet_time: Res<BulletTime>,
 ) {
-    let _cam = cam.single();
     for (id, mut tran, mut body, mut lifespan) in particles.iter_mut() {
         lifespan.tick(time.delta().mul_f32(bullet_time.factor()));
-        if lifespan.is_dead() {
+        if lifespan.timer.finished() {
             commands.entity(id).despawn_recursive();
             continue;
         }
         let vel = body.vel;
-        body.pos += vel;
-        tran.translation = body.pos.extend(1.0);
+        body.pos += vel.extend(0.0);
+        tran.translation = body.pos;
     }
 }
 
@@ -214,18 +168,6 @@ fn color_particles(
     }
 }
 
-fn light_particles(
-    particles: Query<&ParticleLifespan>,
-    mut lbs: Query<(&Parent, &ParticleLighting, &mut Transform)>,
-) {
-    for (parent, lighting, mut transform) in lbs.iter_mut() {
-        let Ok(lifespan) = particles.get(parent.get()) else {
-            continue;
-        };
-        transform.scale = Vec3::ONE * (1.0 - lighting.spleen.interp(lifespan.frac()));
-    }
-}
-
 #[derive(Component)]
 pub struct ParticleSpawner {
     pub angle_range: (f32, f32),
@@ -237,42 +179,30 @@ pub struct ParticleSpawner {
     pub frequency_var: f32,
     pub timer: Timer,
     pub num_per_spawn: u32,
-    pub segment: (Vec2, Vec2),
+    pub segment: (Vec3, Vec3),
     pub options: ParticleOptions,
 }
 impl ParticleSpawner {
-    pub fn rainbow() -> Self {
+    pub fn default_ship_trail() -> Self {
         Self {
-            angle_range: (0.0, 360.0),
-            mag_range: (1.0, 10.0),
-            size_range: (1.0, 25.0),
-            color_range: (
-                Color::Hsla {
-                    hue: 0.0,
-                    saturation: 1.0,
-                    lightness: 0.6,
-                    alpha: 1.0,
-                },
-                Color::Hsla {
-                    hue: 360.0,
-                    saturation: 1.0,
-                    lightness: 0.6,
-                    alpha: 1.0,
-                },
-            ),
-            frequency_secs: 0.5,
-            frequency_var: 0.5,
+            angle_range: (0.0, 0.0),
+            mag_range: (0.0, 0.0),
+            size_range: (Ship::radius(), Ship::radius()),
+            color_range: (Color::YELLOW, Color::YELLOW),
+            lifespan_range: (0.5, 0.5),
+            frequency_secs: 0.5 / FRAMERATE as f32,
+            frequency_var: 0.0,
             timer: Timer::new(Duration::from_secs_f32(0.0), TimerMode::Once),
-            lifespan_range: (0.5, 5.0),
-            num_per_spawn: 5,
-            segment: (Vec2::ONE * -100.0, Vec2::ONE * 100.0),
+            num_per_spawn: 1,
+            segment: (-Vec3::Z, -Vec3::Z),
             options: ParticleOptions {
-                lighting: Some(ParticleLighting {
-                    radius: 10.0,
+                sizing: Some(ParticleSizing {
                     spleen: Spleen::EaseInQuad,
-                    color: Color::WHITE,
                 }),
-                ..default()
+                coloring: Some(ParticleColoring {
+                    end_color: Color::BLUE,
+                    spleen: Spleen::EaseInQuad,
+                }),
             },
         }
     }
@@ -315,7 +245,7 @@ fn update_spawners(
             };
             let size = lerp(rng.gen(), spawner.size_range.0, spawner.size_range.1);
             let color = lerp_color(rng.gen(), spawner.color_range.0, spawner.color_range.1);
-            let pos = gtran.translation().truncate()
+            let pos = gtran.translation()
                 + spawner.segment.0
                 + rng.gen::<f32>() * (spawner.segment.1 - spawner.segment.0);
             let lifespan = lerp(
@@ -354,8 +284,7 @@ pub fn register_particles(app: &mut App) {
             update_particles,
             size_particles,
             color_particles,
-            light_particles,
         )
-            .run_if(should_apply_physics),
+            .run_if(is_unpaused),
     );
 }

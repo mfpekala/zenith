@@ -7,12 +7,17 @@ use crate::{
         layering::light_layer_u8,
         text::{TextManager, TextNode},
     },
+    environment::particle::{
+        ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
+        ParticleSpawner,
+    },
     math::Spleen,
     meta::{
         game_state::{GameState, MenuState, MetaState},
         progress::{ActiveSaveFile, GalaxyKind, GameProgress},
     },
     physics::dyno::IntMoveableBundle,
+    ship::Ship,
     when_becomes_false, when_becomes_true,
 };
 
@@ -64,7 +69,7 @@ impl LittleShipBundle {
         ]);
         let x_offset = galaxy_offset(kind) as f32;
         let spatial = SpatialBundle::from_transform(Transform {
-            translation: Vec3::new(x_offset, 0.0, 1.0),
+            translation: Vec3::new(x_offset, 0.0, 2.0),
             scale: Vec3::new(0.0, 0.0, 1.0),
             ..default()
         });
@@ -315,6 +320,26 @@ fn update_root_and_ship(
     if effect_val.finished() {
         commands.entity(ship_eid).remove::<EffectVal>();
     }
+    let particle = ParticleBundle::spawn_options(
+        &mut commands,
+        ParticleBody {
+            pos: ship_tran.translation.truncate().extend(1.0),
+            size: ship_tran.scale.x * Ship::radius(),
+            color: Color::YELLOW,
+            vel: Vec2::ZERO,
+        },
+        0.5,
+        ParticleOptions {
+            sizing: Some(ParticleSizing {
+                spleen: Spleen::EaseInQuad,
+            }),
+            coloring: Some(ParticleColoring {
+                end_color: Color::BLUE,
+                spleen: Spleen::EaseInQuad,
+            }),
+        },
+    );
+    commands.entity(eid).add_child(particle);
 }
 
 fn destroy_galaxy_screen(mut commands: Commands, root: Query<Entity, With<GalaxyScreenRoot>>) {
