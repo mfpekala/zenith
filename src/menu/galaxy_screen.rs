@@ -85,7 +85,7 @@ impl LittleShipBundle {
 }
 
 fn galaxy_offset(kind: GalaxyKind) -> i32 {
-    kind.rank() as i32 * 72
+    kind.rank() as i32 * 96
 }
 
 #[derive(Bundle)]
@@ -97,7 +97,8 @@ struct GalaxyChoiceBundle {
     spatial: SpatialBundle,
 }
 impl GalaxyChoiceBundle {
-    fn from_kind(kind: GalaxyKind, selected: bool, playable: bool) -> Self {
+    fn from_kind(kind: GalaxyKind, selected: bool, game_progress: &GameProgress) -> Self {
+        let galaxy_progress = game_progress.get_galaxy_progress(kind);
         let multi = match kind {
             GalaxyKind::Basic => MultiAnimationManager::from_pairs(vec![
                 (
@@ -139,20 +140,47 @@ impl GalaxyChoiceBundle {
             ]),
         };
         let meta = kind.to_meta_data();
-        let text = TextManager::from_pairs(vec![(
-            "title",
-            TextNode {
-                content: if playable {
-                    meta.title.clone()
-                } else {
-                    "???".to_string()
+        let text = if game_progress.is_playable(kind) {
+            let (num, den) = galaxy_progress.portion_completed(kind);
+            let mut progress_str = format!("{} / {}", num, den);
+            if galaxy_progress.completed && num < den {
+                progress_str.push_str("(R)")
+            }
+            let pairs = vec![
+                (
+                    "title",
+                    TextNode {
+                        content: meta.title.clone(),
+                        size: 16.0,
+                        pos: IVec3::new(0, -24, 0),
+                        light: selected,
+                        ..default()
+                    },
+                ),
+                (
+                    "progress",
+                    TextNode {
+                        content: progress_str,
+                        size: 16.0,
+                        pos: IVec3::new(0, -36, 0),
+                        light: selected,
+                        ..default()
+                    },
+                ),
+            ];
+            TextManager::from_pairs(pairs)
+        } else {
+            TextManager::from_pairs(vec![(
+                "title",
+                TextNode {
+                    content: "???".to_string(),
+                    size: 16.0,
+                    pos: IVec3::new(0, -24, 0),
+                    light: selected,
+                    ..default()
                 },
-                size: 16.0,
-                pos: IVec3::new(0, -24, 0),
-                light: selected,
-                ..default()
-            },
-        )]);
+            )])
+        };
         let spatial = SpatialBundle::from_transform(Transform::from_translation(Vec3::new(
             galaxy_offset(kind) as f32,
             0.0,
@@ -180,14 +208,14 @@ fn setup_galaxy_screen(
                 selected: active_galaxy,
             },
             Name::new("galaxy_screen"),
-            IntMoveableBundle::new(IVec3::new(-galaxy_offset(active_galaxy), 0, 0)),
+            IntMoveableBundle::new(IVec3::new(-galaxy_offset(active_galaxy), 28, 0)),
         ))
         .with_children(|parent| {
             for kind in GalaxyKind::all() {
                 parent.spawn(GalaxyChoiceBundle::from_kind(
                     kind,
                     kind == active_galaxy,
-                    progress.is_playable(kind),
+                    progress,
                 ));
             }
             parent.spawn(LittleShipBundle::new(active_galaxy));
@@ -217,7 +245,10 @@ fn handle_galaxy_screen_input(
     {
         screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
             meta: MetaState::Level(LevelState::fresh_from_id(
-                progress.get_galaxy_progress(root.selected).1,
+                progress
+                    .get_galaxy_progress(root.selected)
+                    .next_level
+                    .unwrap_or(root.selected.to_levels()[0].id.clone()),
             )),
             pause: None,
         })));

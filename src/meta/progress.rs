@@ -96,6 +96,43 @@ impl GalaxyKind {
     }
 }
 
+/// A handy struct for passing around info about whether a galaxy is completed
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::asset::Asset,
+    Debug,
+    PartialEq,
+    Clone,
+    Resource,
+    Default,
+    Reflect,
+)]
+pub struct GalaxyProgress {
+    /// Has the player ever completed this galaxy?
+    pub completed: bool,
+    /// In the current epoch of the user playing this galaxy, what is the next level they should play?
+    /// I.e., initially Some(<first level of galaxy>), and after completing becomes None
+    pub next_level: Option<String>,
+}
+impl GalaxyProgress {
+    /// In the players current epoch, returns (num_complete, num_in_galaxy)
+    pub fn portion_completed(&self, kind: GalaxyKind) -> (u32, u32) {
+        let Some(next_level) = self.next_level.as_ref() else {
+            let as_u32 = kind.to_levels().len() as u32;
+            return (as_u32, as_u32);
+        };
+        let mut rank = 0;
+        for (ix, level) in kind.to_levels().into_iter().enumerate() {
+            if &level.id == next_level {
+                rank = ix as u32;
+                break;
+            }
+        }
+        (rank, kind.to_levels().len() as u32)
+    }
+}
+
 /// Maps galaxy (enum as string) to (completed, id_of_level_on)
 #[derive(
     Component,
@@ -110,19 +147,19 @@ impl GalaxyKind {
     Reflect,
 )]
 pub struct GameProgress {
-    galaxy_map: HashMap<String, (bool, String)>,
+    galaxy_map: HashMap<String, GalaxyProgress>,
 }
 impl GameProgress {
     /// Gets the (completed, active_level) status for a given galaxy
-    pub fn get_galaxy_progress(&self, kind: GalaxyKind) -> (bool, String) {
+    pub fn get_galaxy_progress(&self, kind: GalaxyKind) -> GalaxyProgress {
         self.galaxy_map.get(&kind.to_string()).unwrap().clone()
     }
 
     /// Returns the earliest incomplete galaxy, i.e., the galaxy the player is actively playing
     pub fn first_incomplete_galaxy(&self) -> GalaxyKind {
         for kind in GalaxyKind::all() {
-            let (completed, _) = self.get_galaxy_progress(kind);
-            if !completed {
+            let progress = self.get_galaxy_progress(kind);
+            if !progress.completed {
                 return kind;
             }
         }
@@ -132,7 +169,8 @@ impl GameProgress {
     /// Returns true if this galaxy is playable, a.k.a if it should be selectable from the
     /// galaxy overworld. Translates to: complete OR first incomplete
     pub fn is_playable(&self, kind: GalaxyKind) -> bool {
-        self.get_galaxy_progress(kind).0 || (kind == self.first_incomplete_galaxy())
+        let progress = self.get_galaxy_progress(kind);
+        progress.completed || kind == self.first_incomplete_galaxy()
     }
 }
 

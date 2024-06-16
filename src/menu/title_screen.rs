@@ -4,7 +4,7 @@ use crate::{
         layering::menu_layer_u8,
         text::{Flashing, TextAlign, TextBoxBundle, TextWeight},
     },
-    environment::background::{BgEffect, BgKind, BgManager},
+    environment::background::{BgEffect, BgManager},
     meta::game_state::{EditingState, EditorState, GameState, MenuState, MetaState, SetMetaState},
     when_becomes_false, when_becomes_true,
 };

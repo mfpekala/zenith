@@ -1,6 +1,12 @@
 GameProgress(
     galaxy_map: {
-        "Basic": (false, "basic_1"),
-        "Springy": (false, "springy_1"),
+        "Basic": GalaxyProgress(
+            completed: true,
+            next_level: Some("basic_2"),
+        ),
+        "Springy": GalaxyProgress(
+            completed: false,
+            next_level: Some("springy_1"),
+        ),
     }
 )
