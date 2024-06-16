@@ -57,12 +57,13 @@ pub fn start_pause(
     if keyboard.just_pressed(KeyCode::Escape) && gs.pause.is_none() {
         let pause_state = match &gs.meta {
             MetaState::Menu(specific_menu) => {
-                if bg_manager.has_active_effect() {
+                if bg_manager.has_stateful_effect() {
                     None
                 } else {
                     match specific_menu {
                         MenuState::Title => None,
                         MenuState::ConstellationSelect => {
+                            bg_manager.clear_effects();
                             bg_manager.queue_effect(BgEffect::default_menu_scroll(
                                 false,
                                 true,
@@ -73,6 +74,7 @@ pub fn start_pause(
                             None
                         }
                         MenuState::GalaxyOverworld => {
+                            bg_manager.clear_effects();
                             bg_manager.queue_effect(BgEffect::default_menu_scroll(
                                 false,
                                 true,
@@ -161,8 +163,12 @@ pub(super) fn setup_specific_pause(
                 .spawn(PauseRoot::new_root("level"))
                 .with_children(|parent| {
                     parent.spawn(MenuButtonBundle::new(
-                        MenuButton::basic("exit_menu", "Exit to main menu"),
-                        GameRelativePlacement::new(IVec3::new(0, 0, 12), 1.0),
+                        MenuButton::basic("back_galaxy", "Back to Galaxy Select"),
+                        GameRelativePlacement::new(IVec3::new(0, 12, 12), 1.0),
+                    ));
+                    parent.spawn(MenuButtonBundle::new(
+                        MenuButton::basic("exit_menu", "Exit to Main Menu"),
+                        GameRelativePlacement::new(IVec3::new(0, -12, 12), 1.0),
                     ));
                 });
         }
@@ -199,6 +205,13 @@ pub(super) fn update_pause(
                 "exit_menu" => {
                     screen_effects.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
                         meta: MetaState::Menu(MenuState::Title),
+                        pause: None,
+                    })));
+                    screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
+                }
+                "back_galaxy" => {
+                    screen_effects.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+                        meta: MetaState::Menu(MenuState::GalaxyOverworld),
                         pause: None,
                     })));
                     screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);

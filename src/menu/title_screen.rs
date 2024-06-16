@@ -19,8 +19,7 @@ struct TitleScreenRoot;
 #[derive(Component)]
 struct TitleScreenDeath;
 
-fn setup_title_screen(mut commands: Commands, mut bg_manager: ResMut<BgManager>) {
-    bg_manager.set_kind(BgKind::ParallaxStars(500));
+fn setup_title_screen(mut commands: Commands) {
     commands
         .spawn((
             SpatialBundle::default(),

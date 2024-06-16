@@ -212,8 +212,8 @@ fn handle_galaxy_screen_input(
     let progress = progress.single();
     // First check if the user selected the galaxy by hitting enter
     if keyboard.just_pressed(KeyCode::Enter)
-        && !bg_manager.has_active_effect()
-        && screen_manager.is_none()
+        && !bg_manager.has_stateful_effect()
+        && screen_manager.is_effect_none()
     {
         screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
             meta: MetaState::Level(LevelState::fresh_from_id(

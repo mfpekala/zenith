@@ -17,11 +17,16 @@ use paused::{
 
 use crate::{
     camera::{CameraMarker, CameraMode},
+    environment::background::{BgKind, BgManager},
     meta::game_state::{entered_menu, left_menu},
     physics::dyno::IntMoveable,
 };
 
-fn setup_any_menu(mut cam: Query<(&mut IntMoveable, &mut CameraMarker)>) {
+fn setup_any_menu(
+    mut cam: Query<(&mut IntMoveable, &mut CameraMarker)>,
+    mut bg_manager: ResMut<BgManager>,
+) {
+    bg_manager.set_kind(BgKind::ParallaxStars(500));
     for (mut mv, mut cam) in cam.iter_mut() {
         mv.pos = IVec3::ZERO;
         cam.mode = CameraMode::Controlled;

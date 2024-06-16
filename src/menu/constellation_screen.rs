@@ -73,48 +73,47 @@ fn update_constellation_screen(
     save_files: Query<(Entity, &Name), With<GameProgress>>,
     mut commands: Commands,
 ) {
-    if !bg_manager.has_active_effect() {
-        // Player has not yet selected a save file
-        let mut screen_data = screen_data.single_mut();
-        if keys.pressed(KeyCode::ArrowLeft) {
-            screen_data.selection = 0;
-        } else if keys.pressed(KeyCode::ArrowRight) {
-            screen_data.selection = 1;
+    // Player has not yet selected a save file
+    let mut screen_data = screen_data.single_mut();
+    if keys.pressed(KeyCode::ArrowLeft) {
+        screen_data.selection = 0;
+    } else if keys.pressed(KeyCode::ArrowRight) {
+        screen_data.selection = 1;
+    }
+    for (option, mut placement) in options.iter_mut() {
+        if screen_data.selection == option.0 {
+            placement.scale = 1.5;
+        } else {
+            placement.scale = 0.75;
         }
-        for (option, mut placement) in options.iter_mut() {
-            if screen_data.selection == option.0 {
-                placement.scale = 1.5;
-            } else {
-                placement.scale = 0.75;
-            }
-        }
-        if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
-            let aeid = save_files
-                .iter()
-                .filter(|(_, name)| name.ends_with("a"))
-                .map(|(eid, _)| eid)
-                .next()
-                .unwrap();
-            let beid = save_files
-                .iter()
-                .filter(|(_, name)| name.ends_with("b"))
-                .map(|(eid, _)| eid)
-                .next()
-                .unwrap();
-            let (choosing, not_choosing) = if screen_data.selection == 0 {
-                (aeid, beid)
-            } else {
-                (beid, aeid)
-            };
-            commands.entity(choosing).insert(ActiveSaveFile);
-            commands.entity(not_choosing).remove::<ActiveSaveFile>();
-            bg_manager.queue_effect(BgEffect::default_menu_scroll(
-                true,
-                true,
-                Some(MetaState::Menu(MenuState::GalaxyOverworld)),
-            ));
-            bg_manager.queue_effect(BgEffect::default_menu_scroll(true, false, None));
-        }
+    }
+    if keys.pressed(KeyCode::Enter) && screen_data.selection >= 0 {
+        let aeid = save_files
+            .iter()
+            .filter(|(_, name)| name.ends_with("a"))
+            .map(|(eid, _)| eid)
+            .next()
+            .unwrap();
+        let beid = save_files
+            .iter()
+            .filter(|(_, name)| name.ends_with("b"))
+            .map(|(eid, _)| eid)
+            .next()
+            .unwrap();
+        let (choosing, not_choosing) = if screen_data.selection == 0 {
+            (aeid, beid)
+        } else {
+            (beid, aeid)
+        };
+        commands.entity(choosing).insert(ActiveSaveFile);
+        commands.entity(not_choosing).remove::<ActiveSaveFile>();
+        bg_manager.clear_effects();
+        bg_manager.queue_effect(BgEffect::default_menu_scroll(
+            true,
+            true,
+            Some(MetaState::Menu(MenuState::GalaxyOverworld)),
+        ));
+        bg_manager.queue_effect(BgEffect::default_menu_scroll(true, false, None));
     }
 }
 

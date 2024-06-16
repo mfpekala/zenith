@@ -33,7 +33,7 @@ impl MenuButton {
             text: text.to_string(),
             _enabled: true,
             size: 24.0,
-            scale: 0.15,
+            scale: 0.12,
             idle_color: Color::WHITE,
             hover_color: Color::YELLOW,
             pressed_color: Color::RED,
@@ -125,7 +125,7 @@ pub(super) fn materialize_button_backgrounds(
             layout_info.logical_size.y * 0.75,
             1.0,
         );
-        let correct_tran = Vec2::new(-1.0, -layout_info.logical_size.y / 8.0);
+        let correct_tran = Vec2::new(-1.0, -layout_info.logical_size.y / 16.0);
         let rect_bund = |color: Color, scale: Vec3, z: i32| {
             (
                 SpriteBundle {

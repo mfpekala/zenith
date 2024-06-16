@@ -109,7 +109,7 @@ impl ScreenEffectManager {
         }
     }
 
-    pub fn is_none(&self) -> bool {
+    pub fn is_effect_none(&self) -> bool {
         self.current_kind == ScreenEffect::None
     }
 }

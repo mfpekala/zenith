@@ -39,7 +39,7 @@ impl BgEffect {
         let dir = if forward { -1.0 } else { 1.0 } * Vec2::new(2.0, 0.2) * 4_010.4;
         BgEffect::ScrollStars {
             dir,
-            length: 0.75,
+            length: 0.5,
             accel: start,
             gs: ms.map(|meta| GameState { meta, pause: None }),
         }
@@ -113,6 +113,21 @@ impl BgManager {
 
     pub fn has_active_effect(&self) -> bool {
         self.current_effect.is_some()
+    }
+
+    /// Grr hacky, is the current effect going to change the game state when it finished
+    pub fn has_stateful_effect(&self) -> bool {
+        match &self.current_effect {
+            Some((effect, _)) => match effect {
+                BgEffect::ScrollStars { gs, .. } => gs.is_some(),
+            },
+            None => false,
+        }
+    }
+
+    pub fn clear_effects(&mut self) {
+        self.current_effect = None;
+        self.queued_effects.clear();
     }
 }
 
