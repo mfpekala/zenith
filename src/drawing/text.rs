@@ -1,6 +1,6 @@
 use crate::menu::placement::GameRelativePlacement;
 
-use super::layering::{menu_layer, sprite_layer};
+use super::layering::{light_layer, menu_layer, sprite_layer};
 use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor, utils::HashMap};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -93,6 +93,35 @@ impl TextBoxBundle {
         )
     }
 
+    pub fn new_light_text(
+        content: &str,
+        size: f32,
+        pos: IVec3,
+        color: Color,
+        weight: TextWeight,
+        align: TextAlign,
+    ) -> Self {
+        Self {
+            inner: Text2dBundle {
+                text: Text::from_section(
+                    content.to_string(),
+                    TextStyle {
+                        font_size: size,
+                        color,
+                        ..default()
+                    },
+                )
+                .with_justify(align.to_justify()),
+                text_anchor: align.to_anchor(),
+                transform: Transform::from_translation(pos.as_vec3()),
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            render_layers: light_layer(),
+            font: weight,
+        }
+    }
+
     pub fn new_sprite_text(
         content: &str,
         size: f32,
@@ -170,13 +199,14 @@ pub struct TextNode {
     pub color: Color,
     pub size: f32,
     pub pos: IVec3,
+    pub light: bool,
 }
 
 /// Gotta love hierarchies in Bevy! Maybe I'm stupid
 #[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct TextManager {
-    map: HashMap<String, TextNode>,
+    pub map: HashMap<String, TextNode>,
 }
 impl TextManager {
     pub fn from_pairs(pairs: Vec<(&str, TextNode)>) -> Self {
@@ -213,11 +243,18 @@ fn correct_fonts(
 
 /// Watch for changed managers and just redo all their kids
 fn update_text_managers(
-    managers: Query<(Entity, &TextManager), Changed<TextManager>>,
+    managers: Query<(Entity, &TextManager, Option<&Children>), Changed<TextManager>>,
+    texts: Query<&Text>,
     mut commands: Commands,
 ) {
-    for (eid, manager) in managers.iter() {
-        commands.entity(eid).despawn_descendants();
+    for (eid, manager, children) in managers.iter() {
+        if let Some(children) = children {
+            for kid in children.iter() {
+                if texts.get(*kid).is_ok() {
+                    commands.entity(*kid).despawn_recursive();
+                }
+            }
+        }
         commands.entity(eid).with_children(|parent| {
             for (key, node) in manager.map.iter() {
                 let text_bund = TextBoxBundle::new_sprite_text(
@@ -229,6 +266,17 @@ fn update_text_managers(
                     node.align,
                 );
                 parent.spawn((text_bund, Name::new(key.clone())));
+                if node.light {
+                    let light_bund = TextBoxBundle::new_light_text(
+                        &node.content,
+                        node.size,
+                        node.pos,
+                        node.color,
+                        node.weight,
+                        node.align,
+                    );
+                    parent.spawn((light_bund, Name::new(format!("{}_light", key))));
+                }
             }
         });
     }
@@ -241,7 +289,6 @@ impl Plugin for ZenithTextPlugin {
 
         app.add_systems(Startup, setup_zenith_text);
         app.add_systems(Update, update_flashing_text);
-        app.add_systems(Update, correct_fonts);
-        app.add_systems(Update, update_text_managers);
+        app.add_systems(Update, (update_text_managers, correct_fonts).chain());
     }
 }

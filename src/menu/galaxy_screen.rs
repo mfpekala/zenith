@@ -50,11 +50,13 @@ impl LittleShipBundle {
                     ..default()
                 }),
             ),
+            // I think the menu looks better without the regular light, using empty as light
+            // (This way it onlly illuminates the ship, better showing which galaxy is selected)
             (
                 "light",
                 AnimationManager::single_static(SpriteInfo {
-                    path: "sprites/shipL.png".to_string(),
-                    size: UVec2::new(64, 64),
+                    path: "sprites/ship_empty.png".to_string(),
+                    size: UVec2::new(8, 8),
                     ..default()
                 })
                 .force_render_layer(light_layer_u8()),
@@ -88,7 +90,7 @@ struct GalaxyChoiceBundle {
     spatial: SpatialBundle,
 }
 impl GalaxyChoiceBundle {
-    fn from_kind(kind: GalaxyKind) -> Self {
+    fn from_kind(kind: GalaxyKind, selected: bool) -> Self {
         let multi = match kind {
             GalaxyKind::Basic => MultiAnimationManager::from_pairs(vec![
                 (
@@ -136,6 +138,7 @@ impl GalaxyChoiceBundle {
                 content: meta.title.clone(),
                 size: 16.0,
                 pos: IVec3::new(0, -24, 0),
+                light: selected,
                 ..default()
             },
         )]);
@@ -170,7 +173,7 @@ fn setup_galaxy_screen(
         ))
         .with_children(|parent| {
             for kind in GalaxyKind::all() {
-                parent.spawn(GalaxyChoiceBundle::from_kind(kind));
+                parent.spawn(GalaxyChoiceBundle::from_kind(kind, kind == active_galaxy));
             }
             parent.spawn(LittleShipBundle::new(active_galaxy));
         });
@@ -220,14 +223,19 @@ fn handle_galaxy_screen_input(
     commands.entity(ship_eid).insert(effect_val);
 }
 
-fn update_galaxy_sizes(
+fn update_galaxy_sizes_and_light(
     root: Query<(&GalaxyScreenRoot, Option<&EffectVal>)>,
-    mut galaxys: Query<(&mut GalaxyChoice, &mut Transform)>,
+    mut galaxys: Query<(
+        &mut GalaxyChoice,
+        &mut Transform,
+        &mut MultiAnimationManager,
+        &mut TextManager,
+    )>,
 ) {
     let Ok((root, root_val)) = root.get_single() else {
         return;
     };
-    for (mut choice, mut tran) in galaxys.iter_mut() {
+    for (mut choice, mut tran, mut multi, mut text) in galaxys.iter_mut() {
         if choice.kind == root.selected {
             choice.shrink_helper = None;
             tran.scale = match root_val {
@@ -235,6 +243,10 @@ fn update_galaxy_sizes(
                     let watermark = match choice.grow_helper {
                         Some(old_scale) => old_scale,
                         None => {
+                            for val in text.map.values_mut() {
+                                val.light = true;
+                            }
+                            multi.map.get_mut("light").unwrap().set_hidden(false);
                             choice.grow_helper = Some(tran.scale.x);
                             tran.scale.x
                         }
@@ -251,6 +263,10 @@ fn update_galaxy_sizes(
                     let watermark = match choice.shrink_helper {
                         Some(old_scale) => old_scale,
                         None => {
+                            for val in text.map.values_mut() {
+                                val.light = false;
+                            }
+                            multi.map.get_mut("light").unwrap().set_hidden(true);
                             choice.shrink_helper = Some(tran.scale.x);
                             tran.scale.x
                         }
@@ -337,7 +353,7 @@ pub fn register_galaxy_screen(app: &mut App) {
         FixedUpdate,
         (
             handle_galaxy_screen_input,
-            update_galaxy_sizes,
+            update_galaxy_sizes_and_light,
             update_root_and_ship,
         )
             .chain()
