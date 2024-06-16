@@ -37,9 +37,25 @@ impl EffectVal {
         }
     }
 
+    pub fn get_start_val(&self) -> f32 {
+        self.start_val
+    }
+
+    pub fn get_goal_val(&self) -> f32 {
+        self.goal_val
+    }
+
     pub fn interp(&self) -> f32 {
         let x = self.spleen.interp(self.timer.fraction());
         lerp(x, self.start_val, self.goal_val)
+    }
+
+    pub fn just_finished(&self) -> bool {
+        self.timer.just_finished()
+    }
+
+    pub fn finished(&self) -> bool {
+        self.timer.finished()
     }
 }
 
@@ -146,6 +162,12 @@ fn manage_screen_effects(
     }
 }
 
+fn tick_effects(mut effects: Query<&mut EffectVal>, time: Res<Time>) {
+    for mut effect in effects.iter_mut() {
+        effect.timer.tick(time.delta());
+    }
+}
+
 pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
@@ -153,5 +175,6 @@ impl Plugin for EffectsPlugin {
         app.insert_resource(ScreenEffectManager::blank());
         app.add_systems(Startup, spawn_screen_black_box);
         app.add_systems(Update, manage_screen_effects);
+        app.add_systems(PreUpdate, tick_effects);
     }
 }

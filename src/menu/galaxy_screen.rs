@@ -3,9 +3,11 @@ use bevy::prelude::*;
 use crate::{
     drawing::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
+        effects::EffectVal,
         layering::light_layer_u8,
         text::{TextAlign, TextBoxBundle, TextManager, TextNode, TextWeight},
     },
+    math::Spleen,
     meta::{
         game_state::{GameState, MenuState, MetaState},
         progress::{ActiveSaveFile, GalaxyKind, GameProgress},
@@ -16,12 +18,59 @@ use crate::{
 
 /// Root of the galaxy screen. Destroyed on on_destroy
 #[derive(Component)]
-struct GalaxyScreenRoot;
+struct GalaxyScreenRoot {
+    selected: GalaxyKind,
+}
 
 #[derive(Component)]
 struct GalaxyChoice {
     kind: GalaxyKind,
-    selected: bool,
+}
+
+#[derive(Component)]
+struct LittleShip;
+
+#[derive(Bundle)]
+struct LittleShipBundle {
+    little_ship: LittleShip,
+    multi: MultiAnimationManager,
+    spatial: SpatialBundle,
+    name: Name,
+}
+impl LittleShipBundle {
+    pub fn new(kind: GalaxyKind) -> Self {
+        let multi = MultiAnimationManager::from_pairs(vec![
+            (
+                "ship",
+                AnimationManager::single_static(SpriteInfo {
+                    path: "sprites/ship.png".to_string(),
+                    size: UVec2::new(8, 8),
+                    ..default()
+                }),
+            ),
+            (
+                "light",
+                AnimationManager::single_static(SpriteInfo {
+                    path: "sprites/shipL.png".to_string(),
+                    size: UVec2::new(64, 64),
+                    ..default()
+                })
+                .force_render_layer(light_layer_u8()),
+            ),
+        ]);
+        let x_offset = galaxy_offset(kind) as f32;
+        let spatial = SpatialBundle::from_transform(Transform {
+            translation: Vec3::new(x_offset, 0.0, 1.0),
+            scale: Vec3::new(0.0, 0.0, 1.0),
+            ..default()
+        });
+        Self {
+            little_ship: LittleShip,
+            multi,
+            spatial,
+            name: Name::new("little_ship"),
+        }
+    }
 }
 
 fn galaxy_offset(kind: GalaxyKind) -> i32 {
@@ -93,20 +142,8 @@ impl GalaxyChoiceBundle {
             0.0,
             0.0,
         )));
-        // let mut text = TextBoxBundle::new_sprite_text(
-        //     &meta.title,
-        //     36.0,
-        //     IVec3::new(0, -18, 0),
-        //     Color::WHITE,
-        //     TextWeight::Regular,
-        //     TextAlign::Center,
-        // );
-        // text.inner.transform = Transform::from_translation(Vec3::new(x_offset, 0.0, 0.0));
         Self {
-            info: GalaxyChoice {
-                kind,
-                selected: false,
-            },
+            info: GalaxyChoice { kind },
             multi,
             name: Name::new(format!("galaxy_choice_{}", kind)),
             text,
@@ -123,7 +160,9 @@ fn setup_galaxy_screen(
     let active_galaxy = progress.first_incomplete_galaxy();
     commands
         .spawn((
-            GalaxyScreenRoot,
+            GalaxyScreenRoot {
+                selected: active_galaxy,
+            },
             Name::new("galaxy_screen"),
             IntMoveableBundle::new(IVec3::new(-galaxy_offset(active_galaxy), 0, 0)),
         ))
@@ -131,10 +170,90 @@ fn setup_galaxy_screen(
             for kind in GalaxyKind::all() {
                 parent.spawn(GalaxyChoiceBundle::from_kind(kind));
             }
+            parent.spawn(LittleShipBundle::new(active_galaxy));
         });
 }
 
-fn update_galaxy_screen() {}
+fn handle_galaxy_screen_input(
+    mut root: Query<(Entity, &mut GalaxyScreenRoot, &Transform)>,
+    mut little_ship: Query<(Entity, &Transform), With<LittleShip>>,
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    let Ok((eid, mut root, tran)) = root.get_single_mut() else {
+        return;
+    };
+    let Ok((ship_eid, ship_tran)) = little_ship.get_single() else {
+        return;
+    };
+    // First check if the user selected the galaxy by hitting enter
+    if keyboard.just_pressed(KeyCode::Enter) {
+        warn!("TODO: GalaxyOverworld enter press");
+        return;
+    }
+    let new_kind = {
+        if keyboard.just_pressed(KeyCode::ArrowLeft) {
+            root.selected.prev()
+        } else if keyboard.just_pressed(KeyCode::ArrowRight) {
+            root.selected.next()
+        } else {
+            None
+        }
+    };
+    let Some(new_kind) = new_kind else {
+        // Nothing to do
+        return;
+    };
+    let duration = 0.75;
+    // Insert the root effect
+    let start_val = tran.translation.x;
+    let end_val = -galaxy_offset(new_kind) as f32;
+    root.selected = new_kind;
+    let effect_val = EffectVal::new(start_val, end_val, Spleen::EaseInOutCubic, duration);
+    commands.entity(eid).insert(effect_val);
+    // Insert the ship effect
+    let start_val = ship_tran.scale.x;
+    let end_val = 0.0;
+    let effect_val = EffectVal::new(start_val, end_val, Spleen::EaseInOutCubic, duration);
+    commands.entity(ship_eid).insert(effect_val);
+}
+
+fn update_root_and_ship(
+    mut root: Query<(Entity, &mut Transform, &EffectVal), With<GalaxyScreenRoot>>,
+    mut little_ship: Query<
+        (Entity, &mut Transform, &EffectVal),
+        (With<LittleShip>, Without<GalaxyScreenRoot>),
+    >,
+    mut commands: Commands,
+) {
+    let Ok((eid, mut tran, effect_val)) = root.get_single_mut() else {
+        return;
+    };
+    let Ok((ship_eid, mut ship_tran, ship_effect_val)) = little_ship.get_single_mut() else {
+        return;
+    };
+    tran.translation.x = effect_val.interp();
+    if effect_val.finished() {
+        commands.entity(eid).remove::<EffectVal>();
+    }
+    ship_tran.translation.x = -tran.translation.x;
+    // TODO: Kind of hacky, maybe add a midpoint spleen, would require a refactor tho
+    let time_frac = ship_effect_val.timer.fraction();
+    let ship_spleen = Spleen::EaseInOutCubic;
+    let scale = if time_frac < 0.5 {
+        let spleen_frac = ship_spleen.interp(time_frac * 2.0);
+        ship_effect_val.get_start_val() + spleen_frac * (1.0 - ship_effect_val.get_start_val())
+    } else {
+        let spleen_frac = ship_spleen.interp((time_frac - 0.5) * 2.0);
+        1.0 - spleen_frac
+    };
+    ship_tran.translation.y = scale * 18.0;
+    ship_tran.scale.x = scale;
+    ship_tran.scale.y = scale;
+    if effect_val.finished() {
+        commands.entity(ship_eid).remove::<EffectVal>();
+    }
+}
 
 fn destroy_galaxy_screen(mut commands: Commands, root: Query<Entity, With<GalaxyScreenRoot>>) {
     let Ok(root) = root.get_single() else {
@@ -164,8 +283,14 @@ pub fn register_galaxy_screen(app: &mut App) {
     app.add_systems(Update, destroy_galaxy_screen.run_if(left_galaxy_screen));
     app.add_systems(
         Update,
-        update_galaxy_screen
+        handle_galaxy_screen_input
             .run_if(is_in_galaxy_screen)
             .after(setup_galaxy_screen),
+    );
+    app.add_systems(
+        FixedUpdate,
+        (handle_galaxy_screen_input, update_root_and_ship)
+            .chain()
+            .run_if(is_in_galaxy_screen),
     );
 }

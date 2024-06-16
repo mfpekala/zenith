@@ -17,14 +17,6 @@ impl std::fmt::Display for GalaxyKind {
         write!(f, "{:?}", self)
     }
 }
-impl GalaxyKind {
-    pub fn rank(&self) -> u32 {
-        match self {
-            Self::Basic => 0,
-            Self::Springy => 1,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct GalaxyMetaData {
@@ -38,6 +30,27 @@ pub struct GalaxyMetaData {
 impl GalaxyKind {
     pub fn all() -> Vec<Self> {
         vec![Self::Basic, Self::Springy]
+    }
+
+    pub fn rank(&self) -> u32 {
+        match self {
+            Self::Basic => 0,
+            Self::Springy => 1,
+        }
+    }
+
+    pub fn next(&self) -> Option<Self> {
+        match self {
+            Self::Basic => Some(Self::Springy),
+            Self::Springy => None,
+        }
+    }
+
+    pub fn prev(&self) -> Option<Self> {
+        match self {
+            Self::Basic => None,
+            Self::Springy => Some(Self::Basic),
+        }
     }
 
     pub fn to_levels(&self) -> Vec<LevelMetaData> {
