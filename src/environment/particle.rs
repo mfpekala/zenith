@@ -117,25 +117,24 @@ impl ParticleBundle {
 }
 
 fn update_particles(
-    mut commands: Commands,
-    mut particles: Query<(
-        Entity,
-        &mut Transform,
-        &mut ParticleBody,
-        &mut ParticleLifespan,
-    )>,
+    mut particles: Query<(&mut Transform, &mut ParticleBody, &mut ParticleLifespan)>,
     time: Res<Time>,
     bullet_time: Res<BulletTime>,
 ) {
-    for (id, mut tran, mut body, mut lifespan) in particles.iter_mut() {
+    for (mut tran, mut body, mut lifespan) in particles.iter_mut() {
         lifespan.tick(time.delta().mul_f32(bullet_time.factor()));
-        if lifespan.timer.finished() {
-            commands.entity(id).despawn_recursive();
-            continue;
-        }
         let vel = body.vel;
         body.pos += vel.extend(0.0);
         tran.translation = body.pos;
+    }
+}
+
+fn destroy_particles(mut commands: Commands, particles: Query<(Entity, &ParticleLifespan)>) {
+    for (eid, lifespan) in particles.iter() {
+        if lifespan.timer.finished() {
+            commands.entity(eid).despawn_recursive();
+            continue;
+        }
     }
 }
 
@@ -267,15 +266,7 @@ fn update_spawners(
     }
 }
 
-fn test_spawner(mut _commands: Commands) {
-    // commands.spawn(ParticleSpawnerBundle {
-    //     spatial: SpatialBundle::default(),
-    //     spawner: ParticleSpawner::rainbow(),
-    // });
-}
-
 pub fn register_particles(app: &mut App) {
-    app.add_systems(Startup, test_spawner);
     app.add_systems(
         Update,
         (
@@ -286,4 +277,5 @@ pub fn register_particles(app: &mut App) {
         )
             .run_if(is_unpaused),
     );
+    app.add_systems(PostUpdate, destroy_particles);
 }

@@ -15,6 +15,25 @@ use paused::{
     is_unpaused, setup_any_pause, setup_specific_pause, start_pause, stop_pause, update_pause,
 };
 
+use crate::{
+    camera::{CameraMarker, CameraMode},
+    meta::game_state::{entered_menu, left_menu},
+    physics::dyno::IntMoveable,
+};
+
+fn setup_any_menu(mut cam: Query<(&mut IntMoveable, &mut CameraMarker)>) {
+    for (mut mv, mut cam) in cam.iter_mut() {
+        mv.pos = IVec3::ZERO;
+        cam.mode = CameraMode::Controlled;
+    }
+}
+
+fn destroy_any_menu(mut cam: Query<&mut CameraMarker>) {
+    for mut cam in cam.iter_mut() {
+        cam.mode = CameraMode::Follow;
+    }
+}
+
 pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
@@ -40,6 +59,9 @@ impl Plugin for MenuPlugin {
         );
 
         app.add_systems(Update, update_pause.run_if(is_paused));
+
+        app.add_systems(Update, setup_any_menu.run_if(entered_menu));
+        app.add_systems(Update, destroy_any_menu.run_if(left_menu));
 
         app.add_event::<MenuButtonPressed>();
         app.add_systems(Update, materialize_buttons.after(setup_specific_pause));

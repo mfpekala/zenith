@@ -206,10 +206,5 @@ pub fn register_camera(app: &mut App) {
         SCREEN_HEIGHT as u32,
     )));
     app.add_systems(Update, camera_input.run_if(in_editor.or_else(in_level)));
-    app.add_systems(
-        FixedUpdate,
-        camera_movement
-            .run_if(in_editor.or_else(in_level))
-            .after(apply_fields),
-    );
+    app.add_systems(FixedUpdate, camera_movement.after(apply_fields));
 }

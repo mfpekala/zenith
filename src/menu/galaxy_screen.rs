@@ -3,16 +3,19 @@ use bevy::prelude::*;
 use crate::{
     drawing::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
-        effects::EffectVal,
+        effects::{EffectVal, ScreenEffect, ScreenEffectManager},
         layering::light_layer_u8,
         text::{TextManager, TextNode},
     },
-    environment::particle::{
-        ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
+    environment::{
+        background::BgManager,
+        particle::{
+            ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
+        },
     },
     math::Spleen,
     meta::{
-        game_state::{GameState, MenuState, MetaState},
+        game_state::{GameState, LevelState, MenuState, MetaState},
         progress::{ActiveSaveFile, GalaxyKind, GameProgress},
     },
     physics::dyno::IntMoveableBundle,
@@ -197,6 +200,8 @@ fn handle_galaxy_screen_input(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     progress: Query<&GameProgress, With<ActiveSaveFile>>,
+    bg_manager: Res<BgManager>,
+    mut screen_manager: ResMut<ScreenEffectManager>,
 ) {
     let Ok((eid, mut root, tran)) = root.get_single_mut() else {
         return;
@@ -206,8 +211,16 @@ fn handle_galaxy_screen_input(
     };
     let progress = progress.single();
     // First check if the user selected the galaxy by hitting enter
-    if keyboard.just_pressed(KeyCode::Enter) {
-        warn!("TODO: GalaxyOverworld enter press");
+    if keyboard.just_pressed(KeyCode::Enter)
+        && !bg_manager.has_active_effect()
+        && screen_manager.is_none()
+    {
+        screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+            meta: MetaState::Level(LevelState::fresh_from_id(
+                progress.get_galaxy_progress(root.selected).1,
+            )),
+            pause: None,
+        })));
         return;
     }
     let new_kind = {
