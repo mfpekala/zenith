@@ -4,12 +4,11 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    camera::CameraMarker,
     drawing::layering::sprite_layer,
     math::{lerp, lerp_color, Spleen},
     menu::paused::is_unpaused,
     meta::consts::FRAMERATE,
-    physics::{should_apply_physics, BulletTime},
+    physics::BulletTime,
     ship::Ship,
 };
 

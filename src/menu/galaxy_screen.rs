@@ -9,7 +9,6 @@ use crate::{
     },
     environment::particle::{
         ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
-        ParticleSpawner,
     },
     math::Spleen,
     meta::{
@@ -95,7 +94,7 @@ struct GalaxyChoiceBundle {
     spatial: SpatialBundle,
 }
 impl GalaxyChoiceBundle {
-    fn from_kind(kind: GalaxyKind, selected: bool) -> Self {
+    fn from_kind(kind: GalaxyKind, selected: bool, playable: bool) -> Self {
         let multi = match kind {
             GalaxyKind::Basic => MultiAnimationManager::from_pairs(vec![
                 (
@@ -140,7 +139,11 @@ impl GalaxyChoiceBundle {
         let text = TextManager::from_pairs(vec![(
             "title",
             TextNode {
-                content: meta.title.clone(),
+                content: if playable {
+                    meta.title.clone()
+                } else {
+                    "???".to_string()
+                },
                 size: 16.0,
                 pos: IVec3::new(0, -24, 0),
                 light: selected,
@@ -178,7 +181,11 @@ fn setup_galaxy_screen(
         ))
         .with_children(|parent| {
             for kind in GalaxyKind::all() {
-                parent.spawn(GalaxyChoiceBundle::from_kind(kind, kind == active_galaxy));
+                parent.spawn(GalaxyChoiceBundle::from_kind(
+                    kind,
+                    kind == active_galaxy,
+                    progress.is_playable(kind),
+                ));
             }
             parent.spawn(LittleShipBundle::new(active_galaxy));
         });
@@ -189,6 +196,7 @@ fn handle_galaxy_screen_input(
     little_ship: Query<(Entity, &Transform), With<LittleShip>>,
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
+    progress: Query<&GameProgress, With<ActiveSaveFile>>,
 ) {
     let Ok((eid, mut root, tran)) = root.get_single_mut() else {
         return;
@@ -196,6 +204,7 @@ fn handle_galaxy_screen_input(
     let Ok((ship_eid, ship_tran)) = little_ship.get_single() else {
         return;
     };
+    let progress = progress.single();
     // First check if the user selected the galaxy by hitting enter
     if keyboard.just_pressed(KeyCode::Enter) {
         warn!("TODO: GalaxyOverworld enter press");
@@ -214,6 +223,10 @@ fn handle_galaxy_screen_input(
         // Nothing to do
         return;
     };
+    if !progress.is_playable(new_kind) {
+        // Can't play this level
+        return;
+    }
     let duration = 0.75;
     // Insert the root effect
     let start_val = tran.translation.x;

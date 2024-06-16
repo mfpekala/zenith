@@ -128,6 +128,12 @@ impl GameProgress {
         }
         GalaxyKind::Basic
     }
+
+    /// Returns true if this galaxy is playable, a.k.a if it should be selectable from the
+    /// galaxy overworld. Translates to: complete OR first incomplete
+    pub fn is_playable(&self, kind: GalaxyKind) -> bool {
+        self.get_galaxy_progress(kind).0 || (kind == self.first_incomplete_galaxy())
+    }
 }
 
 /// Marks a GameProgress as being active.
