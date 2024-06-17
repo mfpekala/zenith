@@ -20,6 +20,7 @@ use bevy::prelude::*;
 pub struct Ship {
     pub can_shoot: bool,
     pub last_safe_location: IVec2,
+    pub time_in_goal: f32,
 }
 impl Ship {
     pub const fn radius() -> f32 {
@@ -66,6 +67,7 @@ impl ShipBundle {
             ship: Ship {
                 can_shoot: true,
                 last_safe_location: pos,
+                time_in_goal: 0.0,
             },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
             dyno: IntDyno::new(pos.extend(10), 4.0),
@@ -147,8 +149,8 @@ fn replenish_shot(
         Without<ReplenishMarker>,
     >,
     mut replenishes: Query<
-        (Entity, &mut MultiAnimationManager, &mut ColliderActive),
-        With<ReplenishMarker>,
+        (Entity, &mut MultiAnimationManager),
+        (With<ReplenishMarker>, With<ColliderActive>),
     >,
     mut commands: Commands,
     bullet_time: Res<BulletTime>,
@@ -172,12 +174,12 @@ fn replenish_shot(
         if !ship.can_shoot && replenish_triggers.len() > 0 {
             ship.can_shoot = true;
             for eid in replenish_triggers {
-                let (rid, mut repl, mut active) = replenishes.get_mut(eid).unwrap();
+                let (rid, mut repl) = replenishes.get_mut(eid).unwrap();
                 let core = repl.map.get_mut("core").unwrap();
                 core.set_key("exploding");
                 let light = repl.map.get_mut("light").unwrap();
                 light.set_key("exploding");
-                active.0 = false;
+                commands.entity(rid).remove::<ColliderActive>();
                 commands.entity(rid).insert(ReplenishCharging::new());
             }
         }

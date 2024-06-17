@@ -8,9 +8,11 @@ use crate::{
     drawing::animation::AnimationManager,
     environment::{
         field::Field,
+        goal::GoalMarker,
         segment::{Segment, SegmentKind},
     },
-    meta::game_state::in_editor,
+    meta::{consts::FRAMERATE, game_state::in_editor},
+    ship::Ship,
 };
 
 use super::{
@@ -100,19 +102,8 @@ impl IntDyno {
 
 pub(super) fn move_int_dyno_helper(
     dyno: &mut IntDyno,
-    statics: &Query<(
-        Entity,
-        &ColliderBoundary,
-        &ColliderStatic,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
-    triggers: &Query<(
-        &ColliderBoundary,
-        &ColliderTrigger,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
+    statics: &Query<(Entity, &ColliderBoundary, &ColliderStatic, &Parent), With<ColliderActive>>,
+    triggers: &Query<(&ColliderBoundary, &ColliderTrigger, &Parent), With<ColliderActive>>,
     segments: &mut Query<(&Segment, &mut AnimationManager)>,
     bullet_time: &Res<BulletTime>,
 ) {
@@ -173,19 +164,8 @@ pub(super) fn move_int_dyno_helper(
 
 pub(super) fn move_int_dynos(
     mut dynos: Query<(&mut IntDyno, &mut Transform)>,
-    statics: Query<(
-        Entity,
-        &ColliderBoundary,
-        &ColliderStatic,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
-    triggers: Query<(
-        &ColliderBoundary,
-        &ColliderTrigger,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
+    statics: Query<(Entity, &ColliderBoundary, &ColliderStatic, &Parent), With<ColliderActive>>,
+    triggers: Query<(&ColliderBoundary, &ColliderTrigger, &Parent), With<ColliderActive>>,
     mut segments: Query<(&Segment, &mut AnimationManager)>,
     bullet_time: Res<BulletTime>,
 ) {
@@ -228,19 +208,43 @@ pub(super) fn move_int_dynos(
 }
 
 pub fn apply_fields(
-    mut dynos: Query<&mut IntDyno>,
-    fields: Query<(&Field, Option<&ColliderActive>)>,
+    mut dynos: Query<(&mut IntDyno, &GlobalTransform, &mut Ship)>,
+    fields: Query<&Field>,
+    goals: Query<&GlobalTransform, With<GoalMarker>>,
     bullet_time: Res<BulletTime>,
 ) {
-    for mut dyno in dynos.iter_mut() {
+    for (mut dyno, dyno_gt, mut ship) in dynos.iter_mut() {
+        let mut goal_diff_dir = None;
+        for (trigger_id, _) in dyno.triggers.iter() {
+            let Ok(goal_gt) = goals.get(*trigger_id) else {
+                continue;
+            };
+            goal_diff_dir = Some(
+                (goal_gt.translation().truncate() - dyno_gt.translation().truncate())
+                    .normalize_or_zero(),
+            );
+            break;
+        }
+        if let Some(goal_diff_dir) = goal_diff_dir {
+            ship.time_in_goal += bullet_time.factor();
+            let frac = (ship.time_in_goal / FRAMERATE as f32).min(1.0);
+            let strength_range = (0.1, 0.4);
+            let drag_range = (1.0, 0.5);
+            let dirty_interp = |frac: f32, pair: (f32, f32)| pair.0 + frac * (pair.1 - pair.0);
+            let strength = dirty_interp(frac, strength_range);
+            let drag = dirty_interp(frac, drag_range);
+            dyno.vel += goal_diff_dir * strength * bullet_time.factor();
+            dyno.vel *= drag;
+            return;
+        }
+    }
+    for (mut dyno, _, mut ship) in dynos.iter_mut() {
+        ship.time_in_goal = 0.0;
         let mut diff = Vec2::ZERO;
         let mut killing_ids = HashSet::new();
         for (trigger_id, mult) in dyno.triggers.iter() {
-            if let Ok((field, active)) = fields.get(*trigger_id) {
+            if let Ok(field) = fields.get(*trigger_id) {
                 killing_ids.insert(*trigger_id);
-                if active.is_some() && !active.unwrap().0 {
-                    continue;
-                }
                 diff += field.dir
                     * field.strength.to_f32()
                     * *mult

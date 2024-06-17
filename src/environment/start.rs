@@ -51,16 +51,18 @@ pub struct StartBundle {
     anim: AnimationManager,
     mv: IntMoveable,
     spatial: SpatialBundle,
+    name: Name,
 }
 impl StartBundle {
     pub fn new(size: StartSize, pos: IVec2) -> Self {
         Self {
             start: StartMarker,
             anim: AnimationManager::single_repeating(size.to_sprite_info(), size.to_anim_length()),
-            mv: IntMoveable::new(pos.extend(-1)),
+            mv: IntMoveable::new(pos.extend(10)),
             spatial: SpatialBundle::from_transform(Transform::from_translation(
-                pos.as_vec2().extend(-1.0),
+                pos.as_vec2().extend(10.0),
             )),
+            name: Name::new("start"),
         }
     }
 }

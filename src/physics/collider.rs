@@ -83,7 +83,10 @@ pub struct ColliderTrigger {
 }
 
 #[derive(Component, Debug)]
-pub struct ColliderActive(pub bool);
+pub struct ColliderActive;
+
+#[derive(Component, Debug)]
+pub struct TrickleColliderActive(pub bool);
 
 pub struct ColliderStaticStub {
     pub uid: UId,
@@ -100,7 +103,6 @@ pub struct ColliderStaticStubs(pub Vec<ColliderStaticStub>);
 pub struct ColliderStaticBundle {
     _static: ColliderStatic,
     boundary: ColliderBoundary,
-    active: ColliderActive,
 }
 
 pub struct ColliderTriggerStub {
@@ -117,7 +119,6 @@ pub struct ColliderTriggerStubs(pub Vec<ColliderTriggerStub>);
 pub struct ColliderTriggerBundle {
     pub trigger: ColliderTrigger,
     pub boundary: ColliderBoundary,
-    pub active: ColliderActive,
 }
 
 /// Materialize the collider stubs, creating actual colliders
@@ -130,7 +131,7 @@ pub(super) fn materialize_collider_stubs(
     for (eid, stubs) in static_stubs.iter() {
         for stub in stubs.0.iter() {
             commands.entity(eid).with_children(|parent| {
-                parent.spawn((
+                let mut res = parent.spawn((
                     UIdMarker(stub.uid),
                     ColliderStaticBundle {
                         _static: ColliderStatic {
@@ -138,9 +139,11 @@ pub(super) fn materialize_collider_stubs(
                             friction: stub.friction,
                         },
                         boundary: ColliderBoundary::from_points(stub.points.clone()),
-                        active: ColliderActive(stub.active),
                     },
                 ));
+                if stub.active {
+                    res.insert(ColliderActive);
+                }
             });
         }
         commands.entity(eid).remove::<ColliderStaticStubs>();
@@ -149,17 +152,19 @@ pub(super) fn materialize_collider_stubs(
     for (eid, stubs) in trigger_stubs.iter() {
         for stub in stubs.0.iter() {
             commands.entity(eid).with_children(|parent| {
-                parent.spawn((
+                let mut res = parent.spawn((
                     UIdMarker(stub.uid),
                     ColliderTriggerBundle {
                         trigger: ColliderTrigger {
                             refresh_period: stub.refresh_period,
                         },
                         boundary: ColliderBoundary::from_points(stub.points.clone()),
-                        active: ColliderActive(stub.active),
                     },
                     Name::new("ColliderTrigger"),
                 ));
+                if stub.active {
+                    res.insert(ColliderActive);
+                }
             });
         }
         commands.entity(eid).remove::<ColliderTriggerStubs>();
@@ -169,23 +174,14 @@ pub(super) fn materialize_collider_stubs(
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
 pub(super) fn resolve_static_collisions(
     dyno: &mut IntDyno,
-    statics: &Query<(
-        Entity,
-        &ColliderBoundary,
-        &ColliderStatic,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
+    statics: &Query<(Entity, &ColliderBoundary, &ColliderStatic, &Parent), With<ColliderActive>>,
 ) -> bool {
     let mut fpos = dyno.fpos.truncate();
     let mut min_dist_sq: Option<f32> = None;
     let mut min_point: Option<Vec2> = None;
     let mut min_id: Option<Entity> = None;
     let mut min_parent_id: Option<Entity> = None;
-    for (eid, boundary, _, active, parent) in statics.iter() {
-        if active.is_none() || !active.unwrap().0 {
-            continue;
-        }
+    for (eid, boundary, _, parent) in statics.iter() {
         // We use bounding circles to cut down on the number of checks we actually have to do
         let prune_dist = fpos.distance_squared(boundary.center) - dyno.radius.powi(2) * 16.0;
         if prune_dist > boundary.bound_squared {
@@ -210,7 +206,7 @@ pub(super) fn resolve_static_collisions(
         error!("Weird stuff happened in resolving static collisions...");
         return false;
     };
-    let Ok((_, _, stat, _, _)) = statics.get(min_id) else {
+    let Ok((_, _, stat, _)) = statics.get(min_id) else {
         error!("Weird stuff2 happened in resolving static collisions...");
         return false;
     };
@@ -239,18 +235,10 @@ pub(super) fn resolve_static_collisions(
 /// A helper function to resolve collisions between an IntDyno and a ColliderStatic
 pub(super) fn resolve_trigger_collisions(
     dyno: &mut IntDyno,
-    triggers: &Query<(
-        &ColliderBoundary,
-        &ColliderTrigger,
-        Option<&ColliderActive>,
-        &Parent,
-    )>,
+    triggers: &Query<(&ColliderBoundary, &ColliderTrigger, &Parent), With<ColliderActive>>,
 ) {
     let fpos = dyno.fpos.truncate();
-    for (boundary, _, active, parent) in triggers.iter() {
-        if active.is_some() && !active.unwrap().0 {
-            continue;
-        }
+    for (boundary, _, parent) in triggers.iter() {
         // We use bounding circles to cut down on the number of checks we actually have to do
         let prune_dist = fpos.distance_squared(boundary.center) - dyno.radius.powi(2);
         if prune_dist > boundary.bound_squared {
@@ -268,23 +256,20 @@ pub(super) fn resolve_trigger_collisions(
 
 /// A function that trickles ColliderActive down to the child. Basically allows you to add ColliderActive
 /// to the parent and have it auto-update the child
-pub(super) fn trickle_active(mut colliders: Query<(Entity, &mut ColliderActive, Option<&Parent>)>) {
-    let mut eids_n_rents = vec![];
-    for (eid, _, rent) in colliders.iter() {
-        let Some(rent) = rent else {
+pub(super) fn trickle_active(
+    parents: Query<&TrickleColliderActive>,
+    colliders: Query<(Entity, &Parent), With<ColliderBoundary>>,
+    mut commands: Commands,
+) {
+    for (cid, parent) in colliders.iter() {
+        let Ok(trickle) = parents.get(parent.get()) else {
             continue;
         };
-        eids_n_rents.push((eid, rent.get()));
-    }
-    for (eid, rent) in eids_n_rents {
-        let Ok((_, truth, _)) = colliders.get(rent) else {
-            continue;
-        };
-        let val = truth.0;
-        let Ok((_, mut active, _)) = colliders.get_mut(eid) else {
-            continue;
-        };
-        active.0 = val;
+        if trickle.0 {
+            commands.entity(cid).insert(ColliderActive);
+        } else {
+            commands.entity(cid).remove::<ColliderActive>();
+        }
     }
 }
 

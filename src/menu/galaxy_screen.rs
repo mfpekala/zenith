@@ -142,10 +142,7 @@ impl GalaxyChoiceBundle {
         let meta = kind.to_meta_data();
         let text = if game_progress.is_playable(kind) {
             let (num, den) = galaxy_progress.portion_completed(kind);
-            let mut progress_str = format!("{} / {}", num, den);
-            if galaxy_progress.completed && num < den {
-                progress_str.push_str("(R)")
-            }
+            let progress_str = format!("{} / {}", num, den);
             let pairs = vec![
                 (
                     "title",

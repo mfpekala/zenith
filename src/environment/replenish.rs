@@ -7,7 +7,9 @@ use crate::{
     },
     meta::level_data::{ExportedReplenish, Rehydrate},
     physics::{
-        collider::{ColliderActive, ColliderTriggerStub, ColliderTriggerStubs},
+        collider::{
+            ColliderActive, ColliderTriggerStub, ColliderTriggerStubs, TrickleColliderActive,
+        },
         BulletTime,
     },
     uid::fresh_uid,
@@ -138,7 +140,7 @@ impl ReplenishBundle {
             )),
             triggers: ColliderTriggerStubs(vec![trigger]),
             name: Name::new("Replenish"),
-            active: ColliderActive(true),
+            active: ColliderActive,
         }
     }
 }
@@ -152,18 +154,13 @@ impl Rehydrate<ReplenishBundle> for ExportedReplenish {
 pub(super) fn update_replenishes(
     mut commands: Commands,
     mut replenishes: Query<
-        (
-            Entity,
-            &mut ReplenishCharging,
-            &mut MultiAnimationManager,
-            &mut ColliderActive,
-        ),
+        (Entity, &mut ReplenishCharging, &mut MultiAnimationManager),
         With<ReplenishMarker>,
     >,
     time: Res<Time>,
     bullet_time: Res<BulletTime>,
 ) {
-    for (eid, mut charge, mut multi, mut active) in replenishes.iter_mut() {
+    for (eid, mut charge, mut multi) in replenishes.iter_mut() {
         charge
             .timer
             .tick(time.delta().mul_f32(bullet_time.factor()));
@@ -173,9 +170,9 @@ pub(super) fn update_replenishes(
             core.reset_key("ready");
             let light: &mut AnimationManager = multi.map.get_mut("light").unwrap();
             light.reset_key("ready");
-            active.0 = true;
+            commands.entity(eid).insert(TrickleColliderActive(true));
         } else {
-            active.0 = false;
+            commands.entity(eid).insert(TrickleColliderActive(false));
         }
     }
 }

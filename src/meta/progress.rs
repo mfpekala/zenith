@@ -83,6 +83,16 @@ impl GalaxyKind {
         }
     }
 
+    pub fn get_next_level_id(&self, level_id: &str) -> Option<String> {
+        let mut it = self.to_levels().into_iter().map(|meta| meta.id);
+        while let Some(val) = it.next() {
+            if val.as_str() == level_id {
+                break;
+            }
+        }
+        it.next()
+    }
+
     pub fn to_meta_data(&self) -> GalaxyMetaData {
         let (title, description) = match self {
             Self::Basic => ("Basic", "A basic, test galaxy"),
@@ -130,6 +140,28 @@ impl GalaxyProgress {
             }
         }
         (rank, kind.to_levels().len() as u32)
+    }
+
+    /// Attempts to mark a level as complete. The level must match `next_level` and exist as expected
+    pub fn try_mark_completed(&mut self, kind: GalaxyKind, level_id: String) -> bool {
+        let Some(old_next_level) = self.next_level.clone() else {
+            warn!(
+                "Tried to mark completed with no next_level in galaxy {}",
+                kind
+            );
+            return false;
+        };
+        if old_next_level != level_id {
+            warn!(
+                "Tried to mark level {} as completed, when next_level says {} in galaxy {}",
+                level_id, old_next_level, kind
+            );
+            return false;
+        }
+        let next = kind.get_next_level_id(&level_id);
+        self.completed = self.completed || next.is_none();
+        self.next_level = next;
+        true
     }
 }
 
