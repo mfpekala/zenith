@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write};
+
 use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Debug, Clone)]
@@ -7,7 +9,9 @@ pub struct LevelMetaData {
     pub description: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Reflect, serde::Serialize, serde::Deserialize,
+)]
 pub enum GalaxyKind {
     #[default]
     Basic,
@@ -143,25 +147,27 @@ impl GalaxyProgress {
     }
 
     /// Attempts to mark a level as complete. The level must match `next_level` and exist as expected
-    pub fn try_mark_completed(&mut self, kind: GalaxyKind, level_id: String) -> bool {
+    fn try_mark_completed(&mut self, kind: GalaxyKind, level_id: String) -> Result<(), String> {
         let Some(old_next_level) = self.next_level.clone() else {
-            warn!(
+            let warning = format!(
                 "Tried to mark completed with no next_level in galaxy {}",
-                kind
+                kind,
             );
-            return false;
+            warn!("{warning}");
+            return Err(warning);
         };
         if old_next_level != level_id {
-            warn!(
+            let warning = format!(
                 "Tried to mark level {} as completed, when next_level says {} in galaxy {}",
                 level_id, old_next_level, kind
             );
-            return false;
+            warn!("{warning}");
+            return Err(warning);
         }
         let next = kind.get_next_level_id(&level_id);
         self.completed = self.completed || next.is_none();
         self.next_level = next;
-        true
+        Ok(())
     }
 }
 
@@ -179,12 +185,13 @@ impl GalaxyProgress {
     Reflect,
 )]
 pub struct GameProgress {
-    galaxy_map: HashMap<String, GalaxyProgress>,
+    needs_save: bool,
+    galaxy_map: HashMap<GalaxyKind, GalaxyProgress>,
 }
 impl GameProgress {
     /// Gets the (completed, active_level) status for a given galaxy
     pub fn get_galaxy_progress(&self, kind: GalaxyKind) -> GalaxyProgress {
-        self.galaxy_map.get(&kind.to_string()).unwrap().clone()
+        self.galaxy_map.get(&kind).unwrap().clone()
     }
 
     /// Returns the earliest incomplete galaxy, i.e., the galaxy the player is actively playing
@@ -203,6 +210,17 @@ impl GameProgress {
     pub fn is_playable(&self, kind: GalaxyKind) -> bool {
         let progress = self.get_galaxy_progress(kind);
         progress.completed || kind == self.first_incomplete_galaxy()
+    }
+
+    /// Assumes the player just completed kind::level_id, advances to the next level
+    /// Returns an error if the underlying `GalaxyProgress` rejects this kind/level combo.
+    pub fn try_mark_completed(&mut self, kind: GalaxyKind, level_id: String) -> Result<(), String> {
+        self.galaxy_map
+            .get_mut(&kind)
+            .unwrap()
+            .try_mark_completed(kind, level_id.clone())?;
+        self.needs_save = true;
+        Ok(())
     }
 }
 
@@ -252,5 +270,37 @@ pub(super) fn continue_initializing_game_progress(
             commands.entity(temp_eid).despawn_recursive();
         }
         _ => (),
+    }
+}
+
+pub(super) fn save_game_progress(mut game_progresses: Query<(&mut GameProgress, &Name)>) {
+    for (mut game_progress, name) in game_progresses.iter_mut() {
+        if !game_progress.needs_save {
+            continue;
+        }
+        game_progress.needs_save = false;
+        let letter = name.as_str()[name.len() - 1..name.len()]
+            .to_string()
+            .to_uppercase();
+        let file_name = format!("assets/saves/{letter}.progress.ron");
+        // God refactor this as like a callback that returns a result so I can just ? it once
+        match File::create(&file_name) {
+            Ok(mut file) => match ron::to_string(&game_progress.clone()) {
+                Ok(string_progress) => match file.write(string_progress.as_bytes()) {
+                    Ok(_) => {
+                        game_progress.needs_save = false;
+                    }
+                    Err(e) => {
+                        warn!("Can't save_game_progress: {e:?}");
+                    }
+                },
+                Err(e) => {
+                    warn!("Can't save_game_progress: {e:?}");
+                }
+            },
+            Err(e) => {
+                warn!("Can't save_game_progress: {e:?}");
+            }
+        }
     }
 }

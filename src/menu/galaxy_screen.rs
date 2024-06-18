@@ -240,13 +240,12 @@ fn handle_galaxy_screen_input(
         && !bg_manager.has_stateful_effect()
         && screen_manager.is_effect_none()
     {
+        let Some(next_level) = progress.get_galaxy_progress(root.selected).next_level else {
+            warn!("Need to handle replay");
+            return;
+        };
         screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
-            meta: MetaState::Level(LevelState::fresh_from_id(
-                progress
-                    .get_galaxy_progress(root.selected)
-                    .next_level
-                    .unwrap_or(root.selected.to_levels()[0].id.clone()),
-            )),
+            meta: MetaState::Level(LevelState::from_galaxy_n_level(root.selected, next_level)),
             pause: None,
         })));
         return;

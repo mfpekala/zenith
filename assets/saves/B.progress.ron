@@ -1,12 +1,1 @@
-GameProgress(
-    galaxy_map: {
-        "Basic": GalaxyProgress(
-            completed: false,
-            next_level: Some("basic_1"),
-        ),
-        "Springy": GalaxyProgress(
-            completed: false,
-            next_level: Some("springy_1"),
-        ),
-    }
-)
+(needs_save:false,galaxy_map:{Springy:(completed:true,next_level:None),Basic:(completed:true,next_level:None)})

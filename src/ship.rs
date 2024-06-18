@@ -8,7 +8,9 @@ use crate::environment::replenish::{ReplenishCharging, ReplenishMarker};
 use crate::environment::rock::{Rock, RockKind};
 use crate::input::LaunchEvent;
 use crate::input::LongKeyPress;
+use crate::leveler::load::destroy_level;
 use crate::math::Spleen;
+use crate::meta::consts::FRAMERATE;
 use crate::meta::game_state::{GameState, MetaState, SetMetaState};
 use crate::meta::level_data::LevelRoot;
 use crate::physics::collider::ColliderActive;
@@ -21,6 +23,7 @@ pub struct Ship {
     pub can_shoot: bool,
     pub last_safe_location: IVec2,
     pub time_in_goal: f32,
+    pub finished: bool,
 }
 impl Ship {
     pub const fn radius() -> f32 {
@@ -68,8 +71,9 @@ impl ShipBundle {
                 can_shoot: true,
                 last_safe_location: pos,
                 time_in_goal: 0.0,
+                finished: false,
             },
-            respawn_watcher: LongKeyPress::new(KeyCode::KeyR, 45),
+            respawn_watcher: LongKeyPress::new(KeyCode::KeyR, (FRAMERATE * 0.36) as u32),
             dyno: IntDyno::new(pos.extend(10), 4.0),
             spatial: SpatialBundle::from_transform(Transform::from_translation(
                 pos.as_vec2().extend(100.0),
@@ -244,6 +248,7 @@ pub fn register_ship(app: &mut App) {
         (watch_for_respawn, watch_for_death, spawn_trail)
             .run_if(should_apply_physics)
             .run_if(is_not_in_cutscene)
-            .after(apply_fields),
+            .after(apply_fields)
+            .after(destroy_level),
     );
 }

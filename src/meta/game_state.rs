@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use super::progress::GalaxyKind;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MenuState {
     Title,
@@ -59,16 +61,16 @@ impl EditorState {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LevelState {
+    pub kind: GalaxyKind,
     pub id: String,
-    pub next_id: Option<String>,
     pub is_won: bool,
     pub num_shots: i32,
 }
 impl LevelState {
-    pub fn fresh_from_id(id: String) -> Self {
+    pub fn from_galaxy_n_level(kind: GalaxyKind, level_id: String) -> Self {
         Self {
-            id,
-            next_id: None,
+            kind,
+            id: level_id,
             is_won: false,
             num_shots: 0,
         }
@@ -187,7 +189,7 @@ fn set_initial_game_state(mut gs_writer: EventWriter<SetMetaState>) {
 pub fn register_game_state(app: &mut App) {
     let initial_state = MetaState::Level(LevelState {
         id: "".to_string(),
-        next_id: None,
+        kind: GalaxyKind::default(),
         is_won: false,
         num_shots: 0,
     });

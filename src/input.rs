@@ -353,7 +353,7 @@ pub fn register_input(app: &mut App) {
             .run_if(in_editor.or_else(in_level))
             .run_if(is_not_in_cutscene),
     );
-    app.add_systems(Update, update_long_presses.run_if(is_not_in_cutscene));
+    app.add_systems(FixedUpdate, update_long_presses.run_if(is_not_in_cutscene));
 
     // Shot arrow
     app.add_systems(Startup, spawn_shot_arrow);

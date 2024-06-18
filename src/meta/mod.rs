@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
 use progress::{
     continue_initializing_game_progress, initialize_game_progress, is_progress_initializing,
-    GameProgress,
+    save_game_progress, GameProgress,
 };
 
 use self::level_data::{crystallize_level_data, spawn_level, LevelDataOneshots};
@@ -29,5 +29,6 @@ impl Plugin for MetaPlugin {
             Update,
             continue_initializing_game_progress.run_if(is_progress_initializing),
         );
+        app.add_systems(Update, save_game_progress);
     }
 }
