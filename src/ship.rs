@@ -107,7 +107,7 @@ pub fn launch_ship(
             }
             commands.spawn(SoundEffect::universal(
                 "sound_effects/shoot.ogg",
-                1.0,
+                0.2,
                 false,
             ));
         }
@@ -207,7 +207,7 @@ fn replenish_shot(
         if !can_shoot_before && ship.can_shoot {
             commands.spawn(SoundEffect::universal(
                 "sound_effects/recharge.ogg",
-                0.8,
+                0.16,
                 false,
             ));
         }

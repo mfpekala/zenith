@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{audio::Volume, prelude::*};
 
 #[derive(Component)]
 pub struct EyeOfTheStormMusic;
@@ -6,10 +6,11 @@ pub struct EyeOfTheStormMusic;
 fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         AudioBundle {
-            source: asset_server.load("music/eye_of_the_storm.ogg"),
+            source: asset_server.load("music/a_place_i_call_home.ogg"),
             settings: PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Loop,
-                paused: true,
+                paused: false,
+                volume: Volume::new(0.1),
                 // paused: false,
                 ..default()
             },

@@ -282,7 +282,7 @@ pub(super) fn collision_sounds(
             let x = (vel_sq.clamp(lower, upper) - lower) / (upper - lower);
 
             if x > 0.01 {
-                let volume = Spleen::EaseInCubic.bound_interp(x, 0.0, 3.0);
+                let volume = Spleen::EaseInCubic.bound_interp(x, 1.0, 2.0);
                 commands.spawn((
                     SoundEffect::spatial(&rock.kind.to_collision_sound_path(), volume, false),
                     SpatialBundle::from_transform(Transform::from_translation(

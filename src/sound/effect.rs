@@ -111,13 +111,11 @@ fn update_sound_effect_volume(
                     .saturating_sub(SCREEN_HEIGHT as u32 / 2);
                 let clamp_max = (SCREEN_HEIGHT as f32) / offscreen.decay_rate;
                 let off_dist = (x_dist.max(y_dist) as f32).clamp(0.0, clamp_max) / clamp_max;
-                println!("off_dist: {off_dist}");
                 let mult = Spleen::EaseOutCubic.bound_interp(off_dist, 1.0, offscreen.off_volume);
                 mult
             }
             _ => 1.0,
         };
-        println!("mult: {mult}");
         playback.volume = Volume::new(
             sound_settings.main_volume * sound_settings.effect_volume * effect.base_volume * mult,
         );
