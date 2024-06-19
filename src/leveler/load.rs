@@ -1,5 +1,6 @@
 use crate::{
     drawing::effects::{ScreenEffect, ScreenEffectManager},
+    environment::background::{BgKind, BgManager},
     meta::{
         game_state::{GameState, PrevGameState},
         level_data::{LevelData, LevelDataOneshots, LevelRoot},
@@ -28,6 +29,7 @@ pub(super) fn start_load(
     mut commands: Commands,
     gs: Res<GameState>,
     asset_server: Res<AssetServer>,
+    mut bg_manager: ResMut<BgManager>,
 ) {
     let level_id = gs.get_level_state().unwrap().id;
     let handle = asset_server.load(format!("levels/{level_id}.level.ron"));
@@ -35,6 +37,7 @@ pub(super) fn start_load(
         Name::new(format!("active_level_load_{level_id}")),
         ActivelyLoading(handle),
     ));
+    bg_manager.set_kind(BgKind::ParallaxStars(500));
 }
 
 pub(super) fn actively_load(

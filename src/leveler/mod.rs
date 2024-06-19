@@ -24,7 +24,7 @@ fn progress_level(
         return;
     };
     let Ok(mut game_progress) = game_progress.get_single_mut() else {
-        warn!("Weird stuff happening in progress_level");
+        // warn!("Weird stuff happening in progress_level");
         return;
     };
     let saturated_goal = ships

@@ -300,6 +300,10 @@ impl Spleen {
             Self::EaseInOutQuintic => ease_in_out_quintic(x),
         }
     }
+
+    pub fn bound_interp(&self, x: f32, min: f32, max: f32) -> f32 {
+        min + self.interp(x) * (max - min)
+    }
 }
 
 fn ease_in_cubic(x: f32) -> f32 {

@@ -6,7 +6,7 @@ use crate::{
     uid::{UId, UIdMarker},
 };
 
-use super::dyno::IntDyno;
+use super::dyno::{IntDyno, StaticCollision};
 
 #[derive(Component, Debug)]
 pub struct ColliderBoundary {
@@ -212,7 +212,13 @@ pub(super) fn resolve_static_collisions(
     };
 
     if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-        dyno.statics.insert(min_parent_id);
+        dyno.statics.insert(
+            min_parent_id,
+            StaticCollision {
+                pos: fpos,
+                vel: dyno.vel,
+            },
+        );
     }
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();

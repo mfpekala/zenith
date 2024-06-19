@@ -6,7 +6,7 @@ pub struct EyeOfTheStormMusic;
 fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         AudioBundle {
-            source: asset_server.load("music/Eye of the Storm.ogg"),
+            source: asset_server.load("music/eye_of_the_storm.ogg"),
             settings: PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Loop,
                 paused: true,

@@ -82,6 +82,14 @@ impl RockKind {
             friction: self.friction(),
         }
     }
+
+    pub fn to_collision_sound_path(&self) -> String {
+        match self {
+            Self::Normal => "sound_effects/normal_rock.ogg".to_string(),
+            Self::SimpleKill => "sound_effects/normal_rock.ogg".to_string(),
+            Self::MagLev => "sound_effects/normal_rock.ogg".to_string(),
+        }
+    }
 }
 impl std::fmt::Display for RockKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

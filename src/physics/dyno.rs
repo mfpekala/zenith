@@ -9,10 +9,13 @@ use crate::{
     environment::{
         field::Field,
         goal::GoalMarker,
+        rock::Rock,
         segment::{Segment, SegmentKind},
     },
+    math::Spleen,
     meta::{consts::FRAMERATE, game_state::in_editor},
     ship::Ship,
+    sound::effect::SoundEffect,
 };
 
 use super::{
@@ -78,6 +81,12 @@ pub(super) fn move_int_moveables(
     }
 }
 
+#[derive(Clone, Debug, Default, Reflect, Serialize, Deserialize)]
+pub struct StaticCollision {
+    pub pos: Vec2,
+    pub vel: Vec2,
+}
+
 #[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct IntDyno {
@@ -85,7 +94,7 @@ pub struct IntDyno {
     pub fpos: Vec3,
     pub ipos: IVec3,
     pub radius: f32,
-    pub statics: HashSet<Entity>,
+    pub statics: HashMap<Entity, StaticCollision>,
     pub triggers: HashMap<Entity, f32>,
     pub long_statics: HashMap<Entity, u32>,
 }
@@ -171,7 +180,7 @@ pub(super) fn move_int_dynos(
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         // Clear the old collisions/triggers
-        dyno.statics = HashSet::new();
+        dyno.statics = HashMap::new();
         dyno.triggers = HashMap::new();
         move_int_dyno_helper(
             dyno.as_mut(),
@@ -183,7 +192,7 @@ pub(super) fn move_int_dynos(
 
         // Update the long statics (for replenishing shot)
         let statics = dyno.statics.clone();
-        for key in statics.iter() {
+        for key in statics.keys() {
             let contained = dyno.long_statics.contains_key(key);
             if contained {
                 let count = dyno.long_statics.get_mut(key).unwrap();
@@ -194,7 +203,7 @@ pub(super) fn move_int_dynos(
         }
         let mut killing = vec![];
         for key in dyno.long_statics.keys() {
-            if !dyno.statics.contains(key) {
+            if !dyno.statics.contains_key(key) {
                 killing.push(*key);
             }
         }
@@ -258,10 +267,42 @@ pub fn apply_fields(
     }
 }
 
+pub(super) fn collision_sounds(
+    dynos: Query<&IntDyno, With<Ship>>,
+    mut commands: Commands,
+    rocks: Query<&Rock>,
+) {
+    for dyno in dynos.iter() {
+        for (sid, coll) in dyno.statics.iter() {
+            let Ok(rock) = rocks.get(*sid) else {
+                continue;
+            };
+            let vel_sq = coll.vel.length_squared();
+            let (lower, upper) = (1.0, 10.0);
+            let x = (vel_sq.clamp(lower, upper) - lower) / (upper - lower);
+
+            if x > 0.01 {
+                let volume = Spleen::EaseInCubic.bound_interp(x, 0.0, 3.0);
+                commands.spawn((
+                    SoundEffect::spatial(&rock.kind.to_collision_sound_path(), volume, false),
+                    SpatialBundle::from_transform(Transform::from_translation(
+                        coll.pos.extend(0.0),
+                    )),
+                ));
+            }
+        }
+    }
+}
+
 pub fn register_int_dynos(app: &mut App) {
     app.add_systems(
         FixedUpdate,
-        (move_int_dynos, update_triggers, apply_fields)
+        (
+            move_int_dynos,
+            update_triggers,
+            collision_sounds,
+            apply_fields,
+        )
             .chain()
             .run_if(should_apply_physics),
     );

@@ -16,6 +16,7 @@ use crate::meta::level_data::LevelRoot;
 use crate::physics::collider::ColliderActive;
 use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::{should_apply_physics, BulletTime};
+use crate::sound::effect::SoundEffect;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -90,6 +91,7 @@ pub fn launch_ship(
     gs: Res<GameState>,
     mut gs_writer: EventWriter<SetMetaState>,
     bullet_time: Res<BulletTime>,
+    mut commands: Commands,
 ) {
     let level_state = gs.get_level_state();
     for launch in launch_events.read() {
@@ -103,6 +105,11 @@ pub fn launch_ship(
                 ls.num_shots += 1;
                 gs_writer.send(SetMetaState(MetaState::Level(ls.clone())));
             }
+            commands.spawn(SoundEffect::universal(
+                "sound_effects/shoot.ogg",
+                1.0,
+                false,
+            ));
         }
     }
 }
@@ -130,7 +137,7 @@ fn watch_for_death(
     level_root_q: Query<Entity, With<LevelRoot>>,
 ) {
     for (id, dyno, ship) in ship_q.iter() {
-        for rock_id in dyno.statics.iter() {
+        for rock_id in dyno.statics.keys() {
             let Ok(rock) = rock_info.get(*rock_id) else {
                 continue;
             };
@@ -160,10 +167,14 @@ fn replenish_shot(
     bullet_time: Res<BulletTime>,
 ) {
     for (mut ship, mut dyno, mut multi) in ship_q.iter_mut() {
+        let can_shoot_before = ship.can_shoot;
+
         if dyno.vel.length() < 0.0001 * bullet_time.factor() && dyno.statics.len() > 0 {
+            ship.last_safe_location = dyno.ipos.truncate();
             ship.can_shoot = true;
         }
         if dyno.long_statics.iter().any(|(_key, val)| *val >= 3) {
+            ship.last_safe_location = dyno.ipos.truncate();
             ship.can_shoot = true;
         }
         let mut replenish_triggers = vec![];
@@ -176,6 +187,7 @@ fn replenish_shot(
         dyno.triggers
             .retain(|id, _| !replenish_triggers.contains(id));
         if !ship.can_shoot && replenish_triggers.len() > 0 {
+            ship.last_safe_location = dyno.ipos.truncate();
             ship.can_shoot = true;
             for eid in replenish_triggers {
                 let (rid, mut repl) = replenishes.get_mut(eid).unwrap();
@@ -190,6 +202,15 @@ fn replenish_shot(
         let anim = multi.map.get_mut("ship").unwrap();
         let key = if ship.can_shoot { "full" } else { "empty" };
         anim.set_key(key);
+
+        // Only if we mark can shoot on this frame do we play a sound effect
+        if !can_shoot_before && ship.can_shoot {
+            commands.spawn(SoundEffect::universal(
+                "sound_effects/recharge.ogg",
+                0.8,
+                false,
+            ));
+        }
     }
 }
 
