@@ -1,6 +1,6 @@
 use std::{fs::File, io::Write};
 
-use bevy::{log, prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct LevelMetaData {

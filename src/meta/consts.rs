@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 /// Framerate
-pub const FRAMERATE: f64 = 24.0;
+pub const FRAMERATE: f64 = 30.0;
 
 /// Number of pixels to show in screen width (should divide WINDOW_WIDTH)
 pub const SCREEN_WIDTH: usize = 320;

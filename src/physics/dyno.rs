@@ -116,9 +116,11 @@ pub(super) fn move_int_dyno_helper(
     triggers: &Query<(&ColliderBoundary, &ColliderTrigger, &Parent), With<ColliderActive>>,
     segments: &mut Query<(&Segment, &mut AnimationManager)>,
     bullet_time: &Res<BulletTime>,
+    commands: &mut Commands,
 ) {
     let mut amt_travlled = 0.0;
     let to_travel = dyno.vel.length();
+    let mut spawned_sprung_this_frame = false;
 
     while amt_travlled < to_travel && amt_travlled < dyno.vel.length() {
         let this_step = if dyno.vel.length() - amt_travlled >= 1.0 {
@@ -151,6 +153,15 @@ pub(super) fn move_int_dyno_helper(
                         dyno.vel = new_vel;
                         sprung = true;
                         anim.reset_key("bounce");
+                        if !spawned_sprung_this_frame {
+                            commands.spawn((
+                                SoundEffect::spatial("sound_effects/spring.ogg", 0.5, false),
+                                SpatialBundle::from_transform(Transform::from_translation(
+                                    dyno.fpos,
+                                )),
+                            ));
+                            spawned_sprung_this_frame = true;
+                        }
                     }
                 }
                 SegmentKind::Spike => {
@@ -178,6 +189,7 @@ pub(super) fn move_int_dynos(
     triggers: Query<(&ColliderBoundary, &ColliderTrigger, &Parent), With<ColliderActive>>,
     mut segments: Query<(&Segment, &mut AnimationManager)>,
     bullet_time: Res<BulletTime>,
+    mut commands: Commands,
 ) {
     for (mut dyno, mut tran) in dynos.iter_mut() {
         // Clear the old collisions/triggers
@@ -189,6 +201,7 @@ pub(super) fn move_int_dynos(
             &triggers,
             &mut segments,
             &bullet_time,
+            &mut commands,
         );
 
         // Update the long statics (for replenishing shot)
@@ -225,18 +238,19 @@ pub fn apply_fields(
 ) {
     for (mut dyno, dyno_gt, mut ship) in dynos.iter_mut() {
         let mut goal_diff_dir = None;
+        let mut goal_dist_sq = None;
         for (trigger_id, _) in dyno.triggers.iter() {
             let Ok(goal_gt) = goals.get(*trigger_id) else {
                 continue;
             };
-            goal_diff_dir = Some(
-                (goal_gt.translation().truncate() - dyno_gt.translation().truncate())
-                    .normalize_or_zero(),
-            );
+            let raw_diff = goal_gt.translation().truncate() - dyno_gt.translation().truncate();
+            goal_dist_sq = Some(raw_diff.length_squared());
+            goal_diff_dir = Some(raw_diff.normalize_or_zero());
             break;
         }
         if let Some(goal_diff_dir) = goal_diff_dir {
             ship.time_in_goal += bullet_time.factor();
+            ship.dist_to_goal_center_sq = goal_dist_sq.unwrap();
             let frac = (ship.time_in_goal / FRAMERATE as f32).min(1.0);
             let strength_range = (0.1, 0.4);
             let drag_range = (1.0, 0.5);
@@ -250,6 +264,7 @@ pub fn apply_fields(
     }
     for (mut dyno, _, mut ship) in dynos.iter_mut() {
         ship.time_in_goal = 0.0;
+        ship.dist_to_goal_center_sq = f32::MAX;
         let mut diff = Vec2::ZERO;
         let mut killing_ids = HashSet::new();
         for (trigger_id, mult) in dyno.triggers.iter() {

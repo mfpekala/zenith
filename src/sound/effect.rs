@@ -69,7 +69,6 @@ fn spawn_sound_effects(
     mut commands: Commands,
     lacking: Query<(Entity, &SoundEffect), Without<PlaybackSettings>>,
     asset_server: Res<AssetServer>,
-    sound_settings: Res<SoundSettings>,
 ) {
     for (eid, effect) in lacking.iter() {
         commands.entity(eid).insert(AudioBundle {
@@ -80,7 +79,7 @@ fn spawn_sound_effects(
                 } else {
                     PlaybackMode::Despawn
                 },
-                volume: Volume::new(sound_settings.effect_volume * effect.base_volume),
+                volume: Volume::new(0.0),
                 ..default()
             },
         });

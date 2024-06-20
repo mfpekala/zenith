@@ -8,13 +8,14 @@ use crate::{
         game_state::{in_level, left_level, GameState, LevelState, MenuState, MetaState},
         progress::{ActiveSaveFile, GameProgress},
     },
+    physics::dyno::IntDyno,
     ship::Ship,
 };
 
 pub mod load;
 
 fn progress_level(
-    mut ships: Query<&mut Ship>,
+    mut ships: Query<(&mut Ship, &IntDyno)>,
     gs: Res<GameState>,
     mut game_progress: Query<&mut GameProgress, With<ActiveSaveFile>>,
     mut screen_effect: ResMut<ScreenEffectManager>,
@@ -24,16 +25,20 @@ fn progress_level(
         return;
     };
     let Ok(mut game_progress) = game_progress.get_single_mut() else {
-        // warn!("Weird stuff happening in progress_level");
+        warn!("Weird stuff happening in progress_level");
         return;
     };
-    let saturated_goal = ships
-        .iter()
-        .any(|ship| !ship.finished && ship.time_in_goal > FRAMERATE as f32 * 0.75);
+    let saturated_goal = ships.iter().any(|(ship, dyno)| {
+        // fuck it hopefully the compiler optimizes this
+        let enough_time = !ship.finished && ship.time_in_goal > FRAMERATE as f32 * 0.75;
+        let close_enough = ship.dist_to_goal_center_sq < 1.0;
+        let slow_enough = dyno.vel.length_squared() < 0.05;
+        enough_time && slow_enough && close_enough
+    });
     if !saturated_goal {
         return;
     }
-    for mut ship in ships.iter_mut() {
+    for (mut ship, _) in ships.iter_mut() {
         ship.finished = true;
     }
     let mut go_to_meta = |meta: MetaState, include_unfade: bool| {

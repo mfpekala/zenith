@@ -24,6 +24,7 @@ pub struct Ship {
     pub can_shoot: bool,
     pub last_safe_location: IVec2,
     pub time_in_goal: f32,
+    pub dist_to_goal_center_sq: f32,
     pub finished: bool,
 }
 impl Ship {
@@ -72,6 +73,7 @@ impl ShipBundle {
                 can_shoot: true,
                 last_safe_location: pos,
                 time_in_goal: 0.0,
+                dist_to_goal_center_sq: f32::MAX,
                 finished: false,
             },
             respawn_watcher: LongKeyPress::new(KeyCode::KeyR, (FRAMERATE * 0.36) as u32),
