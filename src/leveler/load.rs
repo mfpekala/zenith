@@ -5,6 +5,7 @@ use crate::{
         game_state::{GameState, PrevGameState},
         level_data::{LevelData, LevelDataOneshots, LevelRoot},
     },
+    sound::music::{MusicKind, MusicManager},
 };
 use bevy::prelude::*;
 
@@ -30,6 +31,7 @@ pub(super) fn start_load(
     gs: Res<GameState>,
     asset_server: Res<AssetServer>,
     mut bg_manager: ResMut<BgManager>,
+    mut music_manager: ResMut<MusicManager>,
 ) {
     let level_id = gs.get_level_state().unwrap().id;
     let handle = asset_server.load(format!("levels/{level_id}.level.ron"));
@@ -38,6 +40,7 @@ pub(super) fn start_load(
         ActivelyLoading(handle),
     ));
     bg_manager.set_kind(BgKind::ParallaxStars(500));
+    music_manager.fade_to_song(Some(MusicKind::APlaceICallHome));
 }
 
 pub(super) fn actively_load(

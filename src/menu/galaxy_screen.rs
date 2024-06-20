@@ -224,7 +224,7 @@ fn handle_galaxy_screen_input(
     little_ship: Query<(Entity, &Transform), With<LittleShip>>,
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
-    progress: Query<&GameProgress, With<ActiveSaveFile>>,
+    mut progress: Query<&mut GameProgress, With<ActiveSaveFile>>,
     bg_manager: Res<BgManager>,
     mut screen_manager: ResMut<ScreenEffectManager>,
 ) {
@@ -234,14 +234,26 @@ fn handle_galaxy_screen_input(
     let Ok((ship_eid, ship_tran)) = little_ship.get_single() else {
         return;
     };
-    let progress = progress.single();
+    let mut progress = progress.single_mut();
     // First check if the user selected the galaxy by hitting enter
     if keyboard.just_pressed(KeyCode::Enter)
         && !bg_manager.has_stateful_effect()
         && screen_manager.is_effect_none()
     {
         let Some(next_level) = progress.get_galaxy_progress(root.selected).next_level else {
-            warn!("Need to handle replay");
+            if let Err(e) = progress.try_restart_galaxy(root.selected) {
+                warn!("Couldn't restart galaxy {:?}, err: {e:?}", root.selected);
+                return;
+            }
+            let next_level = progress
+                .get_galaxy_progress(root.selected)
+                .next_level
+                .clone()
+                .unwrap();
+            screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
+                meta: MetaState::Level(LevelState::from_galaxy_n_level(root.selected, next_level)),
+                pause: None,
+            })));
             return;
         };
         screen_manager.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {

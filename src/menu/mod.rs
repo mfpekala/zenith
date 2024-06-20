@@ -20,17 +20,21 @@ use crate::{
     environment::background::{BgKind, BgManager},
     meta::game_state::{entered_menu, left_menu},
     physics::dyno::IntMoveable,
+    sound::music::{MusicKind, MusicManager},
 };
 
 fn setup_any_menu(
     mut cam: Query<(&mut IntMoveable, &mut CameraMarker)>,
     mut bg_manager: ResMut<BgManager>,
+    mut music_manager: ResMut<MusicManager>,
 ) {
     bg_manager.set_kind(BgKind::ParallaxStars(500));
     for (mut mv, mut cam) in cam.iter_mut() {
         mv.pos = IVec3::ZERO;
         cam.mode = CameraMode::Controlled;
     }
+    music_manager.fade_to_song(Some(MusicKind::EyeOfTheStorm));
+    println!("MENU FADE TO EYE TRIGGERED");
 }
 
 fn destroy_any_menu(mut cam: Query<&mut CameraMarker>) {

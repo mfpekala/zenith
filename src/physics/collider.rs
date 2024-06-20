@@ -211,15 +211,6 @@ pub(super) fn resolve_static_collisions(
         return false;
     };
 
-    if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
-        dyno.statics.insert(
-            min_parent_id,
-            StaticCollision {
-                pos: fpos,
-                vel: dyno.vel,
-            },
-        );
-    }
     let diff = fpos - min_point;
     let normal = diff.normalize_or_zero();
     if normal.dot(dyno.vel) >= 0.0 {
@@ -227,6 +218,17 @@ pub(super) fn resolve_static_collisions(
     }
 
     let pure_parr = -1.0 * dyno.vel.dot(normal) * normal + dyno.vel;
+    if dyno.statics.len() < MAX_COLLISIONS_PER_FRAME {
+        dyno.statics.insert(
+            min_parent_id,
+            StaticCollision {
+                pos: fpos,
+                norm_vel: normal * normal.dot(dyno.vel),
+                par_vel: pure_parr,
+            },
+        );
+    }
+
     let new_vel =
         pure_parr * (1.0 - stat.friction) - 1.0 * dyno.vel.dot(normal) * normal * stat.bounciness;
     dyno.vel = new_vel;

@@ -84,7 +84,8 @@ pub(super) fn move_int_moveables(
 #[derive(Clone, Debug, Default, Reflect, Serialize, Deserialize)]
 pub struct StaticCollision {
     pub pos: Vec2,
-    pub vel: Vec2,
+    pub norm_vel: Vec2,
+    pub par_vel: Vec2,
 }
 
 #[derive(Component, Debug, Default, Reflect, Serialize, Deserialize)]
@@ -277,7 +278,7 @@ pub(super) fn collision_sounds(
             let Ok(rock) = rocks.get(*sid) else {
                 continue;
             };
-            let vel_sq = coll.vel.length_squared();
+            let vel_sq = (coll.norm_vel + coll.par_vel * 0.25).length_squared();
             let (lower, upper) = (1.0, 10.0);
             let x = (vel_sq.clamp(lower, upper) - lower) / (upper - lower);
 

@@ -1,6 +1,6 @@
 use std::{fs::File, io::Write};
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{log, prelude::*, utils::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct LevelMetaData {
@@ -210,6 +210,26 @@ impl GameProgress {
     pub fn is_playable(&self, kind: GalaxyKind) -> bool {
         let progress = self.get_galaxy_progress(kind);
         progress.completed || kind == self.first_incomplete_galaxy()
+    }
+
+    /// Restarts the progress in this galaxy but does not clear `completed`.
+    pub fn try_restart_galaxy(&mut self, kind: GalaxyKind) -> Result<(), String> {
+        let galaxy_progress = self.galaxy_map.get_mut(&kind).unwrap();
+        if galaxy_progress.next_level.is_some() {
+            let warning = format!(
+                "Tried to replay {kind:?} galaxy but next_level has non-None state {}",
+                galaxy_progress.next_level.as_ref().unwrap()
+            );
+            warn!(warning);
+            return Err(warning);
+        }
+        if !galaxy_progress.completed {
+            let warning = format!("Tried to replay {kind:?} galaxy but it's not complete",);
+            warn!(warning);
+            return Err(warning);
+        }
+        galaxy_progress.next_level = Some(kind.to_levels()[0].id.clone());
+        Ok(())
     }
 
     /// Assumes the player just completed kind::level_id, advances to the next level
