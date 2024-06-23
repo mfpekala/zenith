@@ -98,7 +98,7 @@ impl MetaState {
 pub enum PauseState {
     Level,
     Editor,
-    Settings,
+    Settings { prev_level: bool, prev_menu: bool },
 }
 
 #[derive(Resource, Clone, Debug, PartialEq)]

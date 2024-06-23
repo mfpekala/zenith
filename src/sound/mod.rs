@@ -8,9 +8,9 @@ pub mod music;
 
 #[derive(Debug, Resource)]
 pub struct SoundSettings {
-    main_volume: f32,
-    effect_volume: f32,
-    music_volume: f32,
+    pub main_volume: f32,
+    pub effect_volume: f32,
+    pub music_volume: f32,
 }
 impl Default for SoundSettings {
     fn default() -> Self {

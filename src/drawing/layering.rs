@@ -651,6 +651,7 @@ fn setup_post_processing_camera(
                 marker: CameraMarker::new(),
                 moveable: IntMoveable::default(),
                 spatial: SpatialBundle::default(),
+                name: Name::new("dynamic_camera_marker"),
             });
         });
 }

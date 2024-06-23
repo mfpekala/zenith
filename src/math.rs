@@ -267,7 +267,7 @@ pub fn uvec2mesh_points(v: UVec2) -> Vec<Vec2> {
     ]
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum Spleen {
     EaseInCubic,
     EaseOutCubic,

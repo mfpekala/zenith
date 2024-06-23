@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use crate::camera::{CameraMarker, CameraMode};
 use crate::cutscenes::is_not_in_cutscene;
 use crate::drawing::animation::{
     AnimationManager, AnimationNode, MultiAnimationManager, SpriteInfo,
@@ -410,8 +411,12 @@ fn update_dying_ships(
     mut commands: Commands,
     time: Res<Time>,
     level_root_q: Query<Entity, With<LevelRoot>>,
+    mut camera: Query<&mut CameraMarker>,
 ) {
     let Ok(level_root_eid) = level_root_q.get_single() else {
+        return;
+    };
+    let Ok(mut camera) = camera.get_single_mut() else {
         return;
     };
     for (eid, ship, mut dyno, mut dying) in ships.iter_mut() {
@@ -422,6 +427,15 @@ fn update_dying_ships(
             commands.entity(level_root_eid).with_children(|parent| {
                 parent.spawn(ShipBundle::new(ship.last_safe_location));
             });
+            match &mut camera.mode {
+                CameraMode::Follow { dislodgement } => {
+                    *dislodgement = Some(CameraMarker::get_dislodgement(
+                        dyno.ipos.truncate(),
+                        ship.last_safe_location,
+                    ));
+                }
+                _ => (),
+            }
         }
     }
 }

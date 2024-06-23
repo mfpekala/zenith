@@ -12,7 +12,7 @@ use crate::{
 use super::placement::{GameRelativePlacement, GameRelativePlacementBundle};
 
 /// Sends the id
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub(super) struct MenuButtonPressed(pub String);
 
 #[derive(Component)]
@@ -47,7 +47,7 @@ pub(super) struct MenuButtonInnerSpawnMarker;
 #[derive(Component)]
 pub(super) struct MenuButtonBorder;
 
-/// TODO: This is a log of data dup with the MenuButton, because querying the hierarchy is hard
+/// TODO: This is a lot of data dup with the MenuButton, because querying the hierarchy is hard
 /// For instance, the data we need is in the grandparent of the fill, so updating state and color is hard
 /// It feels like there just isn't a good way to do this in bevy
 /// Maybe a PR?
@@ -55,10 +55,11 @@ pub(super) struct MenuButtonBorder;
 pub(super) struct MenuButtonFill {
     is_hovered: bool,
     is_pressed: bool,
+    pub is_selected: bool,
     idle_color: Color,
     hover_color: Color,
     pressed_color: Color,
-    id: String,
+    pub id: String,
 }
 
 #[derive(Bundle)]
@@ -152,6 +153,7 @@ pub(super) fn materialize_button_backgrounds(
                 MenuButtonFill {
                     is_hovered: false,
                     is_pressed: false,
+                    is_selected: false,
                     idle_color: button_info.idle_color,
                     hover_color: button_info.hover_color,
                     pressed_color: button_info.pressed_color,
@@ -202,7 +204,7 @@ pub(super) fn update_button_state(
 
 pub(super) fn update_button_fill_colors(mut fills: Query<(&mut Sprite, &MenuButtonFill)>) {
     for (mut sprite, fill) in fills.iter_mut() {
-        if fill.is_pressed {
+        if fill.is_pressed || fill.is_selected {
             sprite.color = fill.pressed_color;
         } else if fill.is_hovered {
             sprite.color = fill.hover_color;

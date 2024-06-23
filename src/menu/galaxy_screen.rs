@@ -23,6 +23,8 @@ use crate::{
     when_becomes_false, when_becomes_true,
 };
 
+use super::update_any_menu;
+
 /// Root of the galaxy screen. Destroyed on on_destroy
 #[derive(Component)]
 struct GalaxyScreenRoot {
@@ -439,15 +441,12 @@ pub fn register_galaxy_screen(app: &mut App) {
         Update,
         handle_galaxy_screen_input
             .run_if(is_in_galaxy_screen)
-            .after(setup_galaxy_screen),
+            .after(setup_galaxy_screen)
+            .after(update_any_menu),
     );
     app.add_systems(
         FixedUpdate,
-        (
-            handle_galaxy_screen_input,
-            update_galaxy_sizes_and_light,
-            update_root_and_ship,
-        )
+        (update_galaxy_sizes_and_light, update_root_and_ship)
             .chain()
             .run_if(is_in_galaxy_screen),
     );

@@ -10,7 +10,10 @@ use crate::{
 };
 use bevy::prelude::*;
 
-use super::placement::{GameRelativePlacement, GameRelativePlacementBundle};
+use super::{
+    placement::{GameRelativePlacement, GameRelativePlacementBundle},
+    update_any_menu,
+};
 
 /// Root of the title screen, will be destroyed on destroy
 #[derive(Component)]
@@ -41,7 +44,7 @@ fn setup_title_screen(mut commands: Commands) {
             // Press any button to start
             let text_bund = (
                 TextBoxBundle::new_menu_text(
-                    "* press any key to start *",
+                    "* press enter to start *",
                     36.0,
                     GameRelativePlacement::new(IVec3::new(0, -50, 0), 0.5),
                     Color::WHITE,
@@ -65,7 +68,7 @@ fn update_title_screen(
     let Ok(root) = root.get_single() else {
         return;
     };
-    if keys.is_changed() && !keys.is_added() && death.iter().len() == 0 {
+    if keys.just_pressed(KeyCode::Enter) && death.iter().len() == 0 {
         if keys.pressed(KeyCode::KeyE) {
             // Activate the editor by pressing E
             gs_writer.send(SetMetaState(MetaState::Editor(EditorState::Editing(
@@ -109,5 +112,10 @@ when_becomes_false!(is_in_title_screen_helper, left_title_screen);
 pub fn register_title_screen(app: &mut App) {
     app.add_systems(Update, setup_title_screen.run_if(entered_title_screen));
     app.add_systems(Update, destroy_title_screen.run_if(left_title_screen));
-    app.add_systems(Update, update_title_screen.run_if(is_in_title_screen));
+    app.add_systems(
+        Update,
+        update_title_screen
+            .run_if(is_in_title_screen)
+            .after(update_any_menu),
+    );
 }

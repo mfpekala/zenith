@@ -9,7 +9,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
-use super::placement::GameRelativePlacement;
+use super::{placement::GameRelativePlacement, update_any_menu};
 
 /// Root of the constellation screen. Destroyed on on_destroy
 #[derive(Component)]
@@ -157,6 +157,7 @@ pub fn register_constellation_screen(app: &mut App) {
         Update,
         update_constellation_screen
             .run_if(is_in_constellation_screen)
-            .after(setup_constellation_screen),
+            .after(setup_constellation_screen)
+            .after(update_any_menu),
     );
 }
