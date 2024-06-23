@@ -1,8 +1,13 @@
+use std::f32::consts::PI;
+
 use crate::cutscenes::is_not_in_cutscene;
-use crate::drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo};
+use crate::drawing::animation::{
+    AnimationManager, AnimationNode, MultiAnimationManager, SpriteInfo,
+};
 use crate::drawing::layering::light_layer_u8;
+use crate::environment::live_poly::LivePolyMarker;
 use crate::environment::particle::{
-    ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing,
+    ParticleBody, ParticleBundle, ParticleColoring, ParticleOptions, ParticleSizing, ParticleVel,
 };
 use crate::environment::replenish::{ReplenishCharging, ReplenishMarker};
 use crate::environment::rock::{Rock, RockKind};
@@ -18,6 +23,7 @@ use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::{should_apply_physics, BulletTime};
 use crate::sound::effect::SoundEffect;
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
 
 #[derive(Component)]
 pub struct Ship {
@@ -31,6 +37,16 @@ impl Ship {
     pub const fn radius() -> f32 {
         4.0
     }
+}
+
+#[derive(Component)]
+pub enum Dead {
+    Explosion,
+}
+
+#[derive(Component)]
+struct Dying {
+    timer: Timer,
 }
 
 #[derive(Bundle)]
@@ -62,12 +78,46 @@ impl ShipBundle {
                 },
             ),
         ]);
-        let mut light = AnimationManager::single_static(SpriteInfo {
-            path: "sprites/shipL.png".to_string(),
-            size: UVec2::new(64, 64),
-            ..default()
-        });
-        light.set_render_layers(vec![light_layer_u8()]);
+        let light = AnimationManager::from_nodes(vec![
+            (
+                "full",
+                AnimationNode {
+                    length: 1,
+                    sprite: SpriteInfo {
+                        path: "sprites/shipL.png".to_string(),
+                        size: UVec2::new(64, 64),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ),
+            (
+                "exploding",
+                AnimationNode {
+                    length: 4,
+                    sprite: SpriteInfo {
+                        path: "sprites/shipL_explosion.png".to_string(),
+                        size: UVec2::new(64, 64),
+                        ..default()
+                    },
+                    next: Some("gone".into()),
+                    ..default()
+                },
+            ),
+            (
+                "gone",
+                AnimationNode {
+                    length: 1,
+                    sprite: SpriteInfo {
+                        path: "sprites/shipL_empty.png".to_string(),
+                        size: UVec2::new(64, 64),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ),
+        ])
+        .force_render_layer(light_layer_u8());
         Self {
             ship: Ship {
                 can_shoot: true,
@@ -116,41 +166,51 @@ pub fn launch_ship(
     }
 }
 
-fn watch_for_respawn(
-    mut commands: Commands,
-    mut entity_n_lp: Query<(Entity, &mut LongKeyPress, &Ship)>,
-    level_root_q: Query<Entity, With<LevelRoot>>,
-) {
-    for (id, mut lp, ship) in entity_n_lp.iter_mut() {
+/// Checks if the user held down r to respawn
+fn watch_for_respawn(mut commands: Commands, mut entity_n_lp: Query<(Entity, &mut LongKeyPress)>) {
+    for (id, mut lp) in entity_n_lp.iter_mut() {
         if lp.was_activated() {
-            commands.entity(id).despawn_recursive();
-            let level_root_eid = level_root_q.single();
-            commands.entity(level_root_eid).with_children(|parent| {
-                parent.spawn(ShipBundle::new(ship.last_safe_location));
-            });
+            commands.entity(id).insert(Dead::Explosion);
         }
     }
 }
 
-fn watch_for_death(
+/// Checks if the ship hit a simple kill rock
+fn watch_simple_kill_collisions(
     mut commands: Commands,
-    ship_q: Query<(Entity, &IntDyno, &Ship)>,
+    ship_q: Query<(Entity, &IntDyno)>,
     rock_info: Query<&Rock>,
-    level_root_q: Query<Entity, With<LevelRoot>>,
 ) {
-    for (id, dyno, ship) in ship_q.iter() {
+    for (id, dyno) in ship_q.iter() {
         for rock_id in dyno.statics.keys() {
             let Ok(rock) = rock_info.get(*rock_id) else {
                 continue;
             };
             if rock.kind == RockKind::SimpleKill {
-                commands.entity(id).despawn_recursive();
-                let level_root_eid = level_root_q.single();
-                commands.entity(level_root_eid).with_children(|parent| {
-                    parent.spawn(ShipBundle::new(ship.last_safe_location));
-                });
+                commands.entity(id).insert(Dead::Explosion);
                 break;
             }
+        }
+    }
+}
+
+/// Checks if there are ready LivePoly's that the ship is not colliding with.
+/// If so we assume we're "out of bounds" and kill the ship
+fn watch_oob(
+    mut commands: Commands,
+    ship_q: Query<(Entity, &IntDyno), (With<Ship>, Without<Dead>)>,
+    live_polys: Query<(Entity, &LivePolyMarker)>,
+) {
+    for (eid, dyno) in ship_q.iter() {
+        let mut oob = true;
+        for (lpid, lp) in live_polys.iter() {
+            if !lp.ready || dyno.triggers.contains_key(&lpid) {
+                oob = false;
+                break;
+            }
+        }
+        if oob {
+            commands.entity(eid).insert(Dead::Explosion);
         }
     }
 }
@@ -216,9 +276,10 @@ fn replenish_shot(
     }
 }
 
+/// Spawns a fun trail behind the ball
 pub fn spawn_trail(
     mut commands: Commands,
-    ship: Query<&GlobalTransform, With<Ship>>,
+    ship: Query<&GlobalTransform, (With<Ship>, Without<Dead>)>,
     level_root: Query<Entity, With<LevelRoot>>,
 ) {
     let Ok(tran) = ship.get_single() else {
@@ -236,6 +297,7 @@ pub fn spawn_trail(
             vel: Vec2::ZERO,
             size: Ship::radius(),
             color: Color::YELLOW,
+            ..default()
         },
         0.5,
         ParticleOptions {
@@ -246,9 +308,122 @@ pub fn spawn_trail(
                 end_color: Color::BLUE,
                 spleen: Spleen::EaseInQuad,
             }),
+            ..default()
         },
     );
     commands.entity(level_root).add_child(id);
+}
+
+/// Checks to see if the ship has been marked for death. If so, start the death effect.
+fn watch_for_dead_ships(
+    mut ships: Query<
+        (
+            Entity,
+            &Dead,
+            &mut MultiAnimationManager,
+            &IntDyno,
+            &GlobalTransform,
+        ),
+        (With<Ship>, Without<Dying>),
+    >,
+    mut commands: Commands,
+) {
+    let mut rng = thread_rng();
+    for (eid, cause, mut anim, dyno, gtran) in ships.iter_mut() {
+        match cause {
+            Dead::Explosion => {
+                commands.spawn(SoundEffect::spatial(
+                    "sound_effects/explosion.ogg",
+                    1.0,
+                    false,
+                ));
+                commands.entity(eid).insert(Dying {
+                    timer: Timer::from_seconds(0.2, TimerMode::Once),
+                });
+                anim.map.get_mut("ship").unwrap().set_hidden(true);
+                anim.map.get_mut("light").unwrap().set_key("exploding");
+                for _ in (0..16).into_iter() {
+                    let angle = rng.gen::<f32>() * 2.0 * PI;
+                    let added_vel = Vec2::from_angle(angle);
+                    let start_vel = dyno.vel / 10.0 + added_vel / 5.0;
+                    // Sprite layer particle
+                    ParticleBundle::spawn_options(
+                        &mut commands,
+                        ParticleBody {
+                            pos: gtran.translation() - Vec3::Z,
+                            vel: start_vel,
+                            size: Ship::radius(),
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                        0.5,
+                        ParticleOptions {
+                            sizing: Some(ParticleSizing {
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                            coloring: Some(ParticleColoring {
+                                end_color: Color::RED,
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                            vel: Some(ParticleVel {
+                                start_vel,
+                                end_vel: Vec2::ZERO,
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                        },
+                    );
+                    // Light layer particle
+                    ParticleBundle::spawn_options(
+                        &mut commands,
+                        ParticleBody {
+                            pos: gtran.translation() - Vec3::Z,
+                            vel: start_vel,
+                            size: Ship::radius() * 3.0,
+                            color: Color::WHITE,
+                            layer: light_layer_u8(),
+                        },
+                        0.5,
+                        ParticleOptions {
+                            sizing: Some(ParticleSizing {
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                            coloring: Some(ParticleColoring {
+                                end_color: Color::RED,
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                            vel: Some(ParticleVel {
+                                start_vel,
+                                end_vel: Vec2::ZERO,
+                                spleen: Spleen::EaseInQuad,
+                            }),
+                        },
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Updates dying ships, eventually despawning and respawning them
+fn update_dying_ships(
+    mut ships: Query<(Entity, &Ship, &mut IntDyno, &mut Dying)>,
+    mut commands: Commands,
+    time: Res<Time>,
+    level_root_q: Query<Entity, With<LevelRoot>>,
+) {
+    let Ok(level_root_eid) = level_root_q.get_single() else {
+        return;
+    };
+    for (eid, ship, mut dyno, mut dying) in ships.iter_mut() {
+        dying.timer.tick(time.delta());
+        dyno.vel *= 0.4;
+        if dying.timer.finished() {
+            commands.entity(eid).despawn_recursive();
+            commands.entity(level_root_eid).with_children(|parent| {
+                parent.spawn(ShipBundle::new(ship.last_safe_location));
+            });
+        }
+    }
 }
 
 pub fn register_ship(app: &mut App) {
@@ -260,7 +435,13 @@ pub fn register_ship(app: &mut App) {
     );
     app.add_systems(
         FixedUpdate,
-        (replenish_shot)
+        (
+            replenish_shot,
+            watch_simple_kill_collisions,
+            watch_oob,
+            watch_for_dead_ships,
+            update_dying_ships,
+        )
             .run_if(should_apply_physics)
             .run_if(is_not_in_cutscene)
             .after(apply_fields),
@@ -268,7 +449,7 @@ pub fn register_ship(app: &mut App) {
 
     app.add_systems(
         Update,
-        (watch_for_respawn, watch_for_death, spawn_trail)
+        (watch_for_respawn, spawn_trail)
             .run_if(should_apply_physics)
             .run_if(is_not_in_cutscene)
             .after(apply_fields)

@@ -15,6 +15,7 @@ use crate::{
     environment::{
         field::{FieldDrag, FieldStrength},
         goal::{GoalBundle, GoalSize},
+        live_poly::LivePolyBundle,
         rock::RockKind,
         segment::SegmentKind,
         start::{StartBundle, StartSize},
@@ -223,18 +224,28 @@ pub(super) fn spawn_level(
             parent.spawn(ShipBundle::new(level_data.start));
             parent.spawn(StartBundle::new(StartSize::Medium, level_data.start));
             parent.spawn(GoalBundle::new(GoalSize::Medium, level_data.goal));
+            let mut all_points = vec![];
             for rock in level_data.rocks {
+                for point in rock.points.iter() {
+                    all_points.push(point.as_vec2());
+                }
                 parent.spawn(rock.rehydrate());
             }
             for field in level_data.fields {
+                for point in field.points.iter() {
+                    all_points.push(point.as_vec2());
+                }
                 parent.spawn(field.rehydrate());
             }
             for segment in level_data.segments {
                 parent.spawn(segment.rehydrate());
             }
             for repl in level_data.replenishes {
+                all_points.push(repl.pos.as_vec2());
                 parent.spawn(repl.rehydrate());
             }
+            let live_poly = LivePolyBundle::new(all_points);
+            parent.spawn(live_poly);
         });
     if let Ok(mut camera) = camera_q.get_single_mut() {
         camera.pos = home.extend(0);

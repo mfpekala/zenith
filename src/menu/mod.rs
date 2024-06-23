@@ -34,7 +34,6 @@ fn setup_any_menu(
         cam.mode = CameraMode::Controlled;
     }
     music_manager.fade_to_song(Some(MusicKind::EyeOfTheStorm));
-    println!("MENU FADE TO EYE TRIGGERED");
 }
 
 fn destroy_any_menu(mut cam: Query<&mut CameraMarker>) {

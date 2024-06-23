@@ -9,23 +9,23 @@ use crate::{
         progress::{ActiveSaveFile, GameProgress},
     },
     physics::dyno::IntDyno,
-    ship::Ship,
+    ship::{Dead, Ship},
 };
 
 pub mod load;
 
 fn progress_level(
-    mut ships: Query<(&mut Ship, &IntDyno)>,
+    mut ships: Query<(&mut Ship, &IntDyno), Without<Dead>>,
     gs: Res<GameState>,
     mut game_progress: Query<&mut GameProgress, With<ActiveSaveFile>>,
     mut screen_effect: ResMut<ScreenEffectManager>,
 ) {
     let Some(level_state) = gs.get_level_state() else {
-        warn!("Weird stuff happening in progress_level");
+        warn!("Weird stuff happening in progress_level level_state");
         return;
     };
     let Ok(mut game_progress) = game_progress.get_single_mut() else {
-        warn!("Weird stuff happening in progress_level");
+        warn!("Weird stuff happening in progress_level game_progress");
         return;
     };
     let saturated_goal = ships.iter().any(|(ship, dyno)| {

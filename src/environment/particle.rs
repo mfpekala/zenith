@@ -4,7 +4,7 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    drawing::layering::sprite_layer,
+    drawing::layering::sprite_layer_u8,
     math::{lerp, lerp_color, Spleen},
     menu::paused::is_unpaused,
     meta::consts::FRAMERATE,
@@ -41,6 +41,18 @@ pub struct ParticleBody {
     pub vel: Vec2,
     pub size: f32,
     pub color: Color,
+    pub layer: u8,
+}
+impl Default for ParticleBody {
+    fn default() -> Self {
+        Self {
+            pos: Vec3::ZERO,
+            vel: Vec2::ZERO,
+            size: 1.0,
+            color: Color::WHITE,
+            layer: sprite_layer_u8(),
+        }
+    }
 }
 
 #[derive(Component, Clone)]
@@ -65,10 +77,24 @@ impl ParticleColoring {
     }
 }
 
+#[derive(Component, Clone)]
+pub struct ParticleVel {
+    pub start_vel: Vec2,
+    pub end_vel: Vec2,
+    pub spleen: Spleen,
+}
+impl ParticleVel {
+    pub fn get_vel(&self, x: f32) -> Vec2 {
+        let x = self.spleen.interp(x);
+        self.start_vel + x * (self.end_vel - self.start_vel)
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct ParticleOptions {
     pub sizing: Option<ParticleSizing>,
     pub coloring: Option<ParticleColoring>,
+    pub vel: Option<ParticleVel>,
 }
 
 #[derive(Bundle)]
@@ -94,8 +120,8 @@ impl ParticleBundle {
                 },
                 ..default()
             },
+            render_layers: RenderLayers::from_layers(&[body.layer]),
             body,
-            render_layers: sprite_layer(),
         }
     }
 
@@ -111,6 +137,9 @@ impl ParticleBundle {
         }
         if let Some(coloring) = options.coloring {
             commands.entity(id).insert(coloring);
+        }
+        if let Some(vel) = options.vel {
+            commands.entity(id).insert(vel);
         }
         id
     }
@@ -166,6 +195,13 @@ fn color_particles(
     }
 }
 
+fn vel_particles(mut particles: Query<(&mut ParticleBody, &ParticleLifespan, &ParticleVel)>) {
+    for (mut body, lifespan, vel) in particles.iter_mut() {
+        let v = vel.get_vel(lifespan.frac());
+        body.vel = v
+    }
+}
+
 #[derive(Component)]
 pub struct ParticleSpawner {
     pub angle_range: (f32, f32),
@@ -201,6 +237,7 @@ impl ParticleSpawner {
                     end_color: Color::BLUE,
                     spleen: Spleen::EaseInQuad,
                 }),
+                ..default()
             },
         }
     }
@@ -258,6 +295,7 @@ fn update_spawners(
                     vel,
                     size,
                     color,
+                    ..default()
                 },
                 lifespan,
                 spawner.options.clone(),
@@ -274,6 +312,7 @@ pub fn register_particles(app: &mut App) {
             update_particles,
             size_particles,
             color_particles,
+            vel_particles,
         )
             .run_if(is_unpaused),
     );

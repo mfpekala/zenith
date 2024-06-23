@@ -392,6 +392,7 @@ fn update_root_and_ship(
             size: ship_tran.scale.x * Ship::radius(),
             color: Color::YELLOW,
             vel: Vec2::ZERO,
+            ..default()
         },
         0.5,
         ParticleOptions {
@@ -402,6 +403,7 @@ fn update_root_and_ship(
                 end_color: Color::BLUE,
                 spleen: Spleen::EaseInQuad,
             }),
+            ..default()
         },
     );
     commands.entity(eid).add_child(particle);
