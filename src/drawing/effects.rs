@@ -3,7 +3,7 @@ use std::{collections::VecDeque, time::Duration};
 use crate::{
     math::{lerp, Spleen},
     meta::{
-        consts::{MENU_HEIGHT, MENU_WIDTH},
+        consts::{MENU_GROWTH, MENU_HEIGHT, MENU_WIDTH},
         game_state::{GameState, SetMetaState, SetPaused},
     },
 };
@@ -70,8 +70,28 @@ impl EffectVal {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ScreenEffect {
     None,
+    Black,
     FadeToBlack(Option<GameState>),
     UnfadeToBlack,
+    CircleIn {
+        from_pos: IVec2,
+        to_state: Option<GameState>,
+    },
+    CircleOut {
+        from_pos: IVec2,
+    },
+}
+impl ScreenEffect {
+    fn timer_length(&self) -> f32 {
+        match self {
+            Self::None => 0.0,
+            Self::Black => 0.0,
+            Self::FadeToBlack(_) => 0.3,
+            Self::UnfadeToBlack => 0.3,
+            Self::CircleIn { .. } => 0.4,
+            Self::CircleOut { .. } => 0.4,
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -97,13 +117,15 @@ impl ScreenEffectManager {
         self.current_val.timer.tick(time.delta());
         if self.current_val.timer.finished()
             && !self.current_val.timer.just_finished()
-            && (self.current_kind != ScreenEffect::None || self.queued_effects.len() > 0)
+            && ((self.current_kind != ScreenEffect::None
+                && self.current_kind != ScreenEffect::Black)
+                || self.queued_effects.len() > 0)
         {
             let kind = self
                 .queued_effects
                 .pop_front()
                 .unwrap_or(ScreenEffect::None);
-            let timer_time = if kind == ScreenEffect::None { 0.0 } else { 0.3 };
+            let timer_time = kind.timer_length();
             self.current_kind = kind;
             self.current_val = EffectVal::new(0.0, 1.0, Spleen::EaseInOutCubic, timer_time);
         }
@@ -117,7 +139,10 @@ impl ScreenEffectManager {
 #[derive(Component)]
 struct ScreenBlackBox;
 
-fn spawn_screen_black_box(mut commands: Commands) {
+#[derive(Component)]
+struct ScreenCicleSprite;
+
+fn initialize_screen_effects(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         ScreenBlackBox,
         Name::new("screen_black_box"),
@@ -135,19 +160,48 @@ fn spawn_screen_black_box(mut commands: Commands) {
         },
         menu_layer(),
     ));
+    commands.spawn((
+        ScreenCicleSprite,
+        Name::new("screen_circle_sprite"),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgba(0.0, 0.0, 0.0, 1.0),
+                ..default()
+            },
+            transform: Transform {
+                scale: Vec3::new(4.0 * MENU_GROWTH as f32, 4.0 * MENU_GROWTH as f32, 1.0),
+                translation: Vec3::new(0.0, 0.0, 100.0),
+                ..default()
+            },
+            texture: asset_server.load("sprites/effects/circle_zoom.png"),
+            ..default()
+        },
+        menu_layer(),
+    ));
 }
 
 fn manage_screen_effects(
     mut screen_effect: ResMut<ScreenEffectManager>,
     time: Res<Time>,
-    mut black_box: Query<&mut Sprite, With<ScreenBlackBox>>,
+    mut black_box: Query<&mut Sprite, (With<ScreenBlackBox>, Without<ScreenCicleSprite>)>,
+    mut circle_sprite_q: Query<&mut Transform, (With<ScreenCicleSprite>, Without<ScreenBlackBox>)>,
     mut meta_writer: EventWriter<SetMetaState>,
     mut pause_writer: EventWriter<SetPaused>,
 ) {
     screen_effect.update_current(&time);
     let mut black_box = black_box.single_mut();
+    let mut circle_tran = circle_sprite_q.single_mut();
     match &screen_effect.current_kind {
-        ScreenEffect::None => (),
+        ScreenEffect::None => {
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, 0.0);
+            circle_tran.scale.x = 4.0 * MENU_GROWTH as f32 * 80.0;
+            circle_tran.scale.y = 4.0 * MENU_GROWTH as f32 * 80.0;
+        }
+        ScreenEffect::Black => {
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, 1.0);
+            circle_tran.scale.x = 4.0 * MENU_GROWTH as f32 * 80.0;
+            circle_tran.scale.y = 4.0 * MENU_GROWTH as f32 * 80.0;
+        }
         ScreenEffect::FadeToBlack(gs) => {
             let interp = screen_effect.current_val.interp();
             black_box.color = Color::rgba(0.0, 0.0, 0.0, interp);
@@ -167,6 +221,34 @@ fn manage_screen_effects(
                 black_box.color = Color::rgba(0.0, 0.0, 0.0, 1.0 - interp);
             }
         }
+        ScreenEffect::CircleIn { from_pos, to_state } => {
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, 0.0);
+            circle_tran.translation.x = from_pos.x as f32;
+            circle_tran.translation.y = from_pos.y as f32;
+            let interp = screen_effect.current_val.interp();
+            let min = 4.0 * MENU_GROWTH as f32;
+            let max = 4.0 * MENU_GROWTH as f32 * 80.0;
+            let scale = max + interp * (min - max);
+            circle_tran.scale.x = scale;
+            circle_tran.scale.y = scale;
+            if interp >= 0.9999 {
+                if let Some(gs) = to_state {
+                    meta_writer.send(SetMetaState(gs.meta.clone()));
+                    pause_writer.send(SetPaused(gs.pause));
+                }
+            }
+        }
+        ScreenEffect::CircleOut { from_pos } => {
+            black_box.color = Color::rgba(0.0, 0.0, 0.0, 0.0);
+            circle_tran.translation.x = from_pos.x as f32;
+            circle_tran.translation.y = from_pos.y as f32;
+            let interp = screen_effect.current_val.interp();
+            let min = 4.0 * MENU_GROWTH as f32;
+            let max = 4.0 * MENU_GROWTH as f32 * 80.0;
+            let scale = min + interp * (max - min);
+            circle_tran.scale.x = scale;
+            circle_tran.scale.y = scale;
+        }
     }
 }
 
@@ -181,7 +263,7 @@ pub struct EffectsPlugin;
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ScreenEffectManager::blank());
-        app.add_systems(Startup, spawn_screen_black_box);
+        app.add_systems(Startup, initialize_screen_effects);
         app.add_systems(Update, manage_screen_effects);
         app.add_systems(PreUpdate, tick_effects);
     }

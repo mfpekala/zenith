@@ -2,13 +2,14 @@ use bevy::prelude::*;
 use load::{actively_load, destroy_level, did_level_change, is_actively_loading_level, start_load};
 
 use crate::{
+    camera::CameraMarker,
     drawing::effects::{ScreenEffect, ScreenEffectManager},
     meta::{
-        consts::FRAMERATE,
+        consts::{FRAMERATE, MENU_GROWTH, MENU_HEIGHT, MENU_WIDTH},
         game_state::{in_level, left_level, GameState, LevelState, MenuState, MetaState},
         progress::{ActiveSaveFile, GameProgress},
     },
-    physics::dyno::IntDyno,
+    physics::dyno::{IntDyno, IntMoveable},
     ship::{Dead, Ship},
 };
 
@@ -19,6 +20,7 @@ fn progress_level(
     gs: Res<GameState>,
     mut game_progress: Query<&mut GameProgress, With<ActiveSaveFile>>,
     mut screen_effect: ResMut<ScreenEffectManager>,
+    mut cam: Query<&IntMoveable, With<CameraMarker>>,
 ) {
     let Some(level_state) = gs.get_level_state() else {
         warn!("Weird stuff happening in progress_level level_state");
@@ -26,6 +28,9 @@ fn progress_level(
     };
     let Ok(mut game_progress) = game_progress.get_single_mut() else {
         warn!("Weird stuff happening in progress_level game_progress");
+        return;
+    };
+    let Ok(cam) = cam.get_single() else {
         return;
     };
     let saturated_goal = ships.iter().any(|(ship, dyno)| {
@@ -41,11 +46,19 @@ fn progress_level(
     for (mut ship, _) in ships.iter_mut() {
         ship.finished = true;
     }
+    let Some((_, ship_dyno)) = ships.iter().next() else {
+        return;
+    };
     let mut go_to_meta = |meta: MetaState, include_unfade: bool| {
-        screen_effect.queue_effect(ScreenEffect::FadeToBlack(Some(GameState {
-            meta,
-            pause: None,
-        })));
+        let mut pos = (ship_dyno.ipos.truncate() - cam.pos.truncate()) * MENU_GROWTH as i32;
+        if pos.x.abs() > MENU_WIDTH as i32 / 2 || pos.y.abs() > MENU_HEIGHT as i32 / 2 {
+            pos = IVec2::ZERO;
+        }
+        screen_effect.queue_effect(ScreenEffect::CircleIn {
+            from_pos: pos,
+            to_state: Some(GameState { meta, pause: None }),
+        });
+        screen_effect.queue_effect(ScreenEffect::Black);
         if include_unfade {
             screen_effect.queue_effect(ScreenEffect::UnfadeToBlack);
         }

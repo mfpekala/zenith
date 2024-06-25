@@ -179,7 +179,7 @@ fn watch_for_respawn(mut commands: Commands, mut entity_n_lp: Query<(Entity, &mu
 /// Checks if the ship hit a simple kill rock
 fn watch_simple_kill_collisions(
     mut commands: Commands,
-    ship_q: Query<(Entity, &IntDyno)>,
+    ship_q: Query<(Entity, &IntDyno), Without<Dead>>,
     rock_info: Query<&Rock>,
 ) {
     for (id, dyno) in ship_q.iter() {

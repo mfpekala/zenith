@@ -70,7 +70,9 @@ pub(super) fn actively_load(
     }
     if let Some(level_data) = level_data {
         commands.run_system_with_input(spawn_id, (1, level_data, IVec2::ZERO));
-        screen_effects.queue_effect(ScreenEffect::UnfadeToBlack);
+        screen_effects.queue_effect(ScreenEffect::CircleOut {
+            from_pos: IVec2::ZERO,
+        });
     }
 }
 

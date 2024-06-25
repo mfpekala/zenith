@@ -248,6 +248,6 @@ pub(super) fn spawn_level(
             parent.spawn(live_poly);
         });
     if let Ok(mut camera) = camera_q.get_single_mut() {
-        camera.pos = home.extend(0);
+        camera.pos = home.extend(0) + level_data.start.extend(0);
     }
 }
