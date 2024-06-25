@@ -11,6 +11,7 @@ use crate::{
     },
     physics::dyno::{IntDyno, IntMoveable},
     ship::{Dead, Ship},
+    sound::effect::SoundEffect,
 };
 
 pub mod load;
@@ -20,7 +21,8 @@ fn progress_level(
     gs: Res<GameState>,
     mut game_progress: Query<&mut GameProgress, With<ActiveSaveFile>>,
     mut screen_effect: ResMut<ScreenEffectManager>,
-    mut cam: Query<&IntMoveable, With<CameraMarker>>,
+    cam: Query<&IntMoveable, With<CameraMarker>>,
+    mut commands: Commands,
 ) {
     let Some(level_state) = gs.get_level_state() else {
         warn!("Weird stuff happening in progress_level level_state");
@@ -43,6 +45,11 @@ fn progress_level(
     if !saturated_goal {
         return;
     }
+    commands.spawn(SoundEffect::universal(
+        "sound_effects/level_transport.ogg",
+        0.4,
+        false,
+    ));
     for (mut ship, _) in ships.iter_mut() {
         ship.finished = true;
     }
