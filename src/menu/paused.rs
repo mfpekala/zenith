@@ -63,6 +63,7 @@ pub fn start_pause(
                     None
                 } else {
                     match specific_menu {
+                        MenuState::Studio => None,
                         MenuState::Title => None,
                         MenuState::ConstellationSelect => {
                             bg_manager.clear_effects();

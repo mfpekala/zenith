@@ -1,7 +1,6 @@
 use crate::{
     drawing::{
         animation::{AnimationManager, SpriteInfo},
-        effects::ScreenEffectManager,
         layering::menu_layer_u8,
         text::{Flashing, TextAlign, TextBoxBundle, TextWeight},
     },
@@ -65,7 +64,6 @@ fn update_title_screen(
     mut gs_writer: EventWriter<SetMetaState>,
     root: Query<Entity, With<TitleScreenRoot>>,
     mut bg_manager: ResMut<BgManager>,
-    mut screen_effects: ResMut<ScreenEffectManager>,
 ) {
     let Ok(root) = root.get_single() else {
         return;

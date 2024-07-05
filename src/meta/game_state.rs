@@ -4,6 +4,7 @@ use super::progress::GalaxyKind;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MenuState {
+    Studio,
     Title,
     ConstellationSelect,
     GalaxyOverworld,
@@ -87,6 +88,12 @@ impl MetaState {
     pub fn get_level_state(&self) -> Option<LevelState> {
         match &self {
             MetaState::Level(state) => Some(state.clone()),
+            _ => None,
+        }
+    }
+    pub fn get_menu_state(&self) -> Option<MenuState> {
+        match &self {
+            MetaState::Menu(state) => Some(state.clone()),
             _ => None,
         }
     }
@@ -183,7 +190,7 @@ fn translate_events(
 }
 
 fn set_initial_game_state(mut gs_writer: EventWriter<SetMetaState>) {
-    gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Title)));
+    gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Studio)));
 
     // gs_writer.send(SetMetaState(MetaState::Level(
     //     LevelState::from_galaxy_n_level(GalaxyKind::Basic, "basic_1".into()),

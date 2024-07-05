@@ -61,6 +61,10 @@ impl AnimationManager {
         self.map.get(&self.key).unwrap().clone()
     }
 
+    pub fn get_key(&self) -> String {
+        self.key.clone()
+    }
+
     pub fn set_key(&mut self, key: &str) {
         if key == &self.key {
             // Do nothing. Use reset_key if you want this to reset the sprite even if the key is the same

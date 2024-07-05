@@ -3,6 +3,7 @@ pub mod constellation_screen;
 pub mod galaxy_screen;
 pub mod paused;
 pub mod placement;
+pub mod studio_screen;
 pub mod title_screen;
 
 use bevy::prelude::*;
@@ -19,7 +20,9 @@ use placement::GameRelativePlacement;
 use crate::{
     camera::{CameraMarker, CameraMode, CameraScale},
     environment::background::{BgKind, BgManager},
-    meta::game_state::{entered_menu, in_menu, left_menu, GameState, PauseState, SetPaused},
+    meta::game_state::{
+        entered_menu, in_menu, left_menu, GameState, MenuState, PauseState, SetPaused,
+    },
     physics::dyno::IntMoveable,
     sound::music::{MusicKind, MusicManager},
 };
@@ -32,6 +35,7 @@ fn setup_any_menu(
     mut bg_manager: ResMut<BgManager>,
     mut music_manager: ResMut<MusicManager>,
     mut commands: Commands,
+    gs: Res<GameState>,
 ) {
     bg_manager.set_kind(BgKind::ParallaxStars(500));
     for (mut mv, mut cam) in cam.iter_mut() {
@@ -39,14 +43,25 @@ fn setup_any_menu(
         cam.mode = CameraMode::Controlled;
         cam.scale = CameraScale::One;
     }
-    music_manager.fade_to_song(Some(MusicKind::EyeOfTheStorm));
-    commands.spawn((
-        MenuButtonBundle::new(
-            MenuButton::basic("go_settings", "S"),
-            GameRelativePlacement::new(IVec3::new(-151, -78, 0), 1.0),
-        ),
-        MenuSettingsButton,
-    ));
+
+    if let Some(menu_state) = gs.meta.get_menu_state() {
+        match menu_state {
+            MenuState::Studio => {
+                // DO NOTHING
+            }
+            _ => {
+                // Spawn settings button and start menu music
+                music_manager.fade_to_song(Some(MusicKind::EyeOfTheStorm));
+                commands.spawn((
+                    MenuButtonBundle::new(
+                        MenuButton::basic("go_settings", "S"),
+                        GameRelativePlacement::new(IVec3::new(-151, -78, 0), 1.0),
+                    ),
+                    MenuSettingsButton,
+                ));
+            }
+        }
+    }
 }
 
 /// Update logic common to any menu. This is basically just used so that we
@@ -98,6 +113,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, update_any_menu.run_if(in_menu));
 
+        studio_screen::register_studio_screen(app);
         title_screen::register_title_screen(app);
         constellation_screen::register_constellation_screen(app);
         galaxy_screen::register_galaxy_screen(app);
