@@ -522,17 +522,8 @@ fn update_animation_bodies(
         }
 
         // Redo the mesh
-        let mut fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
+        let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh_size = uvec2_bound(&fpoints);
-        if manager.mat_rot != 0.0 {
-            fpoints.iter_mut().for_each(|point| {
-                let c = manager.mat_rot.cos();
-                let s = manager.mat_rot.sin();
-
-                let rotated = Vec2::new(c * point.x - s * point.y, s * point.x + c * point.y);
-                *point = rotated;
-            });
-        }
         let x_rep = mesh_size.x as f32 / current_node.sprite.size.x as f32;
         let y_rep = mesh_size.y as f32 / current_node.sprite.size.y as f32;
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
@@ -542,6 +533,7 @@ fn update_animation_bodies(
             Vec2::new(x_rep, y_rep),
             current_node.sprite.color,
         );
+        mat.rot = manager.mat_rot;
         mat.ephemeral = manager.ephemeral;
         let mat_ass = mats.add(mat);
         let mesh = points_to_mesh(&fpoints, &mut meshes);
@@ -556,7 +548,7 @@ fn update_animation_bodies(
             Visibility::Inherited
         };
         tran.translation = manager.offset.as_vec3();
-        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.tran_angle - manager.mat_rot);
+        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.tran_angle);
     }
 }
 

@@ -68,14 +68,14 @@ fn update_title_screen(
     let Ok(root) = root.get_single() else {
         return;
     };
+    if keys.pressed(KeyCode::KeyE) {
+        // Activate the editor by pressing E
+        gs_writer.send(SetMetaState(MetaState::Editor(EditorState::Editing(
+            EditingState::blank(),
+        ))));
+        return;
+    }
     if keys.just_pressed(KeyCode::Enter) && death.iter().len() == 0 {
-        if keys.pressed(KeyCode::KeyE) {
-            // Activate the editor by pressing E
-            gs_writer.send(SetMetaState(MetaState::Editor(EditorState::Editing(
-                EditingState::blank(),
-            ))));
-            return;
-        }
         bg_manager.queue_effect(BgEffect::default_menu_scroll(
             true,
             true,

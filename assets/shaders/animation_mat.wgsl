@@ -22,11 +22,19 @@ var<uniform> r: f32;
 var<uniform> g: f32;
 @group(2) @binding(11)
 var<uniform> b: f32;
+@group(2) @binding(12)
+var<uniform> rot: f32;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let input_x = (-x_offset + 2.0 + x_repetitions * in.uv[0]) % 1.0;
-    let input_y = (y_offset + y_repetitions * in.uv[1]) % 1.0;
+    let shifted = vec2<f32>((in.uv.x - 0.5) * 2.0, (in.uv.y - 0.5) * 2.0);
+    let cs = cos(rot);
+    let sn = sin(rot);
+    let scaled = vec2<f32>(shifted.x * x_repetitions, shifted.y * y_repetitions);
+    let rotated = vec2<f32>(cs * scaled.x - sn * scaled.y, sn * scaled.x + cs * scaled.y);
+    let unshifted = vec2<f32>(rotated.x / 2.0 + 0.5, rotated.y / 2.0 + 0.5);
+    let input_x = (-x_offset + 20.0 + unshifted.x) % 1.0;
+    let input_y = (y_offset + unshifted.y) % 1.0;
     let index_lower = (1.0 / length) * (index + 0);
     let index_upper = (1.0 / length) * (index + 1);
     let out_uv = vec2<f32>(index_lower + (index_upper - index_lower) * input_x, input_y);
