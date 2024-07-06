@@ -179,7 +179,7 @@ pub(super) fn position_segments(
         center += (current_node.sprite.size.y as f32 * norm / 2.0).extend(0.0);
         tran.translation = center;
         let angle = diff_norm.y.atan2(diff_norm.x);
-        anim.set_angle(angle);
+        anim.set_tran_angle(angle);
         anim.set_points(irect(
             (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
             current_node.sprite.size.y,

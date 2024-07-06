@@ -321,7 +321,7 @@ fn update_shot_arrow(
             let angle = Vec2::Y.angle_between(end - start);
             let body_len = ((start - end).length() / MULT_THINGY * 1.5).round() as i32;
             let body = multi.map.get_mut("body").unwrap();
-            body.set_angle(angle);
+            body.set_tran_angle(angle);
             body.set_hidden(false);
             body.set_points(vec![
                 IVec2::new(-3, 0),
@@ -330,7 +330,7 @@ fn update_shot_arrow(
                 IVec2::new(-3, -body_len),
             ]);
             let head = multi.map.get_mut("head").unwrap();
-            head.set_angle(angle);
+            head.set_tran_angle(angle);
             head.set_hidden(false);
         }
         None => {

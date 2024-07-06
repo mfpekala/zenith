@@ -62,13 +62,19 @@ impl Rehydrate<FieldBundle> for ExportedField {
         // let center = icenter(&self.points);
         let mut spatial = SpatialBundle::default();
         spatial.transform.translation.z = -10.0;
-        let mut anim = AnimationManager::single_static(SpriteInfo {
-            path: "sprites/field/field_bg.png".to_string(),
-            size: UVec2::new(12, 12),
-            ..default()
-        });
+        let x_reved = Vec2::new(-field.dir.x, field.dir.y);
+        let mut anim = AnimationManager::single_repeating(
+            SpriteInfo {
+                path: "sprites/field/field_dyno.png".to_string(),
+                size: UVec2::new(8, 8),
+                ..default()
+            },
+            8,
+        )
+        // .force_mat_rot(self.dir.to_angle());
+        .force_mat_rot(x_reved.to_angle());
         anim.set_points(self.points.clone());
-        anim.set_scroll(field.dir * 0.1);
+        // anim.set_scroll(field.dir * 0.1);
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),
             refresh_period: 0,

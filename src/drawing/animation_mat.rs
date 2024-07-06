@@ -39,6 +39,8 @@ pub struct AnimationMaterial {
     pub g: f32,
     #[uniform(11)]
     pub b: f32,
+    #[uniform(12)]
+    pub rot: f32,
     pub ephemeral: bool,
 }
 impl AnimationMaterial {
@@ -59,6 +61,7 @@ impl AnimationMaterial {
             r: color.r(),
             g: color.g(),
             b: color.b(),
+            rot: 0.0,
             ephemeral: false,
         }
     }

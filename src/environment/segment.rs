@@ -132,7 +132,7 @@ impl Rehydrate<SegmentBundle> for ExportedSegment {
                 IVec2::new(p.x.round() as i32, p.y.round() as i32)
             })
             .collect();
-        anim.set_angle(angle);
+        anim.set_tran_angle(angle);
         anim.set_points(anim_points);
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),

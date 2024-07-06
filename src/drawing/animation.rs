@@ -48,7 +48,10 @@ pub struct AnimationManager {
     points: Vec<IVec2>,
     scale: AnimationScale,
     offset: IVec3,
-    angle: f32,
+    // Material rotation
+    mat_rot: f32,
+    // Rotation of the transform
+    tran_angle: f32,
     render_layers_u8: Vec<u8>,
     hidden: bool,
     scroll: Vec2,
@@ -94,12 +97,21 @@ impl AnimationManager {
         self.is_changed = true;
     }
 
-    pub fn set_angle(&mut self, angle: f32) {
-        if (self.angle - angle).abs() < 0.001 {
+    pub fn set_mat_rot(&mut self, angle: f32) {
+        if (self.mat_rot - angle).abs() < 0.001 {
             // Do nothing
             return;
         }
-        self.angle = angle;
+        self.mat_rot = angle;
+        self.is_changed = true;
+    }
+
+    pub fn set_tran_angle(&mut self, angle: f32) {
+        if (self.tran_angle - angle).abs() < 0.001 {
+            // Do nothing
+            return;
+        }
+        self.tran_angle = angle;
         self.is_changed = true;
     }
 
@@ -221,6 +233,12 @@ impl AnimationManager {
         self.render_layers_u8 = vec![render_layer];
         self
     }
+
+    /// Forces the animation_manager to take a mat_rot
+    pub fn force_mat_rot(mut self, angle: f32) -> Self {
+        self.mat_rot = angle;
+        self
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {
@@ -230,7 +248,8 @@ impl Default for AnimationManager {
             points: vec![],
             scale: AnimationScale::Repeat,
             offset: IVec3::ZERO,
-            angle: 0.0,
+            mat_rot: 0.0,
+            tran_angle: 0.0,
             render_layers_u8: vec![sprite_layer_u8()],
             hidden: false,
             scroll: Vec2::ZERO,
@@ -503,8 +522,17 @@ fn update_animation_bodies(
         }
 
         // Redo the mesh
-        let fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
+        let mut fpoints: Vec<Vec2> = manager.points.iter().map(|p| p.as_vec2()).collect();
         let mesh_size = uvec2_bound(&fpoints);
+        if manager.mat_rot != 0.0 {
+            fpoints.iter_mut().for_each(|point| {
+                let c = manager.mat_rot.cos();
+                let s = manager.mat_rot.sin();
+
+                let rotated = Vec2::new(c * point.x - s * point.y, s * point.x + c * point.y);
+                *point = rotated;
+            });
+        }
         let x_rep = mesh_size.x as f32 / current_node.sprite.size.x as f32;
         let y_rep = mesh_size.y as f32 / current_node.sprite.size.y as f32;
         let image_handle = body.handle_map.get(&manager.key).unwrap().clone();
@@ -528,7 +556,7 @@ fn update_animation_bodies(
             Visibility::Inherited
         };
         tran.translation = manager.offset.as_vec3();
-        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.angle);
+        tran.rotation = Quat::from_axis_angle(Vec3::Z, manager.tran_angle - manager.mat_rot);
     }
 }
 
