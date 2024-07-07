@@ -4,23 +4,21 @@ use bevy::{ecs::system::SystemId, prelude::*};
 
 use crate::{
     camera::{CameraMarker, CameraMode, CameraScale},
+    environment::convo::{
+        operation::ConvoRoot, CameraBeforeConvo, Convo, ConvoBoxBundle, ConvoBoxContent,
+        ConvoBoxSpeaker, SpeakerEmotion, StartConvo,
+    },
     physics::dyno::IntMoveable,
 };
 
-use super::{
-    operation::ConvoRoot, CameraBeforeConvo, Convo, ConvoBoxBundle, ConvoBoxContent,
-    ConvoBoxSpeaker, StartConvo,
-};
-
-#[derive(Debug, Clone, Copy)]
-pub enum ConvoKind {
-    Test,
-}
+use super::ConvoKind;
 
 fn spawn_test_convo(In(()): In<()>, mut commands: Commands) {
     let boxes = VecDeque::from_iter([
         ConvoBoxBundle::new(
-            ConvoBoxSpeaker::None,
+            ConvoBoxSpeaker::Ship {
+                emotion: SpeakerEmotion::Default,
+            },
             ConvoBoxContent {
                 content: "Hey there little ship boi, how are you?".to_string(),
                 camera_mvmt: Some((IVec2::new(-100, 100), IVec2::new(100, -100))),
@@ -83,11 +81,7 @@ fn start_conversations(
     }
 }
 
-pub fn in_convo(convos: Query<&Convo>) -> bool {
-    !convos.is_empty()
-}
-
-pub(super) fn register_convo_data(app: &mut App) {
+pub(super) fn register_spawns(app: &mut App) {
     let oneshots: ConvoOneshots = ConvoOneshots {
         spawn_test_convo: app.world.register_system(spawn_test_convo),
     };

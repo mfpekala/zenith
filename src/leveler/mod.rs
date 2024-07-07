@@ -25,11 +25,11 @@ fn progress_level(
     mut commands: Commands,
 ) {
     let Some(level_state) = gs.get_level_state() else {
-        warn!("Weird stuff happening in progress_level level_state");
+        // warn!("Weird stuff happening in progress_level level_state");
         return;
     };
     let Ok(mut game_progress) = game_progress.get_single_mut() else {
-        warn!("Weird stuff happening in progress_level game_progress");
+        // warn!("Weird stuff happening in progress_level game_progress");
         return;
     };
     let Ok(cam) = cam.get_single() else {

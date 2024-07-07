@@ -4,10 +4,11 @@ use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds};
 
 use crate::{
     camera::CameraMarker,
-    drawing::{layering::menu_layer, text::TextWeight},
+    drawing::{animation::AnimationManager, layering::menu_layer, text::TextWeight},
     math::Spleen,
     meta::consts::MENU_GROWTH,
     physics::dyno::IntMoveable,
+    sound::effect::SoundEffect,
 };
 
 use super::{
@@ -28,15 +29,26 @@ struct MaterializedBackgroundBundle {
     sprite: SpriteBundle,
     render_layers: RenderLayers,
 }
+
+struct BackgroundHelperInfo {
+    text_offset: Vec2,
+    text_bounds: Vec2,
+    portrait_offset: Option<Vec2>,
+}
+
 impl MaterializedBackgroundBundle {
     /// NOTE: Size is ASSUMED to already have been scaled by MENU_GROWTH as needed
     /// NOTE: Returns the bundle AND the text offset/bounds which should be given to the text
-    fn from_pos(pos: &ConvoBoxPos, asset_server: &Res<AssetServer>) -> (Self, (Vec2, Vec2)) {
+    fn from_pos(
+        pos: &ConvoBoxPos,
+        asset_server: &Res<AssetServer>,
+    ) -> (Self, BackgroundHelperInfo) {
         match pos {
             ConvoBoxPos::Default => {
                 let mgf = MENU_GROWTH as f32;
                 let text_offset = Vec2::new(-160.0 / 2.0 + 34.0, 36.0 / 2.0 - 6.0) * mgf;
                 let text_bounds = Vec2::new(120.0, 24.0) * mgf;
+                let portrait_offset = Vec2::new(-80.0 + 18.0, 0.0) * mgf;
                 // Why this? We're using the built-in (ass) Sprite, so it'll be outside it's tran
                 let bg_size_tran = Vec2::ONE * mgf;
                 (
@@ -51,7 +63,11 @@ impl MaterializedBackgroundBundle {
                         },
                         render_layers: menu_layer(),
                     },
-                    (text_offset, text_bounds),
+                    BackgroundHelperInfo {
+                        text_offset,
+                        text_bounds,
+                        portrait_offset: Some(portrait_offset),
+                    },
                 )
             }
         }
@@ -99,11 +115,26 @@ impl MaterializedTextBundle {
     }
 }
 
+/// See ./data/speaker.rs for spawning info
 #[derive(Component)]
-struct MaterializedPortrait;
+pub struct MaterializedPortrait;
+#[derive(Bundle)]
+pub struct MaterializedPortraitBundle {
+    pub name: Name,
+    pub marker: MaterializedPortrait,
+    pub anim: AnimationManager,
+    pub spatial: SpatialBundle,
+}
 
+/// See ./data/speaker.rs for spawning info
 #[derive(Component)]
-struct MaterializedSound;
+pub struct MaterializedSound;
+#[derive(Bundle)]
+pub struct MaterializedSoundBundle {
+    pub name: Name,
+    pub marker: MaterializedSound,
+    pub sound: SoundEffect,
+}
 
 #[derive(Bundle)]
 pub(super) struct MaterializedBundle {
@@ -136,15 +167,21 @@ impl MaterializedBundle {
                     )),
                 })
                 .with_children(|main_parent| {
-                    let (bg, (text_offset, text_bounds)) =
+                    let (bg, bg_helper) =
                         MaterializedBackgroundBundle::from_pos(&partial.pos, &asset_server);
                     main_parent.spawn(bg);
                     main_parent.spawn(MaterializedTextBundle::from_offset_n_bounds(
-                        text_offset,
-                        text_bounds,
+                        bg_helper.text_offset,
+                        bg_helper.text_bounds,
                         partial.content.content,
                         &asset_server,
                     ));
+                    if let Some((portrait, sound)) =
+                        partial.speaker.materialize(bg_helper.portrait_offset)
+                    {
+                        main_parent.spawn(portrait);
+                        main_parent.spawn(sound);
+                    }
                 })
                 .id();
         });
@@ -174,7 +211,7 @@ fn update_box(
 
     // Handle the timer and absolute
     bx_progress.timer.tick(time.delta());
-    if mouse_input.just_pressed(MouseButton::Left) {
+    if mouse_input.just_pressed(MouseButton::Right) {
         if bx_progress.timer.finished() {
             bx_progress.absolutely_finished = true;
         } else {

@@ -22,12 +22,21 @@ pub enum ConvoBoxPos {
     // },
 }
 
+/// Controls the portrait and sound effect for this convo
+#[derive(Default, Clone, Copy, Debug)]
+pub enum SpeakerEmotion {
+    #[default]
+    Default,
+}
+
 /// Who is saying this
 #[derive(Component, Clone, Debug, Default)]
 pub enum ConvoBoxSpeaker {
     #[default]
     None, // I don't like doing this, but Option<T: Component> does not impl Component soo...
-    Ship,
+    Ship {
+        emotion: SpeakerEmotion,
+    },
 }
 
 /// What are they saying, and the absolute camera movement (maybe none)
