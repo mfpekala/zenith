@@ -13,7 +13,7 @@ use crate::{
 
 use super::ConvoKind;
 
-fn spawn_test_convo(In(()): In<()>, mut commands: Commands) {
+fn spawn_test_convo(In((root_eid,)): In<(Entity,)>, mut commands: Commands) {
     let boxes = VecDeque::from_iter([
         ConvoBoxBundle::new(
             ConvoBoxSpeaker::Ship {
@@ -39,13 +39,15 @@ fn spawn_test_convo(In(()): In<()>, mut commands: Commands) {
         active_eid: None,
         bundles: boxes,
     };
-    commands.spawn(convo);
+    commands.entity(root_eid).with_children(|parent| {
+        parent.spawn(convo);
+    });
 }
 
 /// RESIST THE URGE TO WRITE A MACRO (for now)
 #[derive(Resource)]
 struct ConvoOneshots {
-    spawn_test_convo: SystemId<(), ()>,
+    spawn_test_convo: SystemId<(Entity,), ()>,
 }
 
 fn start_conversations(
@@ -77,7 +79,7 @@ fn start_conversations(
     camera_marker.mode = CameraMode::Controlled;
 
     match start.0 {
-        ConvoKind::Test => commands.run_system_with_input(oneshots.spawn_test_convo, ()),
+        ConvoKind::Test => commands.run_system_with_input(oneshots.spawn_test_convo, (convo_root,)),
     }
 }
 

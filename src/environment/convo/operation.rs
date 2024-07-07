@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds};
 
 use crate::{
-    camera::CameraMarker,
+    camera::{camera_movement, CameraMarker},
     drawing::{animation::AnimationManager, layering::menu_layer, text::TextWeight},
     math::Spleen,
     meta::consts::MENU_GROWTH,
@@ -308,7 +308,12 @@ fn test_convos(mut writer: EventWriter<StartConvo>, keyboard: Res<ButtonInput<Ke
 
 pub(super) fn register_convo_ops(app: &mut App) {
     app.add_systems(Startup, setup_convo_ops);
-    app.add_systems(Update, (update_box, update_convo).run_if(in_convo));
+    app.add_systems(
+        Update,
+        (update_box, update_convo)
+            .run_if(in_convo)
+            .before(camera_movement),
+    );
 
     // TESTING
     app.add_systems(Update, test_convos);
