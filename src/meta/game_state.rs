@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::environment::convo::{data::ConvoKind, StartConvo};
+
 use super::progress::GalaxyKind;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -189,12 +191,16 @@ fn translate_events(
     };
 }
 
-fn set_initial_game_state(mut gs_writer: EventWriter<SetMetaState>) {
-    gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Studio)));
+fn set_initial_game_state(
+    mut gs_writer: EventWriter<SetMetaState>,
+    mut convo_starter: EventWriter<StartConvo>,
+) {
+    // gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Studio)));
 
-    // gs_writer.send(SetMetaState(MetaState::Level(
-    //     LevelState::from_galaxy_n_level(GalaxyKind::Basic, "basic_2".into()),
-    // )));
+    gs_writer.send(SetMetaState(MetaState::Level(
+        LevelState::from_galaxy_n_level(GalaxyKind::Basic, "basic_2".into()),
+    )));
+    convo_starter.send(StartConvo(ConvoKind::Test));
 }
 
 pub fn register_game_state(app: &mut App) {

@@ -20,7 +20,7 @@ use camera::register_camera;
 use cutscenes::CutscenesPlugin;
 use drawing::register_drawing;
 use editor::EditorPlugin;
-use environment::EnvironmentPlugin;
+use environment::{convo::ConvoPlugin, EnvironmentPlugin};
 use input::register_input;
 use leveler::LevelerPlugin;
 use menu::MenuPlugin;
@@ -72,6 +72,7 @@ fn main() {
     app.add_plugins(EnvironmentPlugin);
     app.add_plugins(MenuPlugin);
     app.add_plugins(LevelerPlugin);
+    app.add_plugins(ConvoPlugin);
     app.register_type::<Vec2>();
     app.register_type::<IVec2>();
     app.register_type::<IVec3>();

@@ -8,6 +8,7 @@ use crate::{
         animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
         layering::menu_layer_u8,
     },
+    environment::convo::Convo,
     meta::{
         consts::{MENU_GROWTH, SCREEN_WIDTH},
         game_state::{in_editor, in_level, GameState},
@@ -58,6 +59,7 @@ pub fn watch_mouse(
     screen_mults: Res<ScreenMults>,
     window_dims: Res<WindowDims>,
     gs: Res<GameState>,
+    convos: Query<&Convo>,
 ) {
     let can_shoot = ships.iter().all(|ship| ship.can_shoot);
     // Helper function to terminate a launch
@@ -68,7 +70,7 @@ pub fn watch_mouse(
             vel: pending.launch_vel,
         });
     };
-    if should_apply_physics(gs) {
+    if should_apply_physics(gs, convos) {
         // Update the timer for the launch
         let has_timer = match mouse_state.pending_launch.as_ref() {
             Some(pending) => pending.timer.is_some(),
@@ -299,6 +301,7 @@ fn update_shot_arrow(
     mut arrow: Query<(&mut Transform, &mut MultiAnimationManager), With<ShotArrowMarker>>,
     mouse_state: Res<MouseState>,
     gs: Res<GameState>,
+    convos: Query<&Convo>,
 ) {
     let Ok((mut tran, mut multi)) = arrow.get_single_mut() else {
         return;
@@ -307,7 +310,7 @@ fn update_shot_arrow(
         multi.map.get_mut("head").unwrap().set_hidden(true);
         multi.map.get_mut("body").unwrap().set_hidden(true);
     };
-    if !should_apply_physics(gs) {
+    if !should_apply_physics(gs, convos) {
         set_invisible(&mut multi);
         return;
     }

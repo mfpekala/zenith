@@ -86,7 +86,7 @@ impl CameraMode {
     }
 }
 
-#[derive(Component, Debug, Reflect)]
+#[derive(Component, Clone, Debug, Reflect)]
 pub struct CameraMarker {
     pub mode: CameraMode,
     pub scale: CameraScale,

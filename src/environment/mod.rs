@@ -7,6 +7,7 @@ pub mod replenish;
 pub mod rock;
 pub mod segment;
 pub mod start;
+pub mod convo;
 
 use self::{particle::register_particles, replenish::update_replenishes};
 use bevy::prelude::*;

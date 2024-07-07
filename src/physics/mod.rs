@@ -3,6 +3,7 @@ use self::{
     dyno::{move_int_dynos, register_int_dynos, IntDyno},
 };
 use crate::{
+    environment::convo::Convo,
     input::MouseState,
     meta::game_state::{EditorState, GameState, MetaState},
 };
@@ -33,8 +34,11 @@ impl BulletTime {
     }
 }
 
-pub fn should_apply_physics(gs: Res<GameState>) -> bool {
+pub fn should_apply_physics(gs: Res<GameState>, convos: Query<&Convo>) -> bool {
     if gs.pause.is_some() {
+        return false;
+    }
+    if !convos.is_empty() {
         return false;
     }
     match gs.meta {
