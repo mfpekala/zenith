@@ -158,7 +158,7 @@ fn update_box(
     mut text_q: Query<(&Parent, &mut Text), With<MaterializedText>>,
     time: Res<Time>,
     mouse_input: Res<ButtonInput<MouseButton>>,
-    mut camera_q: Query<&mut IntMoveable, With<CameraMarker>>,
+    mut camera_q: Query<(&mut CameraMarker, &mut IntMoveable)>,
 ) {
     let Ok((mid, bx_content, mut bx_progress)) = bx.get_single_mut() else {
         return;
@@ -191,12 +191,17 @@ fn update_box(
 
     // Move camera
     if let Some((start_pos, end_pos)) = bx_content.camera_mvmt {
-        let mut camera_mv = camera_q.single_mut();
+        let (_, mut camera_mv) = camera_q.single_mut();
         let interped_frac = Spleen::EaseInOutCubic.interp(frac_complete);
         let interped_pos =
             start_pos.as_vec2() + interped_frac * (end_pos.as_vec2() - start_pos.as_vec2());
         camera_mv.pos.x = interped_pos.x.round() as i32;
         camera_mv.pos.y = interped_pos.y.round() as i32;
+    }
+    // Scale camera
+    if let Some(scale) = bx_content.camera_scale {
+        let (mut camera_marker, _) = camera_q.single_mut();
+        camera_marker.scale = scale;
     }
 }
 

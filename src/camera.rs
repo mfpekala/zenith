@@ -20,7 +20,7 @@ pub struct ScreenMults(pub u32);
 #[derive(Resource)]
 pub struct WindowDims(pub UVec2);
 
-#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum CameraScale {
     Quarter,
     Half,

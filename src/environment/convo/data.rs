@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use bevy::{ecs::system::SystemId, prelude::*};
 
 use crate::{
-    camera::{CameraMarker, CameraMode},
+    camera::{CameraMarker, CameraMode, CameraScale},
     physics::dyno::IntMoveable,
 };
 
@@ -24,6 +24,7 @@ fn spawn_test_convo(In(()): In<()>, mut commands: Commands) {
             ConvoBoxContent {
                 content: "Hey there little ship boi, how are you?".to_string(),
                 camera_mvmt: Some((IVec2::new(-100, 100), IVec2::new(100, -100))),
+                camera_scale: Some(CameraScale::Half),
             },
         ),
         ConvoBoxBundle::new(
@@ -31,6 +32,7 @@ fn spawn_test_convo(In(()): In<()>, mut commands: Commands) {
             ConvoBoxContent {
                 content: "I'm okay.".to_string(),
                 camera_mvmt: Some((IVec2::new(100, -100), IVec2::new(100, -200))),
+                camera_scale: Some(CameraScale::Two),
             },
         ),
     ]);

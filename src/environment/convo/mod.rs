@@ -3,7 +3,10 @@ use std::collections::VecDeque;
 use bevy::prelude::*;
 use data::ConvoKind;
 
-use crate::{camera::CameraMarker, physics::dyno::IntMoveable};
+use crate::{
+    camera::{CameraMarker, CameraScale},
+    physics::dyno::IntMoveable,
+};
 
 pub mod data;
 mod operation;
@@ -32,7 +35,11 @@ pub enum ConvoBoxSpeaker {
 pub struct ConvoBoxContent {
     pub content: String,
     /// Start and end position for the camera while in this text box
+    /// NOTE: If None, it will stay _whereever it already is_
     pub camera_mvmt: Option<(IVec2, IVec2)>,
+    /// The scale the camera should have while in this text box
+    /// NOTE: If None, it will stay _whatever it already is_
+    pub camera_scale: Option<CameraScale>,
 }
 
 /// For controlling how long the text stays on screen, and marking it for replacement
