@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds};
 
 use crate::{
-    camera::{camera_movement, CameraMarker},
+    camera::CameraMarker,
     drawing::{animation::AnimationManager, layering::menu_layer, text::TextWeight},
     math::Spleen,
     meta::consts::MENU_GROWTH,
@@ -75,7 +75,7 @@ impl MaterializedBackgroundBundle {
 }
 
 #[derive(Component)]
-struct MaterializedText;
+pub struct MaterializedText;
 #[derive(Bundle)]
 struct MaterializedTextBundle {
     name: Name,
@@ -190,7 +190,7 @@ impl MaterializedBundle {
 }
 
 /// Updates the convo boxes.
-fn update_box(
+pub fn update_box(
     mut bx: Query<(Entity, &ConvoBoxContent, &mut ConvoBoxProgress)>,
     mut text_q: Query<(&Parent, &mut Text), With<MaterializedText>>,
     time: Res<Time>,
@@ -308,12 +308,7 @@ fn test_convos(mut writer: EventWriter<StartConvo>, keyboard: Res<ButtonInput<Ke
 
 pub(super) fn register_convo_ops(app: &mut App) {
     app.add_systems(Startup, setup_convo_ops);
-    app.add_systems(
-        Update,
-        (update_box, update_convo)
-            .run_if(in_convo)
-            .before(camera_movement),
-    );
+    app.add_systems(Update, (update_box, update_convo).run_if(in_convo));
 
     // TESTING
     app.add_systems(Update, test_convos);

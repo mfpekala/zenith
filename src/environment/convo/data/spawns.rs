@@ -5,8 +5,9 @@ use bevy::{ecs::system::SystemId, prelude::*};
 use crate::{
     camera::{CameraMarker, CameraMode, CameraScale},
     environment::convo::{
-        operation::ConvoRoot, CameraBeforeConvo, Convo, ConvoBoxBundle, ConvoBoxContent,
-        ConvoBoxSpeaker, SpeakerEmotion, StartConvo,
+        operation::{update_box, ConvoRoot},
+        CameraBeforeConvo, Convo, ConvoBoxBundle, ConvoBoxContent, ConvoBoxSpeaker, SpeakerEmotion,
+        StartConvo,
     },
     physics::dyno::IntMoveable,
 };
@@ -88,5 +89,5 @@ pub(super) fn register_spawns(app: &mut App) {
         spawn_test_convo: app.world.register_system(spawn_test_convo),
     };
     app.insert_resource(oneshots);
-    app.add_systems(Update, start_conversations);
+    app.add_systems(Update, start_conversations.before(update_box));
 }

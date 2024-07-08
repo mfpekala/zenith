@@ -192,11 +192,11 @@ fn translate_events(
 }
 
 fn set_initial_game_state(mut gs_writer: EventWriter<SetMetaState>) {
-    // gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Studio)));
+    gs_writer.send(SetMetaState(MetaState::Menu(MenuState::Studio)));
 
-    gs_writer.send(SetMetaState(MetaState::Level(
-        LevelState::from_galaxy_n_level(GalaxyKind::Basic, "basic_2".into()),
-    )));
+    // gs_writer.send(SetMetaState(MetaState::Level(
+    //     LevelState::from_galaxy_n_level(GalaxyKind::Basic, "basic_2".into()),
+    // )));
 }
 
 pub fn register_game_state(app: &mut App) {

@@ -33,8 +33,9 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let scaled = vec2<f32>(shifted.x * x_repetitions, shifted.y * y_repetitions);
     let rotated = vec2<f32>(cs * scaled.x - sn * scaled.y, sn * scaled.x + cs * scaled.y);
     let unshifted = vec2<f32>(rotated.x / 2.0 + 0.5, rotated.y / 2.0 + 0.5);
+    // Adding 20.0 here because it works, no idea why
     let input_x = (-x_offset + 20.0 + unshifted.x) % 1.0;
-    let input_y = (y_offset + unshifted.y) % 1.0;
+    let input_y = (y_offset + 20.0 + unshifted.y) % 1.0;
     let index_lower = (1.0 / length) * (index + 0);
     let index_upper = (1.0 / length) * (index + 1);
     let out_uv = vec2<f32>(index_lower + (index_upper - index_lower) * input_x, input_y);
