@@ -6,6 +6,7 @@ use bevy::{
 use crate::{
     camera::CameraMarker,
     editor::{
+        field::EStandaloneField,
         planet::EPlanet,
         point::EPoint,
         replenish::EReplenish,
@@ -104,10 +105,12 @@ pub(super) fn crystallize_level_data(
         Query<&GlobalTransform, With<EGoal>>,
         Query<(&SegmentParents, &SegmentKind)>,
         Query<&GlobalTransform, With<EReplenish>>,
+        Query<&EStandaloneField>,
         Res<UIdTranslator>,
     )>,
 ) -> LevelData {
-    let (points_q, planets_q, estart, egoal, segments_q, replenish_q, ut) = params.get(world);
+    let (points_q, planets_q, estart, egoal, segments_q, replenish_q, esf_q, ut) =
+        params.get(world);
     let start = match estart.get_single() {
         Ok(gt) => IVec2::new(
             gt.translation().x.round() as i32,
@@ -194,6 +197,26 @@ pub(super) fn crystallize_level_data(
             ),
         });
     }
+    for esf in esf_q.iter() {
+        let point_eids = esf
+            .field_points
+            .iter()
+            .map(|uid| ut.get_entity(*uid).unwrap())
+            .collect::<Vec<_>>();
+        let points = point_eids
+            .into_iter()
+            .map(|eid| {
+                let tran = points_q.get(eid).unwrap().translation().truncate();
+                IVec2::new(tran.x.round() as i32, tran.y.round() as i32)
+            })
+            .collect();
+        fields.push(ExportedField {
+            points,
+            dir: esf.dir,
+            strength: FieldStrength::Normal,
+            drag: FieldDrag::Normal,
+        })
+    }
     LevelData {
         start,
         goal,
@@ -221,10 +244,12 @@ pub(super) fn spawn_level(
         ))
         .with_children(|parent| {
             // TODO: Sexier level entrance
+            let mut all_points = vec![];
             parent.spawn(ShipBundle::new(level_data.start));
             parent.spawn(StartBundle::new(StartSize::Medium, level_data.start));
+            all_points.push(level_data.start.as_vec2());
             parent.spawn(GoalBundle::new(GoalSize::Medium, level_data.goal));
-            let mut all_points = vec![];
+            all_points.push(level_data.goal.as_vec2());
             for rock in level_data.rocks {
                 for point in rock.points.iter() {
                     all_points.push(point.as_vec2());

@@ -15,22 +15,34 @@ const TESTING_HOME: IVec2 = IVec2::new(6000, 6000);
 
 pub(super) fn start_testing(
     world: &mut World,
-    params: &mut SystemState<(Res<LevelDataOneshots>, EventWriter<HelpBarEvent>)>,
+    params: &mut SystemState<(
+        Res<LevelDataOneshots>,
+        EventWriter<HelpBarEvent>,
+        EventWriter<SetCameraModeEvent>,
+    )>,
 ) {
-    let (level_oneshots, _) = params.get_mut(world);
+    let (level_oneshots, _, _) = params.get_mut(world);
     let level_oneshots = level_oneshots.clone();
-    match world.run_system(level_oneshots.crystallize_level_data_id) {
+    let success = match world.run_system(level_oneshots.crystallize_level_data_id) {
         Ok(level_data) => {
             world
                 .run_system_with_input(level_oneshots.spawn_level_id, (1, level_data, TESTING_HOME))
                 .unwrap();
+            true
         }
         Err(_) => {
-            let (_, mut event) = params.get_mut(world);
+            let (_, mut event, _) = params.get_mut(world);
             event.send(HelpBarEvent(
                 "Failed to crystallize level data (system)".to_string(),
             ));
+            false
         }
+    };
+    if success {
+        let (_, _, mut writer) = params.get_mut(world);
+        writer.send(SetCameraModeEvent {
+            mode: CameraMode::Follow { dislodgement: None },
+        });
     }
 }
 

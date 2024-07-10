@@ -11,7 +11,7 @@ use crate::{
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
 
-use super::{planet::EPlanet, save::SaveMarker};
+use super::{planet::EPlanet, save::SaveMarker, EditingSceneRoot};
 
 #[derive(Component, Clone, Debug, PartialEq, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
@@ -145,8 +145,12 @@ pub(super) fn spawn_points(
     points: Query<(Entity, &EPoint, &IntMoveable, &UIdMarker)>,
     mut gs_writer: EventWriter<SetMetaState>,
     ut: Res<UIdTranslator>,
+    eroot: Query<Entity, With<EditingSceneRoot>>,
 ) {
     let Some(mode) = gs.get_editing_mode() else {
+        return;
+    };
+    let Ok(eroot) = eroot.get_single() else {
         return;
     };
     if !mouse_buttons.just_pressed(MouseButton::Right) {
@@ -155,7 +159,14 @@ pub(super) fn spawn_points(
     }
     match mode {
         EditingMode::Free => {
-            // For now do nothing here
+            if keyboard.pressed(KeyCode::KeyF) {
+                // ADDING A WILD POINT
+                // These are points that later can be made into fields
+                commands.entity(eroot).with_children(|parent| {
+                    let bund = EPointBundle::new(mouse_state.world_pos, EPointKind::Wild);
+                    parent.spawn(bund);
+                });
+            }
         }
         EditingMode::CreatingPlanet(planet_id) => {
             // Either closes the rock or places a new point

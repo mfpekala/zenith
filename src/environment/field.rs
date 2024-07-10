@@ -62,7 +62,6 @@ impl Rehydrate<FieldBundle> for ExportedField {
         // let center = icenter(&self.points);
         let mut spatial = SpatialBundle::default();
         spatial.transform.translation.z = -10.0;
-        let x_reved = Vec2::new(-field.dir.x, field.dir.y);
         let mut anim = AnimationManager::single_repeating(
             SpriteInfo {
                 path: "sprites/field/field_dyno.png".to_string(),

@@ -239,6 +239,12 @@ impl AnimationManager {
         self.mat_rot = angle;
         self
     }
+
+    /// Forces the animation_manager to take points
+    pub fn force_points(mut self, points: Vec<IVec2>) -> Self {
+        self.points = points;
+        self
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {

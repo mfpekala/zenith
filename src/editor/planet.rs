@@ -398,6 +398,7 @@ pub(super) fn nudge_fields(
 }
 
 /// If multiple points from the same field are selected, delete that field
+/// On KeyCode::KeyC
 /// Turns points into wild points if needed
 pub(super) fn remove_field(
     mut eplanets: Query<&mut EPlanet>,

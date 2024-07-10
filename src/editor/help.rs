@@ -10,6 +10,7 @@ use bevy::{ecs::system::SystemState, prelude::*, render::view::RenderLayers};
 use std::fmt;
 
 use super::{
+    field::CreateStandaloneFieldEvent,
     save::{ExportLevelEvent, LoadEditorEvent, SaveEditorEvent},
     start_goal::{EGoal, EStart},
     EditingSceneRoot,
@@ -433,6 +434,7 @@ pub(super) fn run_help_bar_command(
         EventWriter<LoadEditorEvent>,
         EventWriter<ExportLevelEvent>,
         EventWriter<SetMetaState>,
+        EventWriter<CreateStandaloneFieldEvent>,
         Query<&EStart>,
         Query<&EGoal>,
         Query<Entity, With<EditingSceneRoot>>,
@@ -445,6 +447,7 @@ pub(super) fn run_help_bar_command(
         mut load_editor_writer,
         mut export_level_writer,
         mut gs_writer,
+        mut create_standalone_field_writer,
         estart_q,
         egoal_q,
         eroot,
@@ -472,6 +475,24 @@ pub(super) fn run_help_bar_command(
         }
         Some(name.to_string())
     };
+    let get_two_f32s = |input: &str, prefix: &str| {
+        // Hackity hack
+        // Resisting the urge to waste 3 hours making this better
+        let Some(combined) = input.strip_prefix(prefix) else {
+            return None;
+        };
+        let parts = combined.split(" ");
+        let v = parts.into_iter().collect::<Vec<_>>();
+        if v.len() != 2 {
+            return None;
+        }
+        let f1 = v[0].parse::<f32>();
+        let f2 = v[1].parse::<f32>();
+        match (f1, f2) {
+            (Ok(f1), Ok(f2)) => Some((f1, f2)),
+            _ => None,
+        }
+    };
 
     let input = help_bar.input.clone();
     help_bar.submitted = false;
@@ -497,6 +518,12 @@ pub(super) fn run_help_bar_command(
             }
             None => send_output("Must load from a name"),
         }
+    } else if input.starts_with("field ") {
+        let Some((x, y)) = get_two_f32s(&input, "field ") else {
+            send_output("That doesn't look like two floats...");
+            return;
+        };
+        create_standalone_field_writer.send(CreateStandaloneFieldEvent(Vec2::new(x, y)));
     } else if &input == "test" {
         if estart_q.iter().len() == 0 {
             send_output("You must spawn a start position before testing");

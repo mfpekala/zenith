@@ -1,5 +1,5 @@
 use crate::{
-    camera::CameraMode,
+    camera::{camera_movement, CameraMode},
     environment::{
         background::{BgKind, BgManager},
         field::{FieldDrag, FieldStrength},
@@ -18,6 +18,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
+use field::{CreateStandaloneFieldEvent, EStandaloneField};
 use save::{export_level, ExportLevelEvent};
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +50,9 @@ use self::{
     testing::{start_testing, stop_testing},
 };
 
+pub mod field;
 pub mod help;
+pub mod oneshots;
 pub mod planet;
 pub mod point;
 pub mod replenish;
@@ -185,6 +188,7 @@ impl Plugin for EditorPlugin {
         app.register_type::<IntMoveable>();
         app.register_type::<UIdMarker>();
         app.register_type::<SaveMarker>();
+        app.register_type::<EStandaloneField>();
 
         // Help system
         app.add_plugins(RonAssetPlugin::<EditorHelpConfig>::new(&[
@@ -206,6 +210,13 @@ impl Plugin for EditorPlugin {
                 .before(watch_camera_input)
                 .before(start_pause),
         );
+
+        // Oneshots
+        oneshots::register_oneshots(app);
+
+        // Fields
+        app.add_event::<CreateStandaloneFieldEvent>();
+        app.add_systems(Update, field::create_new_standalone_field);
 
         // Points
         app.add_systems(
@@ -270,6 +281,9 @@ impl Plugin for EditorPlugin {
 
         // Testing
         app.add_systems(Update, start_testing.run_if(entered_testing));
-        app.add_systems(Update, stop_testing.run_if(left_testing));
+        app.add_systems(
+            Update,
+            stop_testing.run_if(left_testing).after(camera_movement),
+        );
     }
 }
