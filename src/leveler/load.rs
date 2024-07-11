@@ -51,7 +51,7 @@ pub(super) fn actively_load(
     mut commands: Commands,
     mut screen_effects: ResMut<ScreenEffectManager>,
 ) {
-    let spawn_id = level_oneshots.spawn_level_id.clone();
+    let spawn_id = level_oneshots.old_spawn_level.clone();
     let mut kill_eids = vec![];
     let mut level_data = None;
     for (eid, al) in actively_loadings.iter() {

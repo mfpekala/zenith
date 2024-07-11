@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     drawing::animation::{AnimationManager, SpriteInfo},
     meta::game_state::{EditingMode, GameState},
-    uid::{fresh_uid, UId, UIdMarker},
+    physics::dyno::IntMoveable,
 };
 
 use super::{oneshots::EditorOneshots, point::EPoint, save::SaveMarker};
@@ -12,7 +12,7 @@ use super::{oneshots::EditorOneshots, point::EPoint, save::SaveMarker};
 #[derive(Component, Debug, Clone, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct EStandaloneField {
-    pub field_points: Vec<UId>,
+    pub field_points: Vec<Entity>,
     pub dir: Vec2,
 }
 
@@ -22,7 +22,6 @@ pub struct CreateStandaloneFieldEvent(pub Vec2);
 #[derive(Bundle)]
 pub struct EStandaloneFieldBundle {
     pub name: Name,
-    pub uid: UIdMarker,
     pub standalone: EStandaloneField,
     pub spatial: SpatialBundle,
     pub anim: AnimationManager,
@@ -32,7 +31,6 @@ impl EStandaloneFieldBundle {
     pub fn from_standalone_field(standalone: EStandaloneField, locations: Vec<IVec2>) -> Self {
         Self {
             name: Name::new("standalone_field"),
-            uid: UIdMarker(fresh_uid()),
             anim: AnimationManager::single_repeating(
                 SpriteInfo {
                     path: "sprites/field/field_dyno.png".to_string(),
@@ -70,4 +68,36 @@ pub(super) fn create_new_standalone_field(
         .map(|p| p.0)
         .collect::<Vec<_>>();
     commands.run_system_with_input(oneshots.spawn_standalone_field, (eids, *dir));
+}
+
+pub(super) fn update_standalone_fields(
+    mut esf_q: Query<(Entity, &mut EStandaloneField, &mut AnimationManager)>,
+    points_q: Query<(Entity, &EPoint, &IntMoveable)>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    for (eid, mut esf, mut anim) in esf_q.iter_mut() {
+        let alive_points = esf
+            .field_points
+            .iter()
+            .map(|pid| points_q.get(*pid))
+            .filter_map(Result::ok)
+            .collect::<Vec<_>>();
+        if alive_points.len() <= 2 {
+            commands.entity(eid).despawn_recursive();
+            continue;
+        }
+        let any_selected = alive_points.iter().any(|(_, p, _)| p.is_selected);
+        if any_selected && keyboard.just_pressed(KeyCode::KeyC) {
+            commands.entity(eid).despawn_recursive();
+        }
+        let mut new_field_points = vec![];
+        let mut point_poses = vec![];
+        for (pid, _, mv) in alive_points.into_iter() {
+            new_field_points.push(pid);
+            point_poses.push(mv.pos.truncate());
+        }
+        esf.field_points = new_field_points;
+        anim.set_points(point_poses);
+    }
 }

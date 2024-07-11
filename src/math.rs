@@ -245,6 +245,22 @@ pub fn irect(width: u32, height: u32) -> Vec<IVec2> {
     ]
 }
 
+pub trait ToIVec2 {
+    fn to_ivec2(&self) -> IVec2;
+}
+
+impl ToIVec2 for Vec2 {
+    fn to_ivec2(&self) -> IVec2 {
+        IVec2::new(self.x.round() as i32, self.y.round() as i32)
+    }
+}
+
+impl ToIVec2 for Vec3 {
+    fn to_ivec2(&self) -> IVec2 {
+        IVec2::new(self.x.round() as i32, self.y.round() as i32)
+    }
+}
+
 pub fn lerp(x: f32, start: f32, end: f32) -> f32 {
     start + x * (end - start)
 }

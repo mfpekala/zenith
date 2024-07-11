@@ -5,14 +5,6 @@ use bevy::{
 
 use crate::{
     camera::CameraMarker,
-    editor::{
-        field::EStandaloneField,
-        planet::EPlanet,
-        point::EPoint,
-        replenish::EReplenish,
-        segment::SegmentParents,
-        start_goal::{EGoal, EStart},
-    },
     environment::{
         field::{FieldDrag, FieldStrength},
         goal::{GoalBundle, GoalSize},
@@ -20,6 +12,15 @@ use crate::{
         rock::RockKind,
         segment::SegmentKind,
         start::{StartBundle, StartSize},
+    },
+    math::ToIVec2,
+    old_editor::{
+        field::EStandaloneField,
+        planet::EPlanet,
+        point::EPoint,
+        replenish::EReplenish,
+        segment::SegmentParents,
+        start_goal::{EGoal, EStart},
     },
     physics::dyno::IntMoveable,
     ship::ShipBundle,
@@ -93,7 +94,8 @@ pub struct LevelData {
 #[derive(Resource, Clone)]
 pub struct LevelDataOneshots {
     pub crystallize_level_data_id: SystemId<(), LevelData>,
-    pub spawn_level_id: SystemId<(u64, LevelData, IVec2)>,
+    pub old_spawn_level: SystemId<(u64, LevelData, IVec2)>,
+    pub spawn_level: SystemId<(Entity, LevelData)>,
 }
 
 pub(super) fn crystallize_level_data(
@@ -198,12 +200,9 @@ pub(super) fn crystallize_level_data(
         });
     }
     for esf in esf_q.iter() {
-        let point_eids = esf
+        let points = esf
             .field_points
-            .iter()
-            .map(|uid| ut.get_entity(*uid).unwrap())
-            .collect::<Vec<_>>();
-        let points = point_eids
+            .clone()
             .into_iter()
             .map(|eid| {
                 let tran = points_q.get(eid).unwrap().translation().truncate();
@@ -230,7 +229,7 @@ pub(super) fn crystallize_level_data(
 #[derive(Component)]
 pub struct LevelRoot;
 
-pub(super) fn spawn_level(
+pub(super) fn old_spawn_level(
     In((uid, level_data, home)): In<(UId, LevelData, IVec2)>,
     mut commands: Commands,
     mut camera_q: Query<&mut IntMoveable, With<CameraMarker>>,
@@ -274,5 +273,53 @@ pub(super) fn spawn_level(
         });
     if let Ok(mut camera) = camera_q.get_single_mut() {
         camera.pos = home.extend(0) + level_data.start.extend(0);
+    }
+}
+
+pub(super) fn spawn_level(
+    In((eid, level_data)): In<(Entity, LevelData)>,
+    mut commands: Commands,
+    mut camera_q: Query<&mut IntMoveable, With<CameraMarker>>,
+    global_tran_q: Query<&GlobalTransform>,
+) {
+    commands.entity(eid).with_children(|root| {
+        root.spawn((
+            SpatialBundle::default(),
+            Name::new(format!("LevelRoot")),
+            LevelRoot,
+        ))
+        .with_children(|parent| {
+            let mut all_points = vec![];
+            parent.spawn(ShipBundle::new(level_data.start));
+            parent.spawn(StartBundle::new(StartSize::Medium, level_data.start));
+            all_points.push(level_data.start.as_vec2());
+            parent.spawn(GoalBundle::new(GoalSize::Medium, level_data.goal));
+            all_points.push(level_data.goal.as_vec2());
+            for rock in level_data.rocks {
+                for point in rock.points.iter() {
+                    all_points.push(point.as_vec2());
+                }
+                parent.spawn(rock.rehydrate());
+            }
+            for field in level_data.fields {
+                for point in field.points.iter() {
+                    all_points.push(point.as_vec2());
+                }
+                parent.spawn(field.rehydrate());
+            }
+            for segment in level_data.segments {
+                parent.spawn(segment.rehydrate());
+            }
+            for repl in level_data.replenishes {
+                all_points.push(repl.pos.as_vec2());
+                parent.spawn(repl.rehydrate());
+            }
+            let live_poly = LivePolyBundle::new(all_points);
+            parent.spawn(live_poly);
+        });
+    });
+    if let Ok(gtran) = global_tran_q.get(eid) {
+        let mut cam_mv = camera_q.single_mut();
+        cam_mv.pos = gtran.translation().to_ivec2().extend(cam_mv.pos.z);
     }
 }

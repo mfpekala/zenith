@@ -26,7 +26,7 @@ pub(super) fn start_testing(
     let success = match world.run_system(level_oneshots.crystallize_level_data_id) {
         Ok(level_data) => {
             world
-                .run_system_with_input(level_oneshots.spawn_level_id, (1, level_data, TESTING_HOME))
+                .run_system_with_input(level_oneshots.old_spawn_level, (1, level_data, TESTING_HOME))
                 .unwrap();
             true
         }

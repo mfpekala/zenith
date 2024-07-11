@@ -12,7 +12,7 @@ use crate::{
         bordered_mesh::BorderedMesh,
         mesh::outline_points,
     },
-    editor::point::EPointKind,
+    old_editor::point::EPointKind,
     environment::rock::RockKind,
     input::MouseState,
     math::MathLine,

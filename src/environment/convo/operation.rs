@@ -300,10 +300,10 @@ fn setup_convo_ops(mut commands: Commands) {
     commands.spawn((Name::new("convo_root"), ConvoRoot, SpatialBundle::default()));
 }
 
-fn test_convos(mut writer: EventWriter<StartConvo>, keyboard: Res<ButtonInput<KeyCode>>) {
-    if keyboard.just_pressed(KeyCode::KeyC) {
-        writer.send(StartConvo(ConvoKind::Test));
-    }
+fn test_convos(mut _writer: EventWriter<StartConvo>, _keyboard: Res<ButtonInput<KeyCode>>) {
+    // if keyboard.just_pressed(KeyCode::KeyC) {
+    //     writer.send(StartConvo(ConvoKind::Test));
+    // }
 }
 
 pub(super) fn register_convo_ops(app: &mut App) {
