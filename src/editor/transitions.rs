@@ -48,16 +48,22 @@ when_becomes_false!(is_testing_helper, left_testing);
 
 const EROOT_HOME: IVec2 = IVec2::ZERO;
 const TROOT_HOME: IVec2 = IVec2::new(6_000, 6_000);
+const HROOT_HOME: IVec2 = IVec2::ZERO;
 
 #[derive(Component, Default)]
 struct ERoot;
 #[derive(Resource)]
-pub(super) struct ERootEid(Entity);
+pub(super) struct ERootEid(pub Entity);
 
 #[derive(Component, Default)]
 struct TRoot;
 #[derive(Resource)]
-pub(super) struct TRootEid(Entity);
+pub(super) struct TRootEid(pub Entity);
+
+#[derive(Component, Default)]
+struct HRoot;
+#[derive(Resource)]
+pub(super) struct HRootEid(pub Entity);
 
 #[derive(Bundle)]
 struct CommonRootBundle<T: Component + Default> {
@@ -80,8 +86,10 @@ impl<T: Component + Default> CommonRootBundle<T> {
 /// Called exactly once when the MetaState becomes the Editor variant
 pub(super) fn setup_editor(
     mut commands: Commands,
+    e_oneshots: Res<EOneshots>,
     mut eroot: ResMut<ERootEid>,
     mut troot: ResMut<TRootEid>,
+    mut hroot: ResMut<HRootEid>,
     mut set_event: EventWriter<SetCameraModeEvent>,
     mut bg_manager: ResMut<BgManager>,
 ) {
@@ -95,6 +103,12 @@ pub(super) fn setup_editor(
             .spawn(CommonRootBundle::<TRoot>::new("TRoot", TROOT_HOME))
             .id(),
     );
+    *hroot = HRootEid(
+        commands
+            .spawn(CommonRootBundle::<HRoot>::new("HRoot", HROOT_HOME))
+            .id(),
+    );
+    commands.run_system(e_oneshots.spawn_help);
     set_event.send(SetCameraModeEvent {
         mode: CameraMode::Free,
     });
@@ -106,6 +120,7 @@ pub(super) fn destroy_editor(
     mut commands: Commands,
     mut eroot: ResMut<ERootEid>,
     mut troot: ResMut<TRootEid>,
+    mut hroot: ResMut<HRootEid>,
 ) {
     if let Some(commands) = commands.get_entity(eroot.0) {
         commands.despawn_recursive();
@@ -113,8 +128,12 @@ pub(super) fn destroy_editor(
     if let Some(commands) = commands.get_entity(troot.0) {
         commands.despawn_recursive();
     }
+    if let Some(commands) = commands.get_entity(hroot.0) {
+        commands.despawn_recursive();
+    }
     *eroot = ERootEid(Entity::PLACEHOLDER);
     *troot = TRootEid(Entity::PLACEHOLDER);
+    *hroot = HRootEid(Entity::PLACEHOLDER);
 }
 
 /// Called exactly once when the MetaState::Editor becomes the Editing variant

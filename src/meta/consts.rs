@@ -11,6 +11,7 @@ pub const SCREEN_HEIGHT: usize = 180;
 
 /// How much bigger the menu canvas is than the regular canvas
 pub const MENU_GROWTH: usize = 8;
+pub const MENU_GROWTH_F32: f32 = MENU_GROWTH as f32;
 
 /// Number of pixels to show in menu width
 pub const MENU_WIDTH: usize = SCREEN_WIDTH * MENU_GROWTH;

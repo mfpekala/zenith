@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
 use crate::meta::game_state::{entered_editor, left_editor};
-use transitions::{in_editing, in_testing};
+use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 
+mod help;
 mod oneshots;
 mod transitions;
 
@@ -10,10 +11,17 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
+        // Help
+        app.add_systems(Update, help::editor_help_input);
+        app.add_systems(Update, help::update_editor_help_bar);
+
         // Oneshots
         oneshots::register_oneshots(app);
 
         // Transitions
+        app.insert_resource(ERootEid(Entity::PLACEHOLDER));
+        app.insert_resource(TRootEid(Entity::PLACEHOLDER));
+        app.insert_resource(HRootEid(Entity::PLACEHOLDER));
         app.add_systems(Update, transitions::setup_editor.run_if(entered_editor));
         app.add_systems(Update, transitions::destroy_editor.run_if(left_editor));
         app.add_systems(
