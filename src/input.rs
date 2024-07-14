@@ -28,7 +28,7 @@ pub struct PendingLaunch {
 pub struct MouseState {
     pub pos: IVec2,
     pub world_pos: IVec2,
-    pub left_pressed: bool,
+    pub button_input: ButtonInput<MouseButton>,
     pub pending_launch: Option<PendingLaunch>,
 }
 impl MouseState {
@@ -36,7 +36,7 @@ impl MouseState {
         Self {
             pos: IVec2::ZERO,
             world_pos: IVec2::ZERO,
-            left_pressed: false,
+            button_input: default(),
             pending_launch: None,
         }
     }
@@ -116,7 +116,7 @@ pub fn watch_mouse(
                 y: mouse_pos.y / MENU_GROWTH as f32,
             };
     mouse_state.world_pos = IVec2::new(fworld_pos.x.round() as i32, fworld_pos.y.round() as i32);
-    mouse_state.left_pressed = buttons.pressed(MouseButton::Left);
+    mouse_state.button_input = buttons.clone();
     // Begin a launch
     if buttons.just_pressed(MouseButton::Left) && mouse_state.pending_launch.is_none() {
         // Beginning launch

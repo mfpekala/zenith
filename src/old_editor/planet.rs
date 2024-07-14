@@ -12,11 +12,11 @@ use crate::{
         bordered_mesh::BorderedMesh,
         mesh::outline_points,
     },
-    old_editor::point::EPointKind,
     environment::rock::RockKind,
     input::MouseState,
     math::MathLine,
     meta::game_state::{EditingMode, GameState, SetMetaState},
+    old_editor::point::EPointKind,
     physics::dyno::IntMoveable,
     uid::{fresh_uid, UId, UIdMarker, UIdTranslator},
 };
@@ -182,7 +182,7 @@ pub(super) fn redo_fields(
                 .get(ut.get_entity(*id).unwrap())
                 .unwrap()
                 .1
-                .pos
+                .fpos
                 .truncate()
                 .as_vec2()
         })
@@ -265,7 +265,7 @@ pub(super) fn resolve_pending_fields(
             }
         }
         if epoint.kind == EPointKind::Rock {
-            rock_points.insert(id, mv.pos.truncate());
+            rock_points.insert(id, mv.fpos.truncate());
         }
     }
 
@@ -277,18 +277,18 @@ pub(super) fn resolve_pending_fields(
         for (_id, epoint, mv, parent, uid) in items {
             match epoint.kind {
                 EPointKind::Rock | EPointKind::Wild => {
-                    let pos = mv.pos.truncate();
+                    let pos = mv.fpos.truncate();
                     points_n_ids.push((uid, pos));
-                    center += mv.pos.truncate().as_vec2();
+                    center += mv.fpos.truncate().as_vec2();
                 }
                 EPointKind::Field => {
                     let mv = match points.get(parent) {
                         Ok(thing) => thing.2,
                         Err(_) => stable_points.get(parent).unwrap(),
                     };
-                    let pos = mv.pos.truncate();
+                    let pos = mv.fpos.truncate();
                     points_n_ids.push((uid, pos));
-                    center += mv.pos.truncate().as_vec2();
+                    center += mv.fpos.truncate().as_vec2();
                 }
                 EPointKind::Free(_) => {
                     continue;
@@ -334,7 +334,7 @@ pub(super) fn resolve_pending_fields(
             let mut new_dad = planet_id;
             let mut dad_pos = IVec2::ZERO;
             for (id, pos) in rock_points.iter() {
-                let dist = mv.pos.truncate().distance_squared(*pos);
+                let dist = mv.fpos.truncate().distance_squared(*pos);
                 if dist < min_dist {
                     min_dist = dist;
                     new_dad = *id;
@@ -346,8 +346,8 @@ pub(super) fn resolve_pending_fields(
             commands.entity(new_dad).push_children(&[id]);
             point.kind = EPointKind::Field;
             eplanet.0.wild_points.retain(|p| *p != eid.0);
-            let old_pos = mv.pos;
-            mv.pos = old_pos - dad_pos.extend(0);
+            let old_pos = mv.fpos;
+            mv.fpos = old_pos - dad_pos.extend(0);
         }
     }
 }
@@ -380,13 +380,13 @@ pub(super) fn nudge_fields(
             if point.kind != EPointKind::Field {
                 continue;
             }
-            let change = mv.pos.as_vec3().truncate().normalize();
+            let change = mv.fpos.as_vec3().truncate().normalize();
             let mult = if keyboard.pressed(KeyCode::Period) {
                 1.0
             } else {
                 -1.0
             };
-            let hmm = mv.pos.truncate().as_vec2() + mv.rem;
+            let hmm = mv.fpos.truncate().as_vec2() + mv.rem;
             if hmm.length_squared() < 16.0 {
                 if mult < 0.0 {
                     continue;
@@ -505,7 +505,7 @@ pub(super) fn handle_feral_points(
 ) {
     for mut feral_point in points.iter_mut() {
         let parent = stable.get(feral_point.3.get()).unwrap();
-        feral_point.2.pos += parent.0.pos;
+        feral_point.2.fpos += parent.0.fpos;
         feral_point.1.kind = EPointKind::Wild;
         commands
             .entity(feral_point.3.get())
@@ -620,12 +620,12 @@ pub(super) fn update_field_gravity(
         for point in field.field_points.iter() {
             let point = points.get(ut.get_entity(*point).unwrap()).unwrap();
             if point.1.kind == EPointKind::Rock {
-                rock_points.push((point.2.pos.truncate()).as_vec2());
+                rock_points.push((point.2.fpos.truncate()).as_vec2());
             } else {
                 let Ok(parent) = points.get(point.4.get()) else {
                     continue;
                 };
-                field_points.push((parent.2.pos.truncate() + point.2.pos.truncate()).as_vec2());
+                field_points.push((parent.2.fpos.truncate() + point.2.fpos.truncate()).as_vec2());
             }
         }
         if rock_points.len() == 0 {
@@ -678,7 +678,7 @@ pub(super) fn drive_planet_meshes(
                 continue;
             };
             if let Ok((_, _, _, mv, _)) = points.get(ent) {
-                mesh_points.push(mv.pos.truncate());
+                mesh_points.push(mv.fpos.truncate());
             }
         }
         bm.set_points(mesh_points);
@@ -694,11 +694,11 @@ pub(super) fn drive_planet_meshes(
                 if let Ok((_, _, epoint, mv, parent)) = points.get(ent) {
                     match epoint.kind {
                         EPointKind::Rock => {
-                            field_points.push(mv.pos.truncate());
+                            field_points.push(mv.fpos.truncate());
                         }
                         EPointKind::Field => {
                             let (_, _, _, parent_mv, _) = points.get(parent.get()).unwrap();
-                            field_points.push(parent_mv.pos.truncate() + mv.pos.truncate());
+                            field_points.push(parent_mv.fpos.truncate() + mv.fpos.truncate());
                         }
                         EPointKind::Wild | EPointKind::Free(_) => (),
                     }

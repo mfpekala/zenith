@@ -5,7 +5,7 @@ use crate::{
         animation::{AnimationManager, AnimationNode, MultiAnimationManager, SpriteInfo},
         layering::light_layer_u8,
     },
-    meta::level_data::{ExportedReplenish, Rehydrate},
+    meta::old_level_data::{ExportedReplenish, Rehydrate},
     physics::{
         collider::{
             ColliderActive, ColliderTriggerStub, ColliderTriggerStubs, TrickleColliderActive,

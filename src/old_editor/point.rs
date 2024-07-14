@@ -186,7 +186,7 @@ pub(super) fn spawn_points(
             } else {
                 commands.entity(planet_id).with_children(|parent| {
                     let bund = EPointBundle::new(
-                        mouse_state.world_pos - mv.pos.truncate(),
+                        mouse_state.world_pos - mv.fpos.truncate(),
                         EPointKind::Rock,
                     );
                     eplanet.rock_points.push(bund.uid.0);
@@ -198,7 +198,7 @@ pub(super) fn spawn_points(
             let Ok((mut eplanet, mv)) = eplanets.get_mut(planet_id) else {
                 return;
             };
-            let spawning_at = mouse_state.world_pos - mv.pos.truncate();
+            let spawning_at = mouse_state.world_pos - mv.fpos.truncate();
             if keyboard.pressed(KeyCode::KeyF) {
                 // ADDING A WILD POINT
                 // These are points that later can be made into fields
@@ -215,7 +215,7 @@ pub(super) fn spawn_points(
                 let mut closest_ix = 0;
                 for (ix, id) in eplanet.rock_points.iter().enumerate() {
                     let (_, _, mv, _) = points.get(ut.get_entity(*id).unwrap()).unwrap();
-                    let dist = mv.pos.truncate().distance_squared(spawning_at);
+                    let dist = mv.fpos.truncate().distance_squared(spawning_at);
                     if closest_point.is_none() || dist < closest_dist {
                         closest_point = Some(*id);
                         closest_dist = dist;
@@ -226,7 +226,7 @@ pub(super) fn spawn_points(
                     .get(ut.get_entity(closest_point.unwrap()).unwrap())
                     .unwrap()
                     .2
-                    .pos
+                    .fpos
                     .truncate();
                 let anchor_vec = (spawning_at - anchor).as_vec2();
                 let left_ix = (closest_ix - 1).rem_euclid(eplanet.rock_points.len() as i32);
@@ -238,7 +238,7 @@ pub(super) fn spawn_points(
                     )
                     .unwrap()
                     .2
-                    .pos
+                    .fpos
                     .truncate()
                     - anchor;
                 let left_vec = left_vec.as_vec2().normalize_or_zero();
@@ -249,7 +249,7 @@ pub(super) fn spawn_points(
                     )
                     .unwrap()
                     .2
-                    .pos
+                    .fpos
                     .truncate()
                     - anchor;
                 let right_vec = right_vec.as_vec2().normalize_or_zero();
@@ -263,7 +263,7 @@ pub(super) fn spawn_points(
 
                 commands.entity(planet_id).with_children(|parent| {
                     let bund = EPointBundle::new(
-                        mouse_state.world_pos - mv.pos.truncate(),
+                        mouse_state.world_pos - mv.fpos.truncate(),
                         EPointKind::Rock,
                     );
                     eplanet.rock_points.insert(pos, bund.uid.0);
@@ -306,7 +306,7 @@ pub(super) fn select_points(
             p.is_selected = true;
             let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
             let standard_off = gt2 - mouse_state.world_pos;
-            let parent_tran = gt2 - mv.pos.truncate();
+            let parent_tran = gt2 - mv.fpos.truncate();
             p.drag_offset = Some(standard_off - parent_tran);
         };
     let deselect_point =
@@ -378,7 +378,7 @@ pub(super) fn point_select_shortcuts(
         p.is_selected = true;
         let gt2 = IVec2::new(gt.translation().x as i32, gt.translation().y as i32);
         let standard_off = gt2 - mouse_state.world_pos;
-        let parent_tran = gt2 - mv.pos.truncate();
+        let parent_tran = gt2 - mv.fpos.truncate();
         p.drag_offset = Some(standard_off - parent_tran);
     };
     let deselect_point = |id: Entity,
@@ -516,7 +516,7 @@ pub(super) fn move_points(
 ) {
     for (p, mut mv) in points.iter_mut() {
         if let Some(offset) = p.drag_offset {
-            mv.pos = (mouse_state.world_pos + offset).extend(mv.pos.z);
+            mv.fpos = (mouse_state.world_pos + offset).extend(mv.fpos.z);
         }
     }
 }

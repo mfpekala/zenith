@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     drawing::animation::{AnimationManager, AnimationNode, SpriteInfo},
     math::irect,
-    meta::level_data::{ExportedSegment, Rehydrate},
+    meta::old_level_data::{ExportedSegment, Rehydrate},
     physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
     uid::fresh_uid,
 };

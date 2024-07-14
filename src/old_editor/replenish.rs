@@ -46,8 +46,8 @@ impl EReplenishBundle {
             ("replenish", replenish),
             ("replenishL", replenish_light),
         ]);
-        bund.moveable.pos = pos.extend(0);
-        bund.spatial.transform.translation = bund.moveable.pos.as_vec3();
+        bund.moveable.fpos = pos.extend(0);
+        bund.spatial.transform.translation = bund.moveable.fpos.as_vec3();
         Self {
             replenish: EReplenish,
             point: bund,

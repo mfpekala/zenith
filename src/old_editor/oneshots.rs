@@ -45,7 +45,7 @@ fn spawn_standalone_field(
             Ok(ix) | Err(ix) => ix,
         };
         selection_orders.insert(ix, epoint.selection_order.unwrap_or_default());
-        locations.insert(ix, mv.pos.truncate());
+        locations.insert(ix, mv.fpos.truncate());
         standalone.field_points.insert(ix, *eid);
     }
 

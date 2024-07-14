@@ -1,6 +1,6 @@
 use crate::{
     drawing::animation::{AnimationManager, SpriteInfo},
-    meta::level_data::{ExportedField, Rehydrate},
+    meta::old_level_data::{ExportedField, Rehydrate},
     physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
     uid::fresh_uid,
 };

@@ -326,10 +326,10 @@ fn move_bg_entities(
         error!("Weird stuff in move bg entities with camera");
         return;
     };
-    let cam_movement = (camera_mv.pos - bg_manager.last_cam_pos)
+    let cam_movement = (camera_mv.get_ipos() - bg_manager.last_cam_pos)
         .truncate()
         .as_vec2();
-    bg_manager.last_cam_pos = camera_mv.pos;
+    bg_manager.last_cam_pos = camera_mv.get_ipos();
     for (mut tran, mut placement) in objects.iter_mut() {
         let vel = placement.vel.clone();
         placement.depth.depth_pos += vel;

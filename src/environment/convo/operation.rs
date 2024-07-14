@@ -232,8 +232,8 @@ pub fn update_box(
         let interped_frac = Spleen::EaseInOutCubic.interp(frac_complete);
         let interped_pos =
             start_pos.as_vec2() + interped_frac * (end_pos.as_vec2() - start_pos.as_vec2());
-        camera_mv.pos.x = interped_pos.x.round() as i32;
-        camera_mv.pos.y = interped_pos.y.round() as i32;
+        camera_mv.fpos.x = interped_pos.x;
+        camera_mv.fpos.y = interped_pos.y;
     }
     // Scale camera
     if let Some(scale) = bx_content.camera_scale {

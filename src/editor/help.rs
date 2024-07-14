@@ -1,7 +1,13 @@
 use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds};
 use clap::{Arg, Command};
 
-use crate::{drawing::layering::menu_layer, meta::consts::MENU_GROWTH_F32};
+use crate::{
+    drawing::layering::menu_layer,
+    meta::{
+        consts::MENU_GROWTH_F32,
+        game_state::{EditingState, EditorState, GameState, SetMetaState},
+    },
+};
 
 use super::{oneshots::EOneshots, transitions::HRootEid};
 
@@ -19,7 +25,11 @@ pub(super) fn spawn_help(In(()): In<()>, hroot: Res<HRootEid>, mut commands: Com
     });
 }
 
-pub(super) fn submit_help_command(In(command): In<String>) {
+pub(super) fn submit_help_command(
+    In(command): In<String>,
+    gs: Res<GameState>,
+    mut meta_writer: EventWriter<SetMetaState>,
+) {
     let parts = format!("help {command}");
     let parts = parts.split_whitespace().collect::<Vec<_>>();
     let Ok(matches) = Command::new("help")
@@ -31,17 +41,27 @@ pub(super) fn submit_help_command(In(command): In<String>) {
         warn!("Invalid command1: {command}");
         return;
     };
-    println!("matches is {matches:?}");
     let Some(m) = matches.subcommand() else {
         warn!("Invalid command2: {command}");
         return;
     };
+    let Some(editing_state) = gs.get_editor_state() else {
+        warn!("GameState looks like {gs:?}, which is not an editing state");
+        return;
+    };
     match m {
         ("test", _) => {
-            println!("got test");
+            if let EditorState::Editing(_) = editing_state {
+                // TODO: Verify that there exists a start
+                meta_writer.send(SetMetaState(EditorState::Testing.to_meta_state()));
+            }
         }
         ("edit", _) => {
-            println!("got edit");
+            if let EditorState::Testing = editing_state {
+                meta_writer.send(SetMetaState(
+                    EditorState::Editing(EditingState::blank()).to_meta_state(),
+                ));
+            }
         }
         ("field", args) => {
             println!(

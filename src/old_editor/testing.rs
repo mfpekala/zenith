@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemState, prelude::*};
 use crate::{
     camera::{CameraMarker, CameraMode},
     input::SetCameraModeEvent,
-    meta::level_data::LevelDataOneshots,
+    meta::old_level_data::LevelDataOneshots,
     physics::dyno::IntMoveable,
     uid::UIdTranslator,
 };
@@ -26,7 +26,10 @@ pub(super) fn start_testing(
     let success = match world.run_system(level_oneshots.crystallize_level_data_id) {
         Ok(level_data) => {
             world
-                .run_system_with_input(level_oneshots.old_spawn_level, (1, level_data, TESTING_HOME))
+                .run_system_with_input(
+                    level_oneshots.old_spawn_level,
+                    (1, level_data, TESTING_HOME),
+                )
                 .unwrap();
             true
         }
@@ -58,7 +61,7 @@ pub(super) fn stop_testing(
     set_event.send(SetCameraModeEvent {
         mode: CameraMode::Free,
     });
-    camera.pos = EDITING_HOME.extend(0);
+    camera.fpos = EDITING_HOME.extend(0);
     let Some(eid) = ut.get_entity(1) else {
         return;
     };

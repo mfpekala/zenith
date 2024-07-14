@@ -30,16 +30,20 @@ use super::{
 #[reflect(Component, Serialize, Deserialize)]
 pub struct IntMoveable {
     pub vel: Vec2,
-    pub pos: IVec3,
-    pub rem: Vec2,
+    pub fpos: Vec3,
+    ipos: IVec3,
 }
 impl IntMoveable {
-    pub fn new(pos: IVec3) -> Self {
+    pub fn new(ipos: IVec3) -> Self {
         Self {
             vel: Vec2::ZERO,
-            rem: Vec2::ZERO,
-            pos,
+            fpos: ipos.as_vec3(),
+            ipos,
         }
+    }
+
+    pub fn get_ipos(&self) -> IVec3 {
+        self.ipos
     }
 }
 
@@ -61,23 +65,14 @@ pub(super) fn move_int_moveables(
     bullet_time: Res<BulletTime>,
 ) {
     for (mut tran, mut moveable) in moveables.iter_mut() {
-        // We move the objects in much the same way that we move dynos
-        let would_move = (moveable.vel + moveable.rem) * bullet_time.factor();
-        let move_x = would_move.x.round() as i32;
-        let move_y = would_move.y.round() as i32;
-        if move_x != 0 {
-            moveable.pos.x += move_x;
-            moveable.rem.x = would_move.x - move_x as f32;
-        } else {
-            moveable.rem.x = would_move.x;
-        }
-        if move_y != 0 {
-            moveable.pos.y += move_y;
-            moveable.rem.y = would_move.y - move_y as f32;
-        } else {
-            moveable.rem.y = would_move.y;
-        }
-        tran.translation = moveable.pos.as_vec3();
+        let diff = moveable.vel.extend(0.0) * bullet_time.factor();
+        moveable.fpos += diff;
+        moveable.ipos = IVec3::new(
+            moveable.fpos.x.round() as i32,
+            moveable.fpos.y.round() as i32,
+            moveable.fpos.z.round() as i32,
+        );
+        tran.translation = moveable.fpos;
     }
 }
 
@@ -93,7 +88,7 @@ pub struct StaticCollision {
 pub struct IntDyno {
     pub vel: Vec2,
     pub fpos: Vec3,
-    pub ipos: IVec3,
+    ipos: IVec3,
     pub radius: f32,
     pub statics: HashMap<Entity, StaticCollision>,
     pub triggers: HashMap<Entity, f32>,
@@ -107,6 +102,10 @@ impl IntDyno {
             radius,
             ..default()
         }
+    }
+
+    pub fn get_ipos(&self) -> IVec3 {
+        self.ipos
     }
 }
 

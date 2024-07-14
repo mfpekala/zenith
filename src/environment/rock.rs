@@ -1,6 +1,6 @@
 use crate::{
     drawing::{animation::SpriteInfo, bordered_mesh::BorderedMesh},
-    meta::level_data::{ExportedRock, Rehydrate},
+    meta::old_level_data::{ExportedRock, Rehydrate},
     physics::collider::{ColliderStaticStub, ColliderStaticStubs},
     uid::fresh_uid,
 };

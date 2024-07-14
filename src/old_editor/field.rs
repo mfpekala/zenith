@@ -95,7 +95,7 @@ pub(super) fn update_standalone_fields(
         let mut point_poses = vec![];
         for (pid, _, mv) in alive_points.into_iter() {
             new_field_points.push(pid);
-            point_poses.push(mv.pos.truncate());
+            point_poses.push(mv.fpos.truncate());
         }
         esf.field_points = new_field_points;
         anim.set_points(point_poses);

@@ -148,6 +148,13 @@ impl GameState {
         }
     }
 
+    pub fn get_editor_state(&self) -> Option<EditorState> {
+        match self.meta {
+            MetaState::Editor(state) => Some(state.clone()),
+            _ => None,
+        }
+    }
+
     pub fn get_editing_mode(&self) -> Option<EditingMode> {
         match self.meta {
             MetaState::Editor(state) => state.get_editing_mode(),

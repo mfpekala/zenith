@@ -72,7 +72,7 @@ pub(super) fn spawn_or_update_start_goal(
     if keyboard.just_pressed(KeyCode::BracketRight) {
         match egoal {
             Ok(mut egoal) => {
-                egoal.pos = mouse_state.world_pos.extend(0);
+                egoal.fpos = mouse_state.world_pos.extend(0);
             }
             Err(_) => {
                 commands.spawn(EGoalBundle {
@@ -97,7 +97,7 @@ pub(super) fn spawn_or_update_start_goal(
     if keyboard.just_pressed(KeyCode::BracketLeft) {
         match estart {
             Ok(mut estart) => {
-                estart.pos = mouse_state.world_pos.extend(0);
+                estart.fpos = mouse_state.world_pos.extend(0);
             }
             Err(_) => {
                 commands.spawn(EStartBundle {
@@ -146,12 +146,12 @@ pub(super) fn start_goal_drag(
         if let Ok(mut thing) = thing {
             // First update the drag offsets
             if mouse_buttons.just_pressed(MouseButton::Left) {
-                let center = thing.0.pos.truncate().as_vec2();
+                let center = thing.0.fpos.truncate().as_vec2();
                 let diameter = thing.2 .0 as f32;
                 let dist_squared = center.distance_squared(mouse_state.world_pos.as_vec2());
                 if dist_squared < (diameter / 2.0) * (diameter / 2.0) {
                     *thing.1 =
-                        EStartGoalDragOffset(Some(thing.0.pos.truncate() - mouse_state.world_pos));
+                        EStartGoalDragOffset(Some(thing.0.fpos.truncate() - mouse_state.world_pos));
                 }
             } else if !mouse_buttons.pressed(MouseButton::Left) {
                 *thing.1 = EStartGoalDragOffset(None);
@@ -159,8 +159,8 @@ pub(super) fn start_goal_drag(
 
             // Then move the points if there's a drag offset
             if let Some(offset) = thing.1 .0 {
-                thing.0.pos.x = mouse_state.world_pos.x + offset.x;
-                thing.0.pos.y = mouse_state.world_pos.y + offset.y;
+                thing.0.fpos.x = mouse_state.world_pos.x + offset.x;
+                thing.0.fpos.y = mouse_state.world_pos.y + offset.y;
             }
         }
     }

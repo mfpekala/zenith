@@ -8,7 +8,7 @@ use crate::{
     camera::{CameraMarker, CameraMode},
     environment::background::*,
     input::SetCameraModeEvent,
-    meta::{game_state::*, level_data::LevelDataOneshots},
+    meta::{game_state::*, old_level_data::LevelDataOneshots},
     physics::dyno::IntMoveable,
     when_becomes_false, when_becomes_true,
 };
@@ -141,7 +141,7 @@ pub(super) fn destroy_editor(
 pub(super) fn setup_editing(mut camera_q: Query<(&mut CameraMarker, &mut IntMoveable)>) {
     let (mut marker, mut mv) = camera_q.single_mut();
     marker.mode = CameraMode::Free;
-    mv.pos = EROOT_HOME.extend(mv.pos.z);
+    mv.fpos = EROOT_HOME.as_vec2().extend(mv.fpos.z);
 }
 
 /// Called exactly once when the MetaState::Editor leaves the Editing variant
@@ -156,7 +156,7 @@ pub(super) fn setup_testing(
 ) {
     let (mut marker, mut mv) = camera_q.single_mut();
     marker.mode = CameraMode::Follow { dislodgement: None };
-    mv.pos = TROOT_HOME.extend(mv.pos.z);
+    mv.fpos = TROOT_HOME.as_vec2().extend(mv.fpos.z);
     commands.run_system(e_oneshots.start_testing_exclusive);
 }
 

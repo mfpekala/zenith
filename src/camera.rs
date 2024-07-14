@@ -5,7 +5,7 @@ use crate::{
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
-        level_data::LevelRoot,
+        old_level_data::LevelRoot,
     },
     physics::dyno::{apply_fields, IntDyno, IntMoveable},
     ship::Ship,
@@ -141,7 +141,7 @@ pub(super) fn camera_input(
         marker.rotate(ship.map(|ship_mv| {
             let ship_ipos =
                 IVec2::new(ship_mv.fpos.x.round() as i32, ship_mv.fpos.y.round() as i32);
-            (mv.pos.truncate(), ship_ipos)
+            (mv.get_ipos().truncate(), ship_ipos)
         }));
     }
     // Handle setting
@@ -188,18 +188,18 @@ pub fn camera_movement(
                     let adjusted_start_pos =
                         dislodgement.start_pos.as_vec2() + root.translation().truncate();
                     let adjusted_goal_pos =
-                        dyno.ipos.truncate().as_vec2() + root.translation().truncate();
+                        dyno.get_ipos().truncate().as_vec2() + root.translation().truncate();
                     dislodgement.timer.tick(time.delta());
                     let pos = adjusted_start_pos
                         + dislodgement.spleen.interp(dislodgement.timer.fraction())
                             * (adjusted_goal_pos - adjusted_start_pos);
-                    moveable.pos.x = pos.x.round() as i32;
-                    moveable.pos.y = pos.y.round() as i32;
+                    moveable.fpos.x = pos.x;
+                    moveable.fpos.y = pos.y;
                     dislodgement.timer.finished()
                 }
                 None => {
-                    moveable.pos.x = root.translation().x.round() as i32 + dyno.ipos.x;
-                    moveable.pos.y = root.translation().y.round() as i32 + dyno.ipos.y;
+                    moveable.fpos.x = root.translation().x.round() + dyno.fpos.x;
+                    moveable.fpos.y = root.translation().y.round() + dyno.fpos.y;
                     false
                 }
             };
@@ -241,7 +241,7 @@ pub fn camera_movement(
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = moveable.pos.truncate().as_vec2().extend(0.0);
+        tran.translation = moveable.fpos.truncate().extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.scale.to_f32();

@@ -103,10 +103,10 @@ fn update_sound_effect_volume(
         let mult = match (effect.offscreen.clone(), gtran) {
             (Some(offscreen), Some(gtran)) => {
                 let x_dist = (gtran.translation().x as i32)
-                    .abs_diff(cam_mv.pos.x)
+                    .abs_diff(cam_mv.get_ipos().x)
                     .saturating_sub(SCREEN_WIDTH as u32 / 2);
                 let y_dist = (gtran.translation().y as i32)
-                    .abs_diff(cam_mv.pos.y)
+                    .abs_diff(cam_mv.get_ipos().y)
                     .saturating_sub(SCREEN_HEIGHT as u32 / 2);
                 let clamp_max = (SCREEN_HEIGHT as f32) / offscreen.decay_rate;
                 let off_dist = (x_dist.max(y_dist) as f32).clamp(0.0, clamp_max) / clamp_max;

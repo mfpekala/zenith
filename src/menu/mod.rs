@@ -39,7 +39,7 @@ fn setup_any_menu(
 ) {
     bg_manager.set_kind(BgKind::ParallaxStars(500));
     for (mut mv, mut cam) in cam.iter_mut() {
-        mv.pos = IVec3::ZERO;
+        mv.fpos = Vec3::ZERO;
         cam.mode = CameraMode::Controlled;
         cam.scale = CameraScale::One;
     }

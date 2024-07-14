@@ -57,7 +57,8 @@ fn progress_level(
         return;
     };
     let mut go_to_meta = |meta: MetaState, include_unfade: bool| {
-        let mut pos = (ship_dyno.ipos.truncate() - cam.pos.truncate()) * MENU_GROWTH as i32;
+        let mut pos =
+            (ship_dyno.get_ipos().truncate() - cam.get_ipos().truncate()) * MENU_GROWTH as i32;
         if pos.x.abs() > MENU_WIDTH as i32 / 2 || pos.y.abs() > MENU_HEIGHT as i32 / 2 {
             pos = IVec2::ZERO;
         }

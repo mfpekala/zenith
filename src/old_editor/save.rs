@@ -21,7 +21,7 @@ use crate::{
     drawing::animation_mat::AnimationMaterial,
     meta::{
         game_state::{EditingMode, SetMetaState},
-        level_data::LevelDataOneshots,
+        old_level_data::LevelDataOneshots,
     },
 };
 

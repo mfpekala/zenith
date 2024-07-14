@@ -1,16 +1,17 @@
 use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
-use level_data::spawn_level;
+use old_level_data::spawn_level;
 use progress::{
     continue_initializing_game_progress, initialize_game_progress, is_progress_initializing,
     save_game_progress, GameProgress,
 };
 
-use self::level_data::{crystallize_level_data, old_spawn_level, LevelDataOneshots};
+use self::old_level_data::{crystallize_level_data, old_spawn_level, LevelDataOneshots};
 
 pub mod consts;
 pub mod game_state;
 pub mod level_data;
+pub mod old_level_data;
 pub mod progress;
 
 pub struct MetaPlugin;

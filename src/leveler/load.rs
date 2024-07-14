@@ -3,7 +3,7 @@ use crate::{
     environment::background::{BgKind, BgManager},
     meta::{
         game_state::{GameState, PrevGameState},
-        level_data::{LevelData, LevelDataOneshots, LevelRoot},
+        old_level_data::{LevelData, LevelDataOneshots, LevelRoot},
     },
     sound::music::{MusicKind, MusicManager},
 };

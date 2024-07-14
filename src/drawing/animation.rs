@@ -11,19 +11,28 @@ use crate::math::irect;
 use super::{
     animation_mat::{AnimationMaterial, AnimationMaterialPlugin},
     bordered_mesh::{materialize_bordered_meshes, update_bordered_meshes, BorderedMesh},
-    layering::sprite_layer_u8,
+    layering::{bg_light_layer_u8, light_layer_u8, sprite_layer_u8},
     mesh::{points_to_mesh, uvec2_bound},
 };
 
-#[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Reflect, Serialize, Deserialize, Debug)]
 #[reflect(Serialize, Deserialize)]
 pub struct SpriteInfo {
     pub path: String,
     pub size: UVec2,
     pub color: Color,
 }
+impl Default for SpriteInfo {
+    fn default() -> Self {
+        Self {
+            path: "sprites/default.png".into(),
+            size: UVec2::new(1, 1),
+            color: Color::WHITE,
+        }
+    }
+}
 
-#[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize, Debug)]
 #[reflect(Serialize, Deserialize)]
 pub struct AnimationNode {
     pub sprite: SpriteInfo,
@@ -32,7 +41,7 @@ pub struct AnimationNode {
     pub pace: Option<u32>,
 }
 
-#[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Default, Clone, PartialEq, Reflect, Serialize, Deserialize, Debug)]
 #[reflect(Serialize, Deserialize)]
 pub enum AnimationScale {
     #[default]
@@ -40,7 +49,7 @@ pub enum AnimationScale {
     Grow,
 }
 
-#[derive(Component, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Component, Clone, PartialEq, Reflect, Serialize, Deserialize, Debug)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct AnimationManager {
     key: String,
@@ -66,6 +75,10 @@ impl AnimationManager {
 
     pub fn get_key(&self) -> String {
         self.key.clone()
+    }
+
+    pub fn get_render_layers_u8(&self) -> Vec<u8> {
+        self.render_layers_u8.clone()
     }
 
     pub fn set_key(&mut self, key: &str) {
@@ -282,6 +295,35 @@ impl MultiAnimationManager {
         for (key, manager) in pairs {
             map.insert(key.to_string(), manager);
         }
+        Self {
+            map,
+            is_coup: false,
+        }
+    }
+
+    /// For each animation node in a lightable layer (bg or sprite)
+    /// will add a light of the same size in the corresponding light layer
+    pub fn well_lit(anim: AnimationManager) -> Self {
+        let mut lighting_layers = vec![];
+        for layer in anim.get_render_layers_u8() {
+            if layer == sprite_layer_u8() {
+                lighting_layers.push(light_layer_u8());
+            }
+            if layer == bg_light_layer_u8() {
+                lighting_layers.push(bg_light_layer_u8());
+            }
+        }
+        let mut light = anim.clone();
+        for (_key, node) in light.map.iter_mut() {
+            node.sprite.path = SpriteInfo::default().path;
+            node.sprite.color = SpriteInfo::default().color;
+        }
+        light.set_render_layers(lighting_layers);
+
+        let mut map = HashMap::new();
+        map.insert("core".to_string(), anim);
+        map.insert("light".to_string(), light);
+
         Self {
             map,
             is_coup: false,
