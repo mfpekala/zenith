@@ -12,7 +12,7 @@ use super::{
     animation_mat::{AnimationMaterial, AnimationMaterialPlugin},
     bordered_mesh::{materialize_bordered_meshes, update_bordered_meshes, BorderedMesh},
     layering::{bg_light_layer_u8, light_layer_u8, sprite_layer_u8},
-    mesh::{points_to_mesh, uvec2_bound},
+    mesh::{ioutline_points, points_to_mesh, uvec2_bound},
 };
 
 #[derive(Clone, PartialEq, Reflect, Serialize, Deserialize, Debug)]
@@ -258,6 +258,12 @@ impl AnimationManager {
         self.points = points;
         self
     }
+
+    /// Forces the animation_manager to take offset
+    pub fn force_offset(mut self, offset: IVec3) -> Self {
+        self.offset = offset;
+        self
+    }
 }
 impl Default for AnimationManager {
     fn default() -> Self {
@@ -323,6 +329,28 @@ impl MultiAnimationManager {
         let mut map = HashMap::new();
         map.insert("core".to_string(), anim);
         map.insert("light".to_string(), light);
+
+        Self {
+            map,
+            is_coup: false,
+        }
+    }
+
+    /// Makes a bordered mesh
+    pub fn bordered_mesh(
+        points: Vec<IVec2>,
+        inner: SpriteInfo,
+        outer: SpriteInfo,
+        width: f32,
+    ) -> Self {
+        let inner =
+            AnimationManager::single_static(inner).force_points(ioutline_points(&points, -width));
+        let outer = AnimationManager::single_static(outer)
+            .force_points(points.clone())
+            .force_offset(-IVec3::Z);
+        let mut map = HashMap::new();
+        map.insert("inner".to_string(), inner);
+        map.insert("outer".to_string(), outer);
 
         Self {
             map,

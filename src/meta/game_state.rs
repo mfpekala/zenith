@@ -15,8 +15,8 @@ pub enum MenuState {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EditingMode {
     Free,
-    CreatingPlanet(Entity),
-    EditingPlanet(Entity),
+    CreatingRock(Entity),
+    EditingRock(Entity),
 }
 impl EditingMode {
     pub fn to_meta_state(&self) -> MetaState {
@@ -50,8 +50,8 @@ impl EditorState {
         match *self {
             Self::Editing(state) => match state.mode {
                 EditingMode::Free => Some(EditingMode::Free),
-                EditingMode::CreatingPlanet(id) => Some(EditingMode::CreatingPlanet(id)),
-                EditingMode::EditingPlanet(id) => Some(EditingMode::EditingPlanet(id)),
+                EditingMode::CreatingRock(id) => Some(EditingMode::CreatingRock(id)),
+                EditingMode::EditingRock(id) => Some(EditingMode::EditingRock(id)),
             },
             _ => None,
         }

@@ -1,25 +1,49 @@
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
     input::MouseState,
-    meta::game_state::EditingMode,
+    meta::game_state::{EditingMode, SetMetaState},
     physics::dyno::{IntMoveable, IntMoveableBundle},
 };
 
-#[derive(Component, Serialize, Deserialize, bevy::reflect::TypePath, Debug, Clone)]
+use super::{erock::ERock, transitions::ERootEid};
+
+#[derive(Component, Debug, Clone)]
 pub struct EPoint {
     /// Points are squares. This is the length of a side
     pub size: f32,
 }
 
+/// Anything that requires multiple points
+#[derive(Component, Debug, Clone)]
+pub struct EPointGroup {
+    /// Ids of the points in this group
+    pub eids: Vec<Entity>,
+    /// Using space to simplify access (avoid queries)
+    pub poses: Vec<IVec2>,
+    /// Minimum number of points that must be in this group. If the group contains
+    /// less than this many points, it will be despawned recursively
+    pub minimum: u32,
+    /// By default a "shiny" animation when all points in this group are selected
+    /// This allows you to force it either on or off. Useful for forcing the editing rock
+    /// to show up as shiny, even when only modifying one of it's points
+    pub force_shiny: Option<bool>,
+}
+impl EPointGroup {
+    /// Helper function to add a new point so I don't accidentally forget to add to poses/eids
+    pub fn insert_point(&mut self, ix: usize, eid: Entity, pos: IVec2) {
+        self.eids.insert(ix, eid);
+        self.poses.insert(ix, pos);
+    }
+}
+
 /// Given to point entities that are hovered
-#[derive(Component, Serialize, Deserialize, bevy::reflect::TypePath, Debug, Clone)]
+#[derive(Component, Debug, Clone)]
 pub struct EHovered;
 
 /// Given to point entities that are selected
-#[derive(Component, Serialize, Deserialize, bevy::reflect::TypePath, Debug, Clone)]
+#[derive(Component, Debug, Clone)]
 pub struct ESelected {
     pub order: u32,
     pub offset: Vec2,
@@ -36,50 +60,105 @@ struct EPointBundle {
 pub(super) fn spawn_point(
     In((emode, world_pos)): In<(EditingMode, IVec2)>,
     mut commands: Commands,
+    hover_q: Query<Entity, With<EHovered>>,
+    mut rocks_q: Query<&mut EPointGroup, With<ERock>>,
+    points_q: Query<&IntMoveable, With<EPoint>>,
+    eroot: Res<ERootEid>,
+    mut meta_writer: EventWriter<SetMetaState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
 ) {
-    match emode {
-        EditingMode::Free => {
-            let point_bund = EPointBundle {
-                name: Name::new("point"),
-                point: EPoint { size: 6.0 },
-                mv: IntMoveableBundle::new(world_pos.extend(0)),
-            };
-            let anim = AnimationManager::from_static_pairs(vec![
-                (
-                    "none",
-                    SpriteInfo {
-                        path: "sprites/editor/point.png".into(),
-                        size: UVec2::new(8, 8),
-                        ..default()
-                    },
-                ),
-                (
-                    "hovered",
-                    SpriteInfo {
-                        path: "sprites/editor/point_hovered.png".into(),
-                        size: UVec2::new(8, 8),
-                        ..default()
-                    },
-                ),
-                (
-                    "selected",
-                    SpriteInfo {
-                        path: "sprites/editor/point_selected.png".into(),
-                        size: UVec2::new(8, 8),
-                        ..default()
-                    },
-                ),
-            ]);
-            let multi = MultiAnimationManager::well_lit(anim);
-            commands.spawn((point_bund, multi));
-        }
-        EditingMode::CreatingPlanet(eid) => {
-            todo!("CreatingPlanet spawn_point");
-        }
-        EditingMode::EditingPlanet(eid) => {
-            todo!("EditingPlanet spawn_point");
+    // Handle the edge case where we're closing a rock
+    if let EditingMode::CreatingRock(eid) = emode {
+        let rock = rocks_q.get(eid).unwrap();
+        if !rock.eids.is_empty() && hover_q.contains(rock.eids[0]) {
+            meta_writer.send(SetMetaState(EditingMode::EditingRock(eid).to_meta_state()));
+            // Don't actually spawn a point
+            return;
         }
     }
+
+    // First just spawn a point and record the id
+    let anim = AnimationManager::from_static_pairs(vec![
+        (
+            "none",
+            SpriteInfo {
+                path: "sprites/editor/point.png".into(),
+                size: UVec2::new(8, 8),
+                ..default()
+            },
+        ),
+        (
+            "hovered",
+            SpriteInfo {
+                path: "sprites/editor/point_hovered.png".into(),
+                size: UVec2::new(8, 8),
+                ..default()
+            },
+        ),
+        (
+            "selected",
+            SpriteInfo {
+                path: "sprites/editor/point_selected.png".into(),
+                size: UVec2::new(8, 8),
+                ..default()
+            },
+        ),
+    ]);
+    let multi = MultiAnimationManager::well_lit(anim);
+    let point_bund = EPointBundle {
+        name: Name::new("point"),
+        point: EPoint { size: 6.0 },
+        mv: IntMoveableBundle::new(world_pos.extend(0)),
+    };
+    commands.entity(eroot.0).with_children(|eroot| {
+        let pc = eroot.spawn((point_bund, multi));
+        // Then perform interesting work depending on the editor state
+        match emode {
+            EditingMode::Free => {
+                // Nothing else to do
+            }
+            EditingMode::CreatingRock(eid) => {
+                let mut pg = rocks_q.get_mut(eid).unwrap();
+                pg.eids.push(pc.id());
+            }
+            EditingMode::EditingRock(eid) => {
+                if keyboard.pressed(KeyCode::KeyF) {
+                    // We're actually just spawning a regular point
+                    // Nothing left to do.
+                } else {
+                    let mut pg = rocks_q.get_mut(eid).unwrap();
+                    let mut closest_pos = IVec2::ZERO;
+                    let mut closest_dist = i32::MAX;
+                    let mut closest_ix = 0;
+                    for (ix, pos) in pg.poses.iter().enumerate() {
+                        let dist = pos.distance_squared(world_pos);
+                        if dist < closest_dist {
+                            closest_dist = dist;
+                            closest_ix = ix;
+                            closest_pos = *pos;
+                        }
+                    }
+                    let anchor_vec = (world_pos - closest_pos).as_vec2();
+                    let left_ix = (closest_ix - 1).rem_euclid(pg.eids.len() as usize);
+                    let right_ix = (closest_ix + 1).rem_euclid(pg.eids.len() as usize);
+                    let left_mv = points_q.get(pg.eids[left_ix]).unwrap();
+                    let right_mv = points_q.get(pg.eids[right_ix]).unwrap();
+                    let left_vec =
+                        (left_mv.fpos.truncate() - world_pos.as_vec2()).normalize_or_zero();
+                    let right_vec =
+                        (right_mv.fpos.truncate() - world_pos.as_vec2()).normalize_or_zero();
+                    let left_score = left_vec.dot(anchor_vec);
+                    let right_score = right_vec.dot(anchor_vec);
+                    let pos = if left_score < right_score {
+                        right_ix as usize
+                    } else {
+                        closest_ix as usize
+                    };
+                    pg.insert_point(pos, pc.id(), world_pos)
+                }
+            }
+        }
+    });
 }
 
 /// Deletes a vector of points by Entity
@@ -101,9 +180,13 @@ pub(super) fn hover_points(
         let x_diff = mv.get_ipos().x - mouse.world_pos.x;
         let y_diff = mv.get_ipos().y - mouse.world_pos.y;
         if (x_diff.abs() as f32) < point.size / 2.0 && (y_diff.abs() as f32) < point.size / 2.0 {
-            commands.entity(eid).insert(EHovered);
+            if let Some(mut commands) = commands.get_entity(eid) {
+                commands.insert(EHovered);
+            }
         } else {
-            commands.entity(eid).remove::<EHovered>();
+            if let Some(mut commands) = commands.get_entity(eid) {
+                commands.remove::<EHovered>();
+            }
         }
     }
 }
@@ -202,6 +285,29 @@ pub(super) fn move_points(
     } else {
         for (mv, mut sel) in points_q.iter_mut() {
             sel.offset = mv.fpos.truncate() - mouse.world_pos.as_vec2();
+        }
+    }
+}
+
+pub(super) fn cleanup_points(
+    mut commands: Commands,
+    mut groups_q: Query<(Entity, &mut EPointGroup)>,
+    points_q: Query<(Entity, &IntMoveable), With<EPoint>>,
+) {
+    for (eid, mut group) in groups_q.iter_mut() {
+        let mut new_eids = vec![];
+        let mut new_poses = vec![];
+        for pid in group.eids.iter() {
+            if let Ok((eid, mv)) = points_q.get(*pid) {
+                new_eids.push(eid);
+                new_poses.push(mv.get_ipos().truncate());
+            }
+        }
+        group.eids = new_eids;
+        group.poses = new_poses;
+
+        if (group.eids.len() as u32) < group.minimum {
+            commands.entity(eid).despawn_recursive();
         }
     }
 }

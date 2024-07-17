@@ -27,7 +27,7 @@ use leveler::LevelerPlugin;
 use menu::MenuPlugin;
 use meta::{
     consts::{TuneableConsts, TuneableConstsPlugin, FRAMERATE},
-    game_state::{register_game_state, GameState},
+    game_state::register_game_state,
     MetaPlugin,
 };
 use physics::PhysicsPlugin;
@@ -35,10 +35,22 @@ use ship::register_ship;
 use sound::SoundPlugin;
 use uid::UIdPlugin;
 
-pub fn main_setup() {}
+#[derive(Component)]
+struct NamelessHome;
+fn main_setup(mut commands: Commands) {
+    commands.spawn((Name::new("nameless_home"), NamelessHome));
+}
 
-pub fn main_update(_gs: Res<GameState>) {
-    // println!("Hey gamestate is: {_gs:?}");
+fn main_update(
+    nameless_home: Query<Entity, With<NamelessHome>>,
+    dangling_things: Query<Entity, (Without<Name>, Without<Parent>)>,
+    mut commands: Commands,
+) {
+    let home = nameless_home.single();
+    let mut ec = commands.entity(home);
+    for eid in dangling_things.iter() {
+        ec.add_child(eid);
+    }
 }
 
 fn main() {

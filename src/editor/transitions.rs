@@ -95,17 +95,17 @@ pub(super) fn setup_editor(
 ) {
     *eroot = ERootEid(
         commands
-            .spawn(CommonRootBundle::<ERoot>::new("ERoot", EROOT_HOME))
+            .spawn(CommonRootBundle::<ERoot>::new("e_root", EROOT_HOME))
             .id(),
     );
     *troot = TRootEid(
         commands
-            .spawn(CommonRootBundle::<TRoot>::new("TRoot", TROOT_HOME))
+            .spawn(CommonRootBundle::<TRoot>::new("t_root", TROOT_HOME))
             .id(),
     );
     *hroot = HRootEid(
         commands
-            .spawn(CommonRootBundle::<HRoot>::new("HRoot", HROOT_HOME))
+            .spawn(CommonRootBundle::<HRoot>::new("h_root", HROOT_HOME))
             .id(),
     );
     commands.run_system(e_oneshots.spawn_help);

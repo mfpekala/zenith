@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{input::MouseState, meta::game_state::GameState};
+use crate::{
+    input::MouseState,
+    meta::game_state::{EditingMode, GameState},
+};
 
 use super::{
     epoint::{EPoint, ESelected},
@@ -17,6 +20,8 @@ pub(super) fn watch_dramatic_editing_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     selected_points: Query<Entity, (With<EPoint>, With<ESelected>)>,
 ) {
+    // NOTE: We return after doing any "real work" to maintain the nice-to-have
+    // invariant that only one dramatic thing happens per frame
     let Some(emode) = gs.get_editing_mode() else {
         warn!("In order to watch editor input, we must have an editing mode. Gs: {gs:?}");
         return;
@@ -28,5 +33,11 @@ pub(super) fn watch_dramatic_editing_input(
     if keyboard.just_pressed(KeyCode::Backspace) {
         let eids = selected_points.iter().collect();
         commands.run_system_with_input(oneshots.delete_points, eids);
+        return;
+    }
+    if keyboard.just_pressed(KeyCode::KeyP) {
+        if let EditingMode::Free = emode {
+            commands.run_system(oneshots.spawn_rock);
+        }
     }
 }

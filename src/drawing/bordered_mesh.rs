@@ -9,7 +9,7 @@ use super::{
 #[derive(Component)]
 pub struct BorderedMeshBodyMarker;
 
-#[derive(Component, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Component, Debug, Default, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct BorderedMesh {
     inners: Vec<(String, SpriteInfo)>,

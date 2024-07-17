@@ -6,9 +6,10 @@ use crate::{
 };
 use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 
-pub mod epoint;
+mod einput;
+pub(self) mod epoint;
+pub(self) mod erock;
 mod help;
-mod input;
 mod oneshots;
 mod transitions;
 
@@ -16,7 +17,15 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        // Epoint
+        // EInput
+        app.add_systems(
+            Update,
+            einput::watch_dramatic_editing_input
+                .after(watch_mouse)
+                .run_if(in_editing),
+        );
+
+        // EPoint
         app.add_systems(
             Update,
             (
@@ -24,23 +33,22 @@ impl Plugin for EditorPlugin {
                 epoint::select_points,
                 epoint::move_points,
                 epoint::animate_points,
+                epoint::cleanup_points,
             )
                 .chain()
                 .after(watch_mouse)
                 .run_if(in_editing),
         );
 
+        // ERock
+        app.add_systems(
+            Update,
+            (erock::animate_rocks).chain().after(epoint::cleanup_points),
+        );
+
         // Help
         app.add_systems(Update, help::editor_help_input);
         app.add_systems(Update, help::update_editor_help_bar);
-
-        // Inpu
-        app.add_systems(
-            Update,
-            input::watch_dramatic_editing_input
-                .after(watch_mouse)
-                .run_if(in_editing),
-        );
 
         // Oneshots
         oneshots::register_oneshots(app);
