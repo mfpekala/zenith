@@ -7,7 +7,7 @@ use crate::{
     physics::dyno::{IntMoveable, IntMoveableBundle},
 };
 
-use super::{efield::EField, erock::ERock, transitions::ERootEid};
+use super::{efield::EField, elive_poly::ELivePoly, erock::ERock, transitions::ERootEid};
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct EPoint {
@@ -133,8 +133,9 @@ pub(super) fn spawn_point(
     In((emode, world_pos)): In<(EditingMode, IVec2)>,
     mut commands: Commands,
     hover_q: Query<Entity, With<EHovered>>,
-    mut rocks_q: Query<&mut EPointGroup, (With<ERock>, Without<EField>)>,
-    mut fields_q: Query<&mut EPointGroup, (Without<ERock>, With<EField>)>,
+    mut rocks_q: Query<&mut EPointGroup, (With<ERock>, Without<EField>, Without<ELivePoly>)>,
+    mut fields_q: Query<&mut EPointGroup, (Without<ERock>, With<EField>, Without<ELivePoly>)>,
+    mut live_polys_q: Query<&mut EPointGroup, (Without<ERock>, Without<EField>, With<ELivePoly>)>,
     points_q: Query<&IntMoveable, With<EPoint>>,
     eroot: Res<ERootEid>,
     mut meta_writer: EventWriter<SetMetaState>,
@@ -197,6 +198,15 @@ pub(super) fn spawn_point(
                 let pos = get_insertion_ix(&pg, world_pos, &points_q);
                 pg.insert_point(pos, new_eid, world_pos)
             }
+            EditingMode::CreatingLivePoly(eid) => {
+                let mut pg = live_polys_q.get_mut(eid).unwrap();
+                pg.eids.push(new_eid);
+            }
+            EditingMode::EditingLivePoly(eid) => {
+                let mut pg = live_polys_q.get_mut(eid).unwrap();
+                let pos = get_insertion_ix(&pg, world_pos, &points_q);
+                pg.insert_point(pos, new_eid, world_pos)
+            }
         }
     });
 }
@@ -238,6 +248,7 @@ pub(super) fn select_points(
     points_q: Query<(Entity, Option<&EHovered>, Option<&ESelected>, &IntMoveable), With<EPoint>>,
     rocks_q: Query<(Entity, &EPointGroup), With<ERock>>,
     fields_q: Query<(Entity, &EPointGroup), With<EField>>,
+    live_polys_q: Query<(Entity, &EPointGroup), With<ELivePoly>>,
     mut commands: Commands,
     mut meta_writer: EventWriter<SetMetaState>,
 ) {
@@ -302,6 +313,12 @@ pub(super) fn select_points(
                     field_map.insert(*point_eid, parent_eid);
                 }
             }
+            let mut live_poly_map = HashMap::<Entity, Entity>::new();
+            for (parent_eid, pg) in live_polys_q.iter() {
+                for point_eid in &pg.eids {
+                    live_poly_map.insert(*point_eid, parent_eid);
+                }
+            }
             // Update the next state based on the rock or field parent
             for point_data in points_q.iter() {
                 if point_data.1.is_some() {
@@ -310,6 +327,9 @@ pub(super) fn select_points(
                     }
                     if let Some(parent_eid) = field_map.get(&point_data.0) {
                         next_emode = EditingMode::EditingField(*parent_eid);
+                    }
+                    if let Some(parent_eid) = live_poly_map.get(&point_data.0) {
+                        next_emode = EditingMode::EditingLivePoly(*parent_eid);
                     }
                 }
             }
@@ -441,7 +461,9 @@ pub(super) fn tag_shiny(
         EditingMode::CreatingRock(eid)
         | EditingMode::EditingRock(eid)
         | EditingMode::CreatingField(eid)
-        | EditingMode::EditingField(eid) => {
+        | EditingMode::EditingField(eid)
+        | EditingMode::CreatingLivePoly(eid)
+        | EditingMode::EditingLivePoly(eid) => {
             if let Some(mut commands) = commands.get_entity(eid) {
                 commands.insert(EShiny);
             }

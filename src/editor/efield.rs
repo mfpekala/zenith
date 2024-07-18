@@ -1,4 +1,4 @@
-use bevy::{input::keyboard, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     drawing::animation::{AnimationManager, SpriteInfo},
@@ -82,11 +82,8 @@ pub(super) fn update_fields(
     // NOTE: The "needs_init" hack is a lil nasty but needed bc the SetMetaEvent may not
     //       actually update the gs until one tick _after_ the rock is created
     let creating_eid = gs.get_editing_mode().map(|emode| match emode {
-        EditingMode::Free
-        | EditingMode::EditingRock(_)
-        | EditingMode::CreatingRock(_)
-        | EditingMode::EditingField(_) => Entity::PLACEHOLDER,
         EditingMode::CreatingField(eid) => eid,
+        _ => Entity::PLACEHOLDER,
     });
     for mut field_data in &mut fields_q {
         if Some(field_data.0) == creating_eid {

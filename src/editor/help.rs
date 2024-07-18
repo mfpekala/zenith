@@ -118,6 +118,16 @@ pub(super) fn update_help_box(
                 .pairs
                 .insert("mode".into(), format!("efield({eid:?})"));
         }
+        EditingMode::CreatingLivePoly(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("clp({eid:?})"));
+        }
+        EditingMode::EditingLivePoly(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("elp({eid:?})"));
+        }
     }
     help_box_fg.content = String::new();
     for (key, value) in help_box.pairs.iter() {

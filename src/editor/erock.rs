@@ -68,11 +68,8 @@ pub(super) fn update_rocks(
     // NOTE: The "needs_init" hack is a lil nasty but needed bc the SetMetaEvent may not
     //       actually update the gs until one tick _after_ the rock is created
     let creating_eid = gs.get_editing_mode().map(|emode| match emode {
-        EditingMode::Free
-        | EditingMode::EditingRock(_)
-        | EditingMode::CreatingField(_)
-        | EditingMode::EditingField(_) => Entity::PLACEHOLDER,
         EditingMode::CreatingRock(eid) => eid,
+        _ => Entity::PLACEHOLDER,
     });
     for mut rock_data in &mut rocks_q {
         if Some(rock_data.0) == creating_eid {

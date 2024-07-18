@@ -5,6 +5,7 @@ use crate::meta::{game_state::EditingMode, level_data::LevelData};
 use super::{
     efield::spawn_field,
     egoal::spawn_goal,
+    elive_poly::spawn_live_poly,
     epoint::{delete_points, spawn_point},
     ereplenish::spawn_replenish,
     erock::spawn_rock,
@@ -26,6 +27,7 @@ pub(super) struct EOneshots {
     pub(super) spawn_replenish: SystemId<IVec2, ()>,
     pub(super) spawn_start: SystemId<IVec2, ()>,
     pub(super) spawn_goal: SystemId<IVec2, ()>,
+    pub(super) spawn_live_poly: SystemId<(), ()>,
     pub(super) freeze_level_data: SystemId<(), Result<LevelData, String>>,
 }
 
@@ -41,6 +43,7 @@ pub(super) fn register_oneshots(app: &mut App) {
         spawn_replenish: app.world.register_system(spawn_replenish),
         spawn_start: app.world.register_system(spawn_start),
         spawn_goal: app.world.register_system(spawn_goal),
+        spawn_live_poly: app.world.register_system(spawn_live_poly),
         freeze_level_data: app.world.register_system(freeze_level_data),
     };
     app.insert_resource(oneshots);

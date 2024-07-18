@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::environment::convo::{data::ConvoKind, StartConvo};
-
 use super::progress::GalaxyKind;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -19,6 +17,8 @@ pub enum EditingMode {
     EditingRock(Entity),
     CreatingField(Entity),
     EditingField(Entity),
+    CreatingLivePoly(Entity),
+    EditingLivePoly(Entity),
 }
 impl EditingMode {
     pub fn to_meta_state(&self) -> MetaState {
@@ -56,6 +56,8 @@ impl EditorState {
                 EditingMode::EditingRock(id) => Some(EditingMode::EditingRock(id)),
                 EditingMode::CreatingField(id) => Some(EditingMode::CreatingField(id)),
                 EditingMode::EditingField(id) => Some(EditingMode::EditingField(id)),
+                EditingMode::CreatingLivePoly(id) => Some(EditingMode::CreatingLivePoly(id)),
+                EditingMode::EditingLivePoly(id) => Some(EditingMode::EditingLivePoly(id)),
             },
             _ => None,
         }

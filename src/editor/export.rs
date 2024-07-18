@@ -2,7 +2,8 @@ use bevy::{prelude::*, utils::HashMap};
 
 use crate::{
     meta::level_data::{
-        ExportedField, ExportedGoal, ExportedReplenish, ExportedRock, ExportedStart, LevelData,
+        ExportedField, ExportedGoal, ExportedLivePoly, ExportedReplenish, ExportedRock,
+        ExportedStart, LevelData,
     },
     physics::dyno::IntMoveable,
 };
@@ -10,6 +11,7 @@ use crate::{
 use super::{
     efield::EField,
     egoal::EGoal,
+    elive_poly::ELivePoly,
     epoint::{EPoint, EPointGroup},
     ereplenish::EReplenish,
     erock::ERock,
@@ -24,6 +26,7 @@ pub fn freeze_level_data(
     rocks_q: Query<(&EPointGroup, &ERock)>,
     fields_q: Query<(&EPointGroup, &EField)>,
     replenishes_q: Query<Entity, With<EReplenish>>,
+    live_polys_q: Query<&EPointGroup, With<ELivePoly>>,
 ) -> Result<LevelData, String> {
     // Freeze the points
     let mut eid2u64 = HashMap::<Entity, u64>::new();
@@ -75,6 +78,16 @@ pub fn freeze_level_data(
         let uid = eid2u64.get(&eid).ok_or("Bad replenish eid".to_string())?;
         exported_replenishes.push(ExportedReplenish { uid: *uid });
     }
+    // Freeze the live polys
+    let mut exported_live_polys = Vec::<ExportedLivePoly>::new();
+    for pg in &live_polys_q {
+        let mut u64s = vec![];
+        for eid in &pg.eids {
+            let u64 = eid2u64.get(eid).ok_or("Bad rock eid")?;
+            u64s.push(*u64);
+        }
+        exported_live_polys.push(ExportedLivePoly { points: u64s });
+    }
     Ok(LevelData {
         points,
         start: exported_start,
@@ -82,5 +95,6 @@ pub fn freeze_level_data(
         rocks: exported_rocks,
         fields: exported_fields,
         replenishes: exported_replenishes,
+        live_polys: exported_live_polys,
     })
 }

@@ -2,13 +2,14 @@ use bevy::prelude::*;
 
 use crate::{
     input::{watch_camera_input, watch_mouse},
-    meta::game_state::{entered_editor, left_editor},
+    meta::game_state::{entered_editor, in_editor, left_editor},
 };
 use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 
 pub(self) mod efield;
 pub(self) mod egoal;
 mod einput;
+pub(self) mod elive_poly;
 mod eoneshots;
 pub(self) mod epoint;
 pub(self) mod ereplenish;
@@ -28,7 +29,8 @@ impl Plugin for EditorPlugin {
             Update,
             (efield::update_fields, efield::animate_fields)
                 .chain()
-                .after(epoint::cleanup_points),
+                .after(epoint::cleanup_points)
+                .run_if(in_editing),
         );
 
         // EInput
@@ -38,6 +40,21 @@ impl Plugin for EditorPlugin {
                 .after(watch_mouse)
                 .run_if(in_editing),
         );
+
+        // ELivePoly
+        app.add_systems(
+            Update,
+            (
+                elive_poly::update_live_polys,
+                elive_poly::animate_live_polys,
+            )
+                .chain()
+                .after(epoint::cleanup_points)
+                .run_if(in_editing),
+        );
+
+        // EOneshots
+        eoneshots::register_oneshots(app);
 
         // EPoint
         app.register_type::<epoint::EPoint>();
@@ -66,7 +83,8 @@ impl Plugin for EditorPlugin {
             Update,
             (erock::update_rocks, erock::animate_rocks)
                 .chain()
-                .after(epoint::cleanup_points),
+                .after(epoint::cleanup_points)
+                .run_if(in_editing),
         );
 
         // Help
@@ -75,9 +93,6 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, help::editor_help_input.before(watch_camera_input));
         app.add_systems(Update, help::update_editor_help_bar);
         app.add_systems(Update, help::update_help_box);
-
-        // Oneshots
-        eoneshots::register_oneshots(app);
 
         // Transitions
         app.insert_resource(ERootEid(Entity::PLACEHOLDER));

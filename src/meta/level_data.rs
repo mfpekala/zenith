@@ -35,7 +35,7 @@ pub struct LevelData {
     pub rocks: Vec<ExportedRock>,
     pub fields: Vec<ExportedField>,
     pub replenishes: Vec<ExportedReplenish>,
-    // pub live_polys: Vec<ExportedLivePoly>,
+    pub live_polys: Vec<ExportedLivePoly>,
 }
 
 fn spawn_level(In((parent_eid, level_data)): In<(Entity, LevelData)>, mut commands: Commands) {
@@ -54,12 +54,9 @@ fn spawn_level(In((parent_eid, level_data)): In<(Entity, LevelData)>, mut comman
         for replenish in level_data.replenishes {
             parent.spawn(replenish.rehydrate(points).unwrap());
         }
-        parent.spawn(LivePolyBundle::new(vec![
-            Vec2::new(-10000.0, -10000.0),
-            Vec2::new(-10000.0, 10000.0),
-            Vec2::new(10000.0, 10000.0),
-            Vec2::new(10000.0, -10000.0),
-        ]));
+        for live_poly in level_data.live_polys {
+            parent.spawn(live_poly.rehydrate(points).unwrap());
+        }
     });
     commands.entity(parent_eid).insert(LevelRoot);
 }
@@ -174,5 +171,14 @@ impl Rehydrate<ReplenishBundle> for ExportedReplenish {
     fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<ReplenishBundle, String> {
         let pos = points.get(&self.uid).ok_or("Bad uid rehydrate replenish")?;
         Ok(ReplenishBundle::new(*pos))
+    }
+}
+
+impl Rehydrate<LivePolyBundle> for ExportedLivePoly {
+    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<LivePolyBundle, String> {
+        let poses = get_poses(&self.points, points)?;
+        Ok(LivePolyBundle::new(
+            poses.into_iter().map(|v| v.as_vec2()).collect(),
+        ))
     }
 }

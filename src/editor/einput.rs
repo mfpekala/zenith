@@ -56,5 +56,9 @@ pub(super) fn watch_dramatic_editing_input(
             commands.run_system_with_input(oneshots.spawn_goal, mouse.world_pos);
             return;
         }
+        if keyboard.just_pressed(KeyCode::KeyL) {
+            commands.run_system(oneshots.spawn_live_poly);
+            return;
+        }
     }
 }
