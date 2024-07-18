@@ -7,11 +7,14 @@ use crate::{
 use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 
 pub(self) mod efield;
+pub(self) mod egoal;
 mod einput;
 pub(self) mod epoint;
+pub(self) mod ereplenish;
 pub(self) mod erock;
+pub(self) mod estart;
 mod help;
-mod oneshots;
+mod eoneshots;
 mod transitions;
 
 pub struct EditorPlugin;
@@ -73,7 +76,7 @@ impl Plugin for EditorPlugin {
         app.add_systems(Update, help::update_help_box);
 
         // Oneshots
-        oneshots::register_oneshots(app);
+        eoneshots::register_oneshots(app);
 
         // Transitions
         app.insert_resource(ERootEid(Entity::PLACEHOLDER));

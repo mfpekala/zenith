@@ -4,8 +4,11 @@ use crate::meta::game_state::EditingMode;
 
 use super::{
     efield::spawn_field,
+    egoal::spawn_goal,
     epoint::{delete_points, spawn_point},
+    ereplenish::spawn_replenish,
     erock::spawn_rock,
+    estart::spawn_start,
     help::{spawn_help, submit_help_command},
     transitions::start_testing_exclusive,
 };
@@ -19,6 +22,9 @@ pub(super) struct EOneshots {
     pub(super) delete_points: SystemId<Vec<Entity>, ()>,
     pub(super) spawn_rock: SystemId<(), ()>,
     pub(super) spawn_field: SystemId<(), ()>,
+    pub(super) spawn_replenish: SystemId<IVec2, ()>,
+    pub(super) spawn_start: SystemId<IVec2, ()>,
+    pub(super) spawn_goal: SystemId<IVec2, ()>,
 }
 
 pub(super) fn register_oneshots(app: &mut App) {
@@ -30,6 +36,9 @@ pub(super) fn register_oneshots(app: &mut App) {
         delete_points: app.world.register_system(delete_points),
         spawn_rock: app.world.register_system(spawn_rock),
         spawn_field: app.world.register_system(spawn_field),
+        spawn_replenish: app.world.register_system(spawn_replenish),
+        spawn_start: app.world.register_system(spawn_start),
+        spawn_goal: app.world.register_system(spawn_goal),
     };
     app.insert_resource(oneshots);
 }

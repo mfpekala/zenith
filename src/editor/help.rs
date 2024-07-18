@@ -9,7 +9,7 @@ use crate::{
     },
 };
 
-use super::{oneshots::EOneshots, transitions::HRootEid};
+use super::{eoneshots::EOneshots, transitions::HRootEid};
 
 // THE STUFF TO CARE ABOUT
 

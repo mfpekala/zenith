@@ -14,7 +14,7 @@ use crate::{
 };
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use super::{epoint::ShinyThingBundle, oneshots::EOneshots};
+use super::{epoint::ShinyThingBundle, eoneshots::EOneshots};
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {

@@ -50,10 +50,48 @@ pub struct ESelected {
 }
 
 #[derive(Bundle)]
-struct EPointBundle {
-    name: Name,
+pub(super) struct EPointBundle {
+    pub(super) name: Name,
     point: EPoint,
     mv: IntMoveableBundle,
+    pub(super) multi: MultiAnimationManager,
+}
+impl EPointBundle {
+    pub(super) fn new(world_pos: IVec2) -> Self {
+        let anim = AnimationManager::from_static_pairs(vec![
+            (
+                "none",
+                SpriteInfo {
+                    path: "sprites/editor/point.png".into(),
+                    size: UVec2::new(8, 8),
+                    ..default()
+                },
+            ),
+            (
+                "hovered",
+                SpriteInfo {
+                    path: "sprites/editor/point_hovered.png".into(),
+                    size: UVec2::new(8, 8),
+                    ..default()
+                },
+            ),
+            (
+                "selected",
+                SpriteInfo {
+                    path: "sprites/editor/point_selected.png".into(),
+                    size: UVec2::new(8, 8),
+                    ..default()
+                },
+            ),
+        ]);
+        let multi = MultiAnimationManager::well_lit(anim);
+        Self {
+            name: Name::new("point"),
+            point: EPoint { size: 6.0 },
+            mv: IntMoveableBundle::new(world_pos.extend(51)),
+            multi,
+        }
+    }
 }
 
 /// Given a point group, determine at what index a new point should be inserted
@@ -121,39 +159,6 @@ pub(super) fn spawn_point(
         }
     }
 
-    // First just spawn a point and record the id
-    let anim = AnimationManager::from_static_pairs(vec![
-        (
-            "none",
-            SpriteInfo {
-                path: "sprites/editor/point.png".into(),
-                size: UVec2::new(8, 8),
-                ..default()
-            },
-        ),
-        (
-            "hovered",
-            SpriteInfo {
-                path: "sprites/editor/point_hovered.png".into(),
-                size: UVec2::new(8, 8),
-                ..default()
-            },
-        ),
-        (
-            "selected",
-            SpriteInfo {
-                path: "sprites/editor/point_selected.png".into(),
-                size: UVec2::new(8, 8),
-                ..default()
-            },
-        ),
-    ]);
-    let multi = MultiAnimationManager::well_lit(anim);
-    let point_bund = EPointBundle {
-        name: Name::new("point"),
-        point: EPoint { size: 6.0 },
-        mv: IntMoveableBundle::new(world_pos.extend(51)),
-    };
     commands.entity(eroot.0).with_children(|eroot| {
         // Then perform interesting work depending on the editor state
         let hovered_eid = hover_q.iter().next();
@@ -161,7 +166,8 @@ pub(super) fn spawn_point(
             Some(hovered_eid) => hovered_eid,
             None => {
                 // NOTE: Spawn happens here
-                eroot.spawn((point_bund, multi)).id()
+                let point_bund = EPointBundle::new(world_pos);
+                eroot.spawn(point_bund).id()
             }
         };
         match emode {

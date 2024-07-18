@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
+    eoneshots::EOneshots,
     epoint::{EPoint, ESelected},
-    oneshots::EOneshots,
 };
 
 /// Watches for "dramatic" editing input which will create or delete things
@@ -35,15 +35,25 @@ pub(super) fn watch_dramatic_editing_input(
         commands.run_system_with_input(oneshots.delete_points, eids);
         return;
     }
-    if keyboard.just_pressed(KeyCode::KeyP) {
-        if let EditingMode::Free = emode {
+    if let EditingMode::Free = emode {
+        if keyboard.just_pressed(KeyCode::KeyP) {
             commands.run_system(oneshots.spawn_rock);
             return;
         }
-    }
-    if keyboard.just_pressed(KeyCode::KeyF) {
-        if let EditingMode::Free = emode {
+        if keyboard.just_pressed(KeyCode::KeyF) {
             commands.run_system(oneshots.spawn_field);
+            return;
+        }
+        if keyboard.just_pressed(KeyCode::KeyR) {
+            commands.run_system_with_input(oneshots.spawn_replenish, mouse.world_pos);
+            return;
+        }
+        if keyboard.just_pressed(KeyCode::BracketLeft) {
+            commands.run_system_with_input(oneshots.spawn_start, mouse.world_pos);
+            return;
+        }
+        if keyboard.just_pressed(KeyCode::BracketRight) {
+            commands.run_system_with_input(oneshots.spawn_goal, mouse.world_pos);
             return;
         }
     }
