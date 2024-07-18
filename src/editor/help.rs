@@ -101,12 +101,22 @@ pub(super) fn update_help_box(
         EditingMode::CreatingRock(eid) => {
             help_box
                 .pairs
-                .insert("mode".into(), format!("creating({eid:?})"));
+                .insert("mode".into(), format!("crock({eid:?})"));
         }
         EditingMode::EditingRock(eid) => {
             help_box
                 .pairs
-                .insert("mode".into(), format!("editing({eid:?})"));
+                .insert("mode".into(), format!("erock({eid:?})"));
+        }
+        EditingMode::CreatingField(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("cfield({eid:?})"));
+        }
+        EditingMode::EditingField(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("efield({eid:?})"));
         }
     }
     help_box_fg.content = String::new();

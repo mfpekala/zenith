@@ -17,6 +17,8 @@ pub enum EditingMode {
     Free,
     CreatingRock(Entity),
     EditingRock(Entity),
+    CreatingField(Entity),
+    EditingField(Entity),
 }
 impl EditingMode {
     pub fn to_meta_state(&self) -> MetaState {
@@ -52,6 +54,8 @@ impl EditorState {
                 EditingMode::Free => Some(EditingMode::Free),
                 EditingMode::CreatingRock(id) => Some(EditingMode::CreatingRock(id)),
                 EditingMode::EditingRock(id) => Some(EditingMode::EditingRock(id)),
+                EditingMode::CreatingField(id) => Some(EditingMode::CreatingField(id)),
+                EditingMode::EditingField(id) => Some(EditingMode::EditingField(id)),
             },
             _ => None,
         }

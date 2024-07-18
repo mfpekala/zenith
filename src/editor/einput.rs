@@ -38,6 +38,13 @@ pub(super) fn watch_dramatic_editing_input(
     if keyboard.just_pressed(KeyCode::KeyP) {
         if let EditingMode::Free = emode {
             commands.run_system(oneshots.spawn_rock);
+            return;
+        }
+    }
+    if keyboard.just_pressed(KeyCode::KeyF) {
+        if let EditingMode::Free = emode {
+            commands.run_system(oneshots.spawn_field);
+            return;
         }
     }
 }

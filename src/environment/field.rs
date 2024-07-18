@@ -71,9 +71,7 @@ impl Rehydrate<FieldBundle> for ExportedField {
             8,
         )
         .force_mat_rot(self.dir.to_angle());
-        // .force_mat_rot(-x_reved.to_angle());
         anim.set_points(self.points.clone());
-        // anim.set_scroll(field.dir * 0.1);
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),
             refresh_period: 0,

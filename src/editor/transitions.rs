@@ -14,7 +14,7 @@ use crate::{
 };
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use super::oneshots::EOneshots;
+use super::{epoint::ShinyThingBundle, oneshots::EOneshots};
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -96,6 +96,9 @@ pub(super) fn setup_editor(
     *eroot = ERootEid(
         commands
             .spawn(CommonRootBundle::<ERoot>::new("e_root", EROOT_HOME))
+            .with_children(|eparent| {
+                eparent.spawn(ShinyThingBundle::new());
+            })
             .id(),
     );
     *troot = TRootEid(

@@ -6,6 +6,7 @@ use crate::{
 };
 use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 
+pub(self) mod efield;
 mod einput;
 pub(self) mod epoint;
 pub(self) mod erock;
@@ -17,6 +18,15 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
+        // EField
+        app.register_type::<efield::EField>();
+        app.add_systems(
+            Update,
+            (efield::update_fields, efield::animate_fields)
+                .chain()
+                .after(epoint::cleanup_points),
+        );
+
         // EInput
         app.add_systems(
             Update,
@@ -38,6 +48,8 @@ impl Plugin for EditorPlugin {
                 epoint::move_points,
                 epoint::animate_points,
                 epoint::cleanup_points,
+                epoint::tag_shiny,
+                epoint::update_shiny_thing,
             )
                 .chain()
                 .after(watch_mouse)

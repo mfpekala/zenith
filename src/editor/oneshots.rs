@@ -3,6 +3,7 @@ use bevy::{ecs::system::SystemId, prelude::*};
 use crate::meta::game_state::EditingMode;
 
 use super::{
+    efield::spawn_field,
     epoint::{delete_points, spawn_point},
     erock::spawn_rock,
     help::{spawn_help, submit_help_command},
@@ -17,6 +18,7 @@ pub(super) struct EOneshots {
     pub(super) spawn_point: SystemId<(EditingMode, IVec2), ()>,
     pub(super) delete_points: SystemId<Vec<Entity>, ()>,
     pub(super) spawn_rock: SystemId<(), ()>,
+    pub(super) spawn_field: SystemId<(), ()>,
 }
 
 pub(super) fn register_oneshots(app: &mut App) {
@@ -27,6 +29,7 @@ pub(super) fn register_oneshots(app: &mut App) {
         spawn_point: app.world.register_system(spawn_point),
         delete_points: app.world.register_system(delete_points),
         spawn_rock: app.world.register_system(spawn_rock),
+        spawn_field: app.world.register_system(spawn_field),
     };
     app.insert_resource(oneshots);
 }

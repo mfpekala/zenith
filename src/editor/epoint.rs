@@ -3,11 +3,11 @@ use bevy::{prelude::*, utils::hashbrown::HashMap};
 use crate::{
     drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
     input::MouseState,
-    meta::game_state::{EditingMode, SetMetaState},
+    meta::game_state::{EditingMode, GameState, SetMetaState},
     physics::dyno::{IntMoveable, IntMoveableBundle},
 };
 
-use super::{erock::ERock, transitions::ERootEid};
+use super::{efield::EField, erock::ERock, transitions::ERootEid};
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct EPoint {
@@ -16,7 +16,7 @@ pub struct EPoint {
 }
 
 /// Anything that requires multiple points
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect, Default)]
 pub struct EPointGroup {
     /// Ids of the points in this group
     pub eids: Vec<Entity>,
@@ -25,10 +25,6 @@ pub struct EPointGroup {
     /// Minimum number of points that must be in this group. If the group contains
     /// less than this many points, it will be despawned recursively
     pub minimum: u32,
-    /// By default a "shiny" animation when all points in this group are selected
-    /// This allows you to force it either on or off. Useful for forcing the editing rock
-    /// to show up as shiny, even when only modifying one of it's points
-    pub force_shiny: Option<bool>,
 }
 impl EPointGroup {
     /// Helper function to add a new point so I don't accidentally forget to add to poses/eids
@@ -37,6 +33,10 @@ impl EPointGroup {
         self.poses.insert(ix, pos);
     }
 }
+
+/// Marks a point group as being shiny. Shiny exists just to help show you what you're editing
+#[derive(Component, Debug)]
+pub struct EShiny;
 
 /// Given to point entities that are hovered
 #[derive(Component, Debug, Clone, Reflect)]
@@ -56,12 +56,47 @@ struct EPointBundle {
     mv: IntMoveableBundle,
 }
 
+/// Given a point group, determine at what index a new point should be inserted
+fn get_insertion_ix(
+    pg: &EPointGroup,
+    new_pos: IVec2,
+    points_q: &Query<&IntMoveable, With<EPoint>>,
+) -> usize {
+    let mut closest_pos = IVec2::ZERO;
+    let mut closest_dist = i32::MAX;
+    let mut closest_ix = 0_i32;
+    for (ix, pos) in pg.poses.iter().enumerate() {
+        let dist = pos.distance_squared(new_pos);
+        if dist < closest_dist {
+            closest_dist = dist;
+            closest_ix = ix as i32;
+            closest_pos = *pos;
+        }
+    }
+    let anchor_vec = (new_pos - closest_pos).as_vec2();
+    let left_ix = (closest_ix - 1).rem_euclid(pg.eids.len() as i32);
+    let right_ix = (closest_ix + 1).rem_euclid(pg.eids.len() as i32);
+    let left_mv = points_q.get(pg.eids[left_ix as usize]).unwrap();
+    let right_mv = points_q.get(pg.eids[right_ix as usize]).unwrap();
+    let left_vec = (left_mv.fpos.truncate() - new_pos.as_vec2()).normalize_or_zero();
+    let right_vec = (right_mv.fpos.truncate() - new_pos.as_vec2()).normalize_or_zero();
+    let left_score = left_vec.dot(anchor_vec);
+    let right_score = right_vec.dot(anchor_vec);
+    let pos = if left_score < right_score {
+        right_ix as usize
+    } else {
+        closest_ix as usize
+    };
+    pos
+}
+
 /// Spawns a new point
 pub(super) fn spawn_point(
     In((emode, world_pos)): In<(EditingMode, IVec2)>,
     mut commands: Commands,
     hover_q: Query<Entity, With<EHovered>>,
-    mut rocks_q: Query<&mut EPointGroup, With<ERock>>,
+    mut rocks_q: Query<&mut EPointGroup, (With<ERock>, Without<EField>)>,
+    mut fields_q: Query<&mut EPointGroup, (Without<ERock>, With<EField>)>,
     points_q: Query<&IntMoveable, With<EPoint>>,
     eroot: Res<ERootEid>,
     mut meta_writer: EventWriter<SetMetaState>,
@@ -72,6 +107,15 @@ pub(super) fn spawn_point(
         let rock = rocks_q.get(eid).unwrap();
         if !rock.eids.is_empty() && hover_q.contains(rock.eids[0]) {
             meta_writer.send(SetMetaState(EditingMode::EditingRock(eid).to_meta_state()));
+            // Don't actually spawn a point
+            return;
+        }
+    }
+    // Handle the edge case where we're closing a field
+    if let EditingMode::CreatingField(eid) = emode {
+        let field = fields_q.get(eid).unwrap();
+        if !field.eids.is_empty() && hover_q.contains(field.eids[0]) {
+            meta_writer.send(SetMetaState(EditingMode::EditingField(eid).to_meta_state()));
             // Don't actually spawn a point
             return;
         }
@@ -108,18 +152,25 @@ pub(super) fn spawn_point(
     let point_bund = EPointBundle {
         name: Name::new("point"),
         point: EPoint { size: 6.0 },
-        mv: IntMoveableBundle::new(world_pos.extend(0)),
+        mv: IntMoveableBundle::new(world_pos.extend(51)),
     };
     commands.entity(eroot.0).with_children(|eroot| {
-        let pc = eroot.spawn((point_bund, multi));
         // Then perform interesting work depending on the editor state
+        let hovered_eid = hover_q.iter().next();
+        let new_eid = match hovered_eid {
+            Some(hovered_eid) => hovered_eid,
+            None => {
+                // NOTE: Spawn happens here
+                eroot.spawn((point_bund, multi)).id()
+            }
+        };
         match emode {
             EditingMode::Free => {
-                // Nothing else to do
+                // Just a bare spawn, nothing else to do
             }
             EditingMode::CreatingRock(eid) => {
                 let mut pg = rocks_q.get_mut(eid).unwrap();
-                pg.eids.push(pc.id());
+                pg.eids.push(new_eid);
             }
             EditingMode::EditingRock(eid) => {
                 if keyboard.pressed(KeyCode::KeyF) {
@@ -127,35 +178,18 @@ pub(super) fn spawn_point(
                     // Nothing left to do.
                 } else {
                     let mut pg = rocks_q.get_mut(eid).unwrap();
-                    let mut closest_pos = IVec2::ZERO;
-                    let mut closest_dist = i32::MAX;
-                    let mut closest_ix = 0_i32;
-                    for (ix, pos) in pg.poses.iter().enumerate() {
-                        let dist = pos.distance_squared(world_pos);
-                        if dist < closest_dist {
-                            closest_dist = dist;
-                            closest_ix = ix as i32;
-                            closest_pos = *pos;
-                        }
-                    }
-                    let anchor_vec = (world_pos - closest_pos).as_vec2();
-                    let left_ix = (closest_ix - 1).rem_euclid(pg.eids.len() as i32);
-                    let right_ix = (closest_ix + 1).rem_euclid(pg.eids.len() as i32);
-                    let left_mv = points_q.get(pg.eids[left_ix as usize]).unwrap();
-                    let right_mv = points_q.get(pg.eids[right_ix as usize]).unwrap();
-                    let left_vec =
-                        (left_mv.fpos.truncate() - world_pos.as_vec2()).normalize_or_zero();
-                    let right_vec =
-                        (right_mv.fpos.truncate() - world_pos.as_vec2()).normalize_or_zero();
-                    let left_score = left_vec.dot(anchor_vec);
-                    let right_score = right_vec.dot(anchor_vec);
-                    let pos = if left_score < right_score {
-                        right_ix as usize
-                    } else {
-                        closest_ix as usize
-                    };
-                    pg.insert_point(pos, pc.id(), world_pos)
+                    let pos = get_insertion_ix(&pg, world_pos, &points_q);
+                    pg.insert_point(pos, new_eid, world_pos)
                 }
+            }
+            EditingMode::CreatingField(eid) => {
+                let mut pg = fields_q.get_mut(eid).unwrap();
+                pg.eids.push(new_eid);
+            }
+            EditingMode::EditingField(eid) => {
+                let mut pg = fields_q.get_mut(eid).unwrap();
+                let pos = get_insertion_ix(&pg, world_pos, &points_q);
+                pg.insert_point(pos, new_eid, world_pos)
             }
         }
     });
@@ -197,6 +231,7 @@ pub(super) fn select_points(
     keyboard: Res<ButtonInput<KeyCode>>,
     points_q: Query<(Entity, Option<&EHovered>, Option<&ESelected>, &IntMoveable), With<EPoint>>,
     rocks_q: Query<(Entity, &EPointGroup), With<ERock>>,
+    fields_q: Query<(Entity, &EPointGroup), With<EField>>,
     mut commands: Commands,
     mut meta_writer: EventWriter<SetMetaState>,
 ) {
@@ -248,16 +283,27 @@ pub(super) fn select_points(
         let mut next_emode = EditingMode::Free;
         if next_order > 0 {
             // At least one point is hovered
+            // Map point eids to their parent
             let mut rock_map = HashMap::<Entity, Entity>::new();
             for (parent_eid, pg) in rocks_q.iter() {
                 for point_eid in &pg.eids {
                     rock_map.insert(*point_eid, parent_eid);
                 }
             }
+            let mut field_map = HashMap::<Entity, Entity>::new();
+            for (parent_eid, pg) in fields_q.iter() {
+                for point_eid in &pg.eids {
+                    field_map.insert(*point_eid, parent_eid);
+                }
+            }
+            // Update the next state based on the rock or field parent
             for point_data in points_q.iter() {
                 if point_data.1.is_some() {
                     if let Some(parent_eid) = rock_map.get(&point_data.0) {
                         next_emode = EditingMode::EditingRock(*parent_eid);
+                    }
+                    if let Some(parent_eid) = field_map.get(&point_data.0) {
+                        next_emode = EditingMode::EditingField(*parent_eid);
                     }
                 }
             }
@@ -310,6 +356,8 @@ pub(super) fn move_points(
     }
 }
 
+/// Will update the point groups as needed. Crucially deletes them if
+/// they become empty, and corrects their eids/poses
 pub(super) fn cleanup_points(
     mut commands: Commands,
     mut groups_q: Query<(Entity, &mut EPointGroup)>,
@@ -329,6 +377,91 @@ pub(super) fn cleanup_points(
 
         if (group.eids.len() as u32) < group.minimum {
             commands.entity(eid).despawn_recursive();
+        }
+    }
+}
+
+/// A shiny thing which is used to draw attention to the thing you are editing
+#[derive(Component, Debug, Reflect)]
+pub(super) struct ShinyThing;
+#[derive(Bundle)]
+pub(super) struct ShinyThingBundle {
+    name: Name,
+    marker: ShinyThing,
+    spatial: SpatialBundle,
+    anim: AnimationManager,
+}
+impl ShinyThingBundle {
+    pub(super) fn new() -> Self {
+        Self {
+            name: Name::new("shiny_thing"),
+            marker: ShinyThing,
+            spatial: SpatialBundle {
+                transform: Transform::from_translation(Vec3::Z * 40.0),
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            anim: AnimationManager::single_repeating(
+                SpriteInfo {
+                    path: "sprites/editor/shiny.png".into(),
+                    size: UVec2::new(6, 6),
+                    ..default()
+                },
+                6,
+            )
+            .force_points(vec![]),
+        }
+    }
+}
+
+/// Gives the proper entity `EShiny` based on the gs
+pub(super) fn tag_shiny(
+    gs: Res<GameState>,
+    current_shiny: Query<Entity, With<EShiny>>,
+    mut commands: Commands,
+) {
+    // First clear all shiny things
+    for eid in &current_shiny {
+        if let Some(mut commands) = commands.get_entity(eid) {
+            commands.remove::<EShiny>();
+        }
+    }
+    // Then we add it back to at most one thing
+    let Some(emode) = gs.get_editing_mode() else {
+        return;
+    };
+    match emode {
+        EditingMode::Free => {}
+        EditingMode::CreatingRock(eid)
+        | EditingMode::EditingRock(eid)
+        | EditingMode::CreatingField(eid)
+        | EditingMode::EditingField(eid) => {
+            if let Some(mut commands) = commands.get_entity(eid) {
+                commands.insert(EShiny);
+            }
+        }
+    }
+}
+
+/// Sets the shiny thing visibility and updates it's points
+pub(super) fn update_shiny_thing(
+    mut shiny_thing_q: Query<(&mut Visibility, &mut AnimationManager), With<ShinyThing>>,
+    pg_q: Query<&EPointGroup, With<EShiny>>,
+) {
+    let Ok(mut shiny_data) = shiny_thing_q.get_single_mut() else {
+        return;
+    };
+    match pg_q.get_single() {
+        Ok(pg) => {
+            *shiny_data.0 = Visibility::Inherited;
+            shiny_data.1.set_points(pg.poses.clone());
+        }
+        Err(bevy::ecs::query::QuerySingleError::NoEntities(_)) => {
+            *shiny_data.0 = Visibility::Hidden;
+            shiny_data.1.set_points(vec![]);
+        }
+        Err(bevy::ecs::query::QuerySingleError::MultipleEntities(s)) => {
+            warn!("Got multiple shiny things... {s:?}");
         }
     }
 }
