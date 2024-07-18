@@ -1,7 +1,9 @@
 use bevy::{prelude::*, utils::HashMap};
 
 use crate::{
-    meta::level_data::{ExportedField, ExportedRock, LevelData},
+    meta::level_data::{
+        ExportedField, ExportedGoal, ExportedReplenish, ExportedRock, ExportedStart, LevelData,
+    },
     physics::dyno::IntMoveable,
 };
 
@@ -34,9 +36,11 @@ pub fn freeze_level_data(
     }
     // Freeze the start/goal
     let start_eid = start_q.get_single().map_err(|e| format!("{e:?}"))?;
+    let start_uid = eid2u64.get(&start_eid).ok_or("Bad start_eid".to_string())?;
+    let exported_start = ExportedStart { uid: *start_uid };
     let goal_eid = goal_q.get_single().map_err(|e| format!("{e:?}"))?;
-    let start_u64 = eid2u64.get(&start_eid).ok_or("Bad start_eid".to_string())?;
-    let goal_u64 = eid2u64.get(&goal_eid).ok_or("Bad goal_eid".to_string())?;
+    let goal_uid = eid2u64.get(&goal_eid).ok_or("Bad goal_eid".to_string())?;
+    let exported_goal = ExportedGoal { uid: *goal_uid };
     // Freeze the rocks
     let mut exported_rocks = Vec::<ExportedRock>::new();
     for (pg, rock) in &rocks_q {
@@ -66,15 +70,15 @@ pub fn freeze_level_data(
         })
     }
     // Freeze the replenishes
-    let mut exported_replenishes = Vec::<u64>::new();
+    let mut exported_replenishes = Vec::<ExportedReplenish>::new();
     for eid in &replenishes_q {
         let uid = eid2u64.get(&eid).ok_or("Bad replenish eid".to_string())?;
-        exported_replenishes.push(*uid);
+        exported_replenishes.push(ExportedReplenish { uid: *uid });
     }
     Ok(LevelData {
         points,
-        start: *start_u64,
-        goal: *goal_u64,
+        start: exported_start,
+        goal: exported_goal,
         rocks: exported_rocks,
         fields: exported_fields,
         replenishes: exported_replenishes,

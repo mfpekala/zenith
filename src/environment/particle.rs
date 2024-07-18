@@ -99,6 +99,7 @@ pub struct ParticleOptions {
 
 #[derive(Bundle)]
 pub struct ParticleBundle {
+    pub name: Name,
     pub lifespan: ParticleLifespan,
     pub body: ParticleBody,
     pub sprite: SpriteBundle,
@@ -107,6 +108,7 @@ pub struct ParticleBundle {
 impl ParticleBundle {
     fn new(body: ParticleBody, lifespan: f32) -> Self {
         Self {
+            name: Name::new("particle"),
             lifespan: ParticleLifespan::new(lifespan),
             sprite: SpriteBundle {
                 sprite: Sprite {
@@ -245,6 +247,7 @@ impl ParticleSpawner {
 
 #[derive(Bundle)]
 pub struct ParticleSpawnerBundle {
+    pub name: Name,
     pub spawner: ParticleSpawner,
     pub spatial: SpatialBundle,
 }

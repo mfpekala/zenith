@@ -1,6 +1,5 @@
 use crate::{
-    drawing::{animation::SpriteInfo, bordered_mesh::BorderedMesh},
-    meta::old_level_data::{ExportedRock, Rehydrate},
+    drawing::animation::{MultiAnimationManager, SpriteInfo},
     physics::collider::{ColliderStaticStub, ColliderStaticStubs},
     uid::fresh_uid,
 };
@@ -110,28 +109,25 @@ pub struct Rock {
 
 #[derive(Bundle)]
 pub struct RockBundle {
+    pub name: Name,
     pub rock: Rock,
     pub spatial: SpatialBundle,
-    pub bm: BorderedMesh,
+    pub multi: MultiAnimationManager,
     pub static_stubs: ColliderStaticStubs,
-    pub name: Name,
 }
-
-impl Rehydrate<RockBundle> for ExportedRock {
-    fn rehydrate(self) -> RockBundle {
-        let rock = Rock { kind: self.kind };
+impl RockBundle {
+    pub fn new(kind: RockKind, points: Vec<IVec2>) -> Self {
+        let rock = Rock { kind };
         let spatial = SpatialBundle::default();
-        let key = self.kind.to_string();
-        let (inner, outer) = self.kind.to_sprite_infos();
-        let mut bm = BorderedMesh::new(vec![(key.clone(), inner)], vec![(key.clone(), outer)], 7.0);
-        bm.set_points(self.points.clone());
-        let collider = self.kind.to_collider_stub(self.points.clone());
+        let (inner, outer) = kind.to_sprite_infos();
+        let multi = MultiAnimationManager::bordered_mesh(points.clone(), inner, outer, 6.0);
+        let collider = kind.to_collider_stub(points.clone());
         RockBundle {
+            name: Name::new("rock"),
             rock,
             spatial,
-            bm,
+            multi,
             static_stubs: ColliderStaticStubs(vec![collider]),
-            name: Name::new("Rock"),
         }
     }
 }

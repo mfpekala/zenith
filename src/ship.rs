@@ -18,7 +18,7 @@ use crate::leveler::load::destroy_level;
 use crate::math::Spleen;
 use crate::meta::consts::FRAMERATE;
 use crate::meta::game_state::{GameState, MetaState, SetMetaState};
-use crate::meta::old_level_data::LevelRoot;
+use crate::meta::level_data::LevelRoot;
 use crate::physics::collider::ColliderActive;
 use crate::physics::dyno::{apply_fields, IntDyno};
 use crate::physics::{should_apply_physics, BulletTime};
@@ -281,20 +281,20 @@ fn replenish_shot(
 pub fn spawn_trail(
     mut commands: Commands,
     ship: Query<&GlobalTransform, (With<Ship>, Without<Dead>)>,
-    level_root: Query<Entity, With<LevelRoot>>,
+    level_root_q: Query<(Entity, &GlobalTransform), With<LevelRoot>>,
 ) {
     let Ok(tran) = ship.get_single() else {
         return;
     };
     // TODO: I should attach a particle spawner to the ship, and then have the particle spawner
     // handle doing this
-    let Ok(level_root) = level_root.get_single() else {
+    let Ok((level_root_eid, level_root_tran)) = level_root_q.get_single() else {
         return;
     };
     let id = ParticleBundle::spawn_options(
         &mut commands,
         ParticleBody {
-            pos: tran.translation() - Vec3::Z,
+            pos: tran.translation() - Vec3::Z - level_root_tran.translation(),
             vel: Vec2::ZERO,
             size: Ship::radius(),
             color: Color::YELLOW,
@@ -312,7 +312,7 @@ pub fn spawn_trail(
             ..default()
         },
     );
-    commands.entity(level_root).add_child(id);
+    commands.entity(level_root_eid).add_child(id);
 }
 
 /// Checks to see if the ship has been marked for death. If so, start the death effect.
@@ -373,32 +373,32 @@ fn watch_for_dead_ships(
                             }),
                         },
                     );
-                    // Light layer particle
-                    ParticleBundle::spawn_options(
-                        &mut commands,
-                        ParticleBody {
-                            pos: gtran.translation() - Vec3::Z,
-                            vel: start_vel,
-                            size: Ship::radius() * 3.0,
-                            color: Color::WHITE,
-                            layer: light_layer_u8(),
-                        },
-                        0.5,
-                        ParticleOptions {
-                            sizing: Some(ParticleSizing {
-                                spleen: Spleen::EaseInQuad,
-                            }),
-                            coloring: Some(ParticleColoring {
-                                end_color: Color::RED,
-                                spleen: Spleen::EaseInQuad,
-                            }),
-                            vel: Some(ParticleVel {
-                                start_vel,
-                                end_vel: Vec2::ZERO,
-                                spleen: Spleen::EaseInQuad,
-                            }),
-                        },
-                    );
+                    // // Light layer particle
+                    // ParticleBundle::spawn_options(
+                    //     &mut commands,
+                    //     ParticleBody {
+                    //         pos: gtran.translation() - Vec3::Z,
+                    //         vel: start_vel,
+                    //         size: Ship::radius() * 3.0,
+                    //         color: Color::WHITE,
+                    //         layer: light_layer_u8(),
+                    //     },
+                    //     0.5,
+                    //     ParticleOptions {
+                    //         sizing: Some(ParticleSizing {
+                    //             spleen: Spleen::EaseInQuad,
+                    //         }),
+                    //         coloring: Some(ParticleColoring {
+                    //             end_color: Color::RED,
+                    //             spleen: Spleen::EaseInQuad,
+                    //         }),
+                    //         vel: Some(ParticleVel {
+                    //             start_vel,
+                    //             end_vel: Vec2::ZERO,
+                    //             spleen: Spleen::EaseInQuad,
+                    //         }),
+                    //     },
+                    // );
                 }
             }
         }

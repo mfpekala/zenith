@@ -60,7 +60,7 @@ impl IntMoveableBundle {
     }
 }
 
-pub(super) fn move_int_moveables(
+pub fn move_int_moveables(
     mut moveables: Query<(&mut Transform, &mut IntMoveable)>,
     bullet_time: Res<BulletTime>,
 ) {

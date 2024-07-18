@@ -3,7 +3,7 @@ use crate::{
     environment::background::{BgKind, BgManager},
     meta::{
         game_state::{GameState, PrevGameState},
-        old_level_data::{LevelData, LevelDataOneshots, LevelRoot},
+        level_data::{LevelData, LevelDataOneshots, LevelRoot},
     },
     sound::music::{MusicKind, MusicManager},
 };
@@ -51,7 +51,7 @@ pub(super) fn actively_load(
     mut commands: Commands,
     mut screen_effects: ResMut<ScreenEffectManager>,
 ) {
-    let spawn_id = level_oneshots.old_spawn_level.clone();
+    let spawn_id = level_oneshots.spawn_level.clone();
     let mut kill_eids = vec![];
     let mut level_data = None;
     for (eid, al) in actively_loadings.iter() {
@@ -69,10 +69,11 @@ pub(super) fn actively_load(
         commands.entity(kill_eid).despawn_recursive();
     }
     if let Some(level_data) = level_data {
-        commands.run_system_with_input(spawn_id, (1, level_data, IVec2::ZERO));
-        screen_effects.queue_effect(ScreenEffect::CircleOut {
-            from_pos: IVec2::ZERO,
-        });
+        todo!("Fix this to use new spawn_id");
+        // commands.run_system_with_input(spawn_id, (1, level_data, IVec2::ZERO));
+        // screen_effects.queue_effect(ScreenEffect::CircleOut {
+        //     from_pos: IVec2::ZERO,
+        // });
     }
 }
 

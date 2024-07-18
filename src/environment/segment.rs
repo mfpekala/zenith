@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use crate::{
     drawing::animation::{AnimationManager, AnimationNode, SpriteInfo},
     math::irect,
-    meta::old_level_data::{ExportedSegment, Rehydrate},
     physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
     uid::fresh_uid,
 };
@@ -96,57 +95,57 @@ pub struct SegmentBundle {
     pub triggers: ColliderTriggerStubs,
 }
 
-impl Rehydrate<SegmentBundle> for ExportedSegment {
-    fn rehydrate(self) -> SegmentBundle {
-        let diff = (self.right_parent - self.left_parent).as_vec2();
-        let diff_norm = diff.normalize_or_zero();
-        let mut center = (self.left_parent + self.right_parent).as_vec2() / 2.0;
-        let norm = Vec2::new(-diff_norm.y, diff_norm.x) * 0.9;
-        let mut anim = self.kind.to_animation_manager();
-        let current_node = anim.current_node();
-        center += current_node.sprite.size.y as f32 * norm / 2.0;
-        let angle = diff_norm.y.atan2(diff_norm.x);
+// impl Rehydrate<SegmentBundle> for ExportedSegment {
+//     fn rehydrate(self) -> SegmentBundle {
+//         let diff = (self.right_parent - self.left_parent).as_vec2();
+//         let diff_norm = diff.normalize_or_zero();
+//         let mut center = (self.left_parent + self.right_parent).as_vec2() / 2.0;
+//         let norm = Vec2::new(-diff_norm.y, diff_norm.x) * 0.9;
+//         let mut anim = self.kind.to_animation_manager();
+//         let current_node = anim.current_node();
+//         center += current_node.sprite.size.y as f32 * norm / 2.0;
+//         let angle = diff_norm.y.atan2(diff_norm.x);
 
-        let spatial =
-            SpatialBundle::from_transform(Transform::from_translation(center.extend(0.0)));
+//         let spatial =
+//             SpatialBundle::from_transform(Transform::from_translation(center.extend(0.0)));
 
-        let segment = Segment {
-            kind: self.kind,
-            left_parent: self.left_parent,
-            right_parent: self.right_parent,
-        };
+//         let segment = Segment {
+//             kind: self.kind,
+//             left_parent: self.left_parent,
+//             right_parent: self.right_parent,
+//         };
 
-        let anim_points = irect(
-            (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
-            current_node.sprite.size.y,
-        );
-        let trigger_points = irect(
-            (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
-            self.kind.collider_height() as u32,
-        );
-        let trigger_points = trigger_points
-            .into_iter()
-            .map(|p| {
-                let base = Vec2::new(angle.cos(), angle.sin());
-                let p = center + base.rotate(p.as_vec2());
-                IVec2::new(p.x.round() as i32, p.y.round() as i32)
-            })
-            .collect();
-        anim.set_tran_angle(angle);
-        anim.set_points(anim_points);
-        let trigger = ColliderTriggerStub {
-            uid: fresh_uid(),
-            refresh_period: 0,
-            points: trigger_points,
-            active: true,
-        };
+//         let anim_points = irect(
+//             (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
+//             current_node.sprite.size.y,
+//         );
+//         let trigger_points = irect(
+//             (diff.length() as u32 / current_node.sprite.size.x) * current_node.sprite.size.x,
+//             self.kind.collider_height() as u32,
+//         );
+//         let trigger_points = trigger_points
+//             .into_iter()
+//             .map(|p| {
+//                 let base = Vec2::new(angle.cos(), angle.sin());
+//                 let p = center + base.rotate(p.as_vec2());
+//                 IVec2::new(p.x.round() as i32, p.y.round() as i32)
+//             })
+//             .collect();
+//         anim.set_tran_angle(angle);
+//         anim.set_points(anim_points);
+//         let trigger = ColliderTriggerStub {
+//             uid: fresh_uid(),
+//             refresh_period: 0,
+//             points: trigger_points,
+//             active: true,
+//         };
 
-        SegmentBundle {
-            name: Name::new(self.kind.to_string()),
-            spatial,
-            anim,
-            segment,
-            triggers: ColliderTriggerStubs(vec![trigger]),
-        }
-    }
-}
+//         SegmentBundle {
+//             name: Name::new(self.kind.to_string()),
+//             spatial,
+//             anim,
+//             segment,
+//             triggers: ColliderTriggerStubs(vec![trigger]),
+//         }
+//     }
+// }

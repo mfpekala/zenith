@@ -5,7 +5,6 @@ use crate::{
         animation::{AnimationManager, AnimationNode, MultiAnimationManager, SpriteInfo},
         layering::light_layer_u8,
     },
-    meta::old_level_data::{ExportedReplenish, Rehydrate},
     physics::{
         collider::{
             ColliderActive, ColliderTriggerStub, ColliderTriggerStubs, TrickleColliderActive,
@@ -142,11 +141,6 @@ impl ReplenishBundle {
             name: Name::new("Replenish"),
             active: ColliderActive,
         }
-    }
-}
-impl Rehydrate<ReplenishBundle> for ExportedReplenish {
-    fn rehydrate(self) -> ReplenishBundle {
-        ReplenishBundle::new(self.pos)
     }
 }
 

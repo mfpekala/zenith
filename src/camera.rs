@@ -5,9 +5,9 @@ use crate::{
     meta::{
         consts::{SCREEN_HEIGHT, SCREEN_WIDTH},
         game_state::{in_editor, in_level},
-        old_level_data::LevelRoot,
+        level_data::LevelRoot,
     },
-    physics::dyno::{apply_fields, IntDyno, IntMoveable},
+    physics::dyno::{apply_fields, move_int_moveables, IntDyno, IntMoveable},
     ship::Ship,
 };
 use bevy::prelude::*;
@@ -156,14 +156,6 @@ pub fn camera_movement(
     mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
     control_state: Res<CameraControlState>,
     mut zooms: EventReader<CameraZoomEvent>,
-    mut light_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        (With<LightCameraMarker>, Without<SpriteCameraMarker>),
-    >,
-    mut sprite_camera: Query<
-        (&mut Transform, &mut OrthographicProjection),
-        (With<SpriteCameraMarker>, Without<LightCameraMarker>),
-    >,
     time: Res<Time>,
 ) {
     // Get the camera (do nothing if we can't find one)
@@ -242,11 +234,27 @@ pub fn camera_movement(
     } else if zoom_total < 0 {
         marker.scale = marker.scale.down();
     }
-    // Handle moving the "actual" cameras
+}
+
+/// Makes the "actual" cameras match the dynamic camera
+fn cameras_follow(
+    mut marker: Query<(&mut IntMoveable, &mut CameraMarker)>,
+    mut light_camera: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        (With<LightCameraMarker>, Without<SpriteCameraMarker>),
+    >,
+    mut sprite_camera: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        (With<SpriteCameraMarker>, Without<LightCameraMarker>),
+    >,
+) {
+    let Ok((moveable, marker)) = marker.get_single_mut() else {
+        return;
+    };
     let (lc_tran, lc_proj) = light_camera.single_mut();
     let (sc_tran, sc_proj) = sprite_camera.single_mut();
     for tran in [lc_tran, sc_tran].iter_mut() {
-        tran.translation = moveable.fpos.truncate().extend(0.0);
+        tran.translation = moveable.get_ipos().as_vec3().truncate().extend(0.0);
     }
     for proj in [lc_proj, sc_proj].iter_mut() {
         proj.scale = marker.scale.to_f32();
@@ -262,5 +270,11 @@ pub fn register_camera(app: &mut App) {
     )));
     app.register_type::<CameraMarker>();
     app.add_systems(Update, camera_input.run_if(in_editor.or_else(in_level)));
-    app.add_systems(FixedUpdate, camera_movement.after(apply_fields));
+    app.add_systems(
+        FixedUpdate,
+        camera_movement
+            .after(apply_fields)
+            .before(move_int_moveables),
+    );
+    app.add_systems(FixedUpdate, cameras_follow.after(move_int_moveables));
 }

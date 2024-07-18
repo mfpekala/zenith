@@ -1,6 +1,5 @@
 use crate::{
     drawing::animation::{AnimationManager, SpriteInfo},
-    meta::old_level_data::{ExportedField, Rehydrate},
     physics::collider::{ColliderTriggerStub, ColliderTriggerStubs},
     uid::fresh_uid,
 };
@@ -45,21 +44,14 @@ pub struct Field {
 
 #[derive(Bundle)]
 pub struct FieldBundle {
+    pub name: Name,
     pub field: Field,
     pub spatial: SpatialBundle,
     pub anim: AnimationManager,
     pub trigger_stubs: ColliderTriggerStubs,
-    pub name: Name,
 }
-
-impl Rehydrate<FieldBundle> for ExportedField {
-    fn rehydrate(self) -> FieldBundle {
-        let field = Field {
-            dir: self.dir,
-            strength: self.strength,
-            drag: self.drag,
-        };
-        // let center = icenter(&self.points);
+impl FieldBundle {
+    pub fn new(field: Field, points: Vec<IVec2>) -> Self {
         let mut spatial = SpatialBundle::default();
         spatial.transform.translation.z = -10.0;
         let mut anim = AnimationManager::single_repeating(
@@ -70,20 +62,20 @@ impl Rehydrate<FieldBundle> for ExportedField {
             },
             8,
         )
-        .force_mat_rot(self.dir.to_angle());
-        anim.set_points(self.points.clone());
+        .force_mat_rot(field.dir.to_angle());
+        anim.set_points(points.clone());
         let trigger = ColliderTriggerStub {
             uid: fresh_uid(),
             refresh_period: 0,
-            points: self.points.clone(),
+            points: points.clone(),
             active: true,
         };
-        FieldBundle {
+        Self {
+            name: Name::new("Field"),
             field,
             spatial,
             anim,
             trigger_stubs: ColliderTriggerStubs(vec![trigger]),
-            name: Name::new("Field"),
         }
     }
 }

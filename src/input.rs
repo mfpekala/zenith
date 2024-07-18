@@ -269,7 +269,7 @@ impl ShotArrowBundle {
     pub fn new() -> Self {
         let mut head = AnimationManager::single_static(SpriteInfo {
             path: "sprites/arrow_head.png".to_string(),
-            size: UVec2::new(12, 8),
+            size: UVec2::new(12, 10),
             ..default()
         });
         head.set_hidden(true);
@@ -327,8 +327,8 @@ fn update_shot_arrow(
             body.set_tran_angle(angle);
             body.set_hidden(false);
             body.set_points(vec![
-                IVec2::new(-3, 0),
-                IVec2::new(3, 0),
+                IVec2::new(-3, -1),
+                IVec2::new(3, -1),
                 IVec2::new(3, -body_len),
                 IVec2::new(-3, -body_len),
             ]);

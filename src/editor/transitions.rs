@@ -8,7 +8,10 @@ use crate::{
     camera::{CameraMarker, CameraMode},
     environment::background::*,
     input::SetCameraModeEvent,
-    meta::{game_state::*, old_level_data::LevelDataOneshots},
+    meta::{
+        game_state::*,
+        level_data::{LevelDataOneshots, LevelRoot},
+    },
     physics::dyno::IntMoveable,
     when_becomes_false, when_becomes_true,
 };
@@ -52,17 +55,17 @@ const HROOT_HOME: IVec2 = IVec2::ZERO;
 
 #[derive(Component, Default)]
 struct ERoot;
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(super) struct ERootEid(pub Entity);
 
 #[derive(Component, Default)]
 struct TRoot;
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(super) struct TRootEid(pub Entity);
 
 #[derive(Component, Default)]
 struct HRoot;
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(super) struct HRootEid(pub Entity);
 
 #[derive(Bundle)]
@@ -164,7 +167,10 @@ pub(super) fn setup_testing(
 }
 
 /// Called exactly once when the MetaState::Editor leaves the Testing variant
-pub(super) fn destroy_testing() {}
+pub(super) fn destroy_testing(troot: Res<TRootEid>, mut commands: Commands) {
+    commands.entity(troot.0).remove::<LevelRoot>();
+    commands.entity(troot.0).despawn_descendants();
+}
 
 /// This is helpful to have as a oneshot so setup_testing can be cleaner.
 pub(super) fn start_testing_exclusive(
@@ -173,16 +179,17 @@ pub(super) fn start_testing_exclusive(
     params: &mut SystemState<(
         Res<EOneshots>,
         Res<LevelDataOneshots>,
+        Res<TRootEid>,
         EventWriter<SetMetaState>,
     )>,
 ) {
-    let (eoneshots, loneshots, _) = params.get_mut(world);
-    let (eoneshots, loneshots) = (eoneshots.clone(), loneshots.clone());
+    let (eoneshots, loneshots, troot, _) = params.get_mut(world);
+    let (eoneshots, loneshots, troot) = (eoneshots.clone(), loneshots.clone(), troot.clone());
     let success = match world.run_system(eoneshots.freeze_level_data) {
         Ok(Ok(level_data)) => {
-            // world
-            //     .run_system_with_input(level_oneshots.old_spawn_level, (1, level_data, TROOT_HOME))
-            //     .unwrap();
+            world
+                .run_system_with_input(loneshots.spawn_level, (troot.0, level_data))
+                .unwrap();
             true
         }
         Ok(Err(s)) => {
@@ -195,7 +202,7 @@ pub(super) fn start_testing_exclusive(
         }
     };
     if !success {
-        let (_, _, mut meta_writer) = params.get_mut(world);
+        let (_, _, _, mut meta_writer) = params.get_mut(world);
         meta_writer.send(SetMetaState(
             EditorState::Editing(EditingState::blank()).to_meta_state(),
         ));

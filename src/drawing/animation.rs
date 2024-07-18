@@ -91,6 +91,14 @@ impl AnimationManager {
         self.force_index = Some(0);
     }
 
+    pub fn set_scale(&mut self, scale: AnimationScale) {
+        if scale == self.scale {
+            return;
+        }
+        self.scale = scale;
+        self.is_changed = true;
+    }
+
     pub fn reset_key(&mut self, key: &str) {
         self.key = key.to_string();
         self.is_changed = true;
