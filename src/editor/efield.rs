@@ -29,12 +29,35 @@ impl EField {
 }
 
 #[derive(Bundle)]
-struct EFieldBundle {
+pub(super) struct EFieldBundle {
     name: Name,
     efield: EField,
     point_group: EPointGroup,
     spatial: SpatialBundle,
     anim: AnimationManager,
+}
+impl EFieldBundle {
+    pub(super) fn new(dir: Vec2, point_group: EPointGroup) -> Self {
+        let anim = AnimationManager::single_repeating(
+            SpriteInfo {
+                path: "sprites/field/field_dyno.png".to_string(),
+                size: UVec2::new(8, 8),
+                ..default()
+            },
+            8,
+        )
+        .force_points(vec![]);
+        EFieldBundle {
+            name: Name::new("field"),
+            efield: EField::new(dir),
+            point_group,
+            spatial: SpatialBundle {
+                transform: Transform::from_translation(-Vec3::Z * 3.0),
+                ..default()
+            },
+            anim,
+        }
+    }
 }
 
 pub(super) fn spawn_field(
@@ -43,28 +66,10 @@ pub(super) fn spawn_field(
     mut meta_writer: EventWriter<SetMetaState>,
     eroot: Res<ERootEid>,
 ) {
-    let anim = AnimationManager::single_repeating(
-        SpriteInfo {
-            path: "sprites/field/field_dyno.png".to_string(),
-            size: UVec2::new(8, 8),
-            ..default()
-        },
-        8,
-    )
-    .force_points(vec![]);
     let mut eid = Entity::PLACEHOLDER;
     commands.entity(eroot.0).with_children(|parent| {
         eid = parent
-            .spawn(EFieldBundle {
-                name: Name::new("field"),
-                efield: EField::new(Vec2::ZERO),
-                point_group: EPointGroup::default(),
-                spatial: SpatialBundle {
-                    transform: Transform::from_translation(-Vec3::Z * 3.0),
-                    ..default()
-                },
-                anim,
-            })
+            .spawn(EFieldBundle::new(Vec2::ZERO, EPointGroup::default()))
             .id();
     });
     meta_writer.send(SetMetaState(

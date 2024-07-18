@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    efield::EField,
+    efield::{EField, EFieldBundle},
     egoal::{EGoal, EGoalBundle},
     elive_poly::ELivePoly,
     eoneshots::EOneshots,
@@ -172,6 +172,10 @@ pub(super) fn load_level(In(name): In<String>, mut commands: Commands, eroot: Re
             let erock = rock.rehydrate_edit(&basic_spawned_map).unwrap();
             parent.spawn(erock);
         }
+        for field in level_data.fields {
+            let efield = field.rehydrate_edit(&basic_spawned_map).unwrap();
+            parent.spawn(efield);
+        }
     });
     // Special things (points that have custom anims)
     let spawned_start = special_spawned_map[&level_data.start.uid];
@@ -215,5 +219,12 @@ impl RehydrateEdit<ERockBundle> for ExportedRock {
     fn rehydrate_edit(self, spawned_map: &HashMap<u64, Entity>) -> Result<ERockBundle, String> {
         let pg = get_point_group(&self.points, spawned_map, 3)?;
         Ok(ERockBundle::new(self.kind, pg))
+    }
+}
+
+impl RehydrateEdit<EFieldBundle> for ExportedField {
+    fn rehydrate_edit(self, spawned_map: &HashMap<u64, Entity>) -> Result<EFieldBundle, String> {
+        let pg = get_point_group(&self.points, spawned_map, 3)?;
+        Ok(EFieldBundle::new(self.dir, pg))
     }
 }
