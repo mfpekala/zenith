@@ -215,6 +215,13 @@ pub fn regular_polygon(num_sides: u32, mut angle: f32, radius: f32) -> Vec<Vec2>
     points
 }
 
+/// Gets the direction of a field based on points p1 and p2 (clockwise order)
+pub fn ifield_norm(p1: IVec2, p2: IVec2) -> Vec2 {
+    let par = p2 - p1;
+    let perp = IVec2::new(-par.y, par.x);
+    perp.as_vec2().normalize_or_zero()
+}
+
 pub fn icenter(points: &Vec<IVec2>) -> IVec2 {
     if points.len() == 0 {
         return IVec2::ZERO;

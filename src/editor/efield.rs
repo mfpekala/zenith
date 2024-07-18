@@ -1,11 +1,16 @@
-use bevy::prelude::*;
+use bevy::{input::keyboard, prelude::*};
 
 use crate::{
     drawing::animation::{AnimationManager, SpriteInfo},
+    math::ifield_norm,
     meta::game_state::{EditingMode, GameState, SetMetaState},
+    physics::dyno::IntMoveable,
 };
 
-use super::{epoint::EPointGroup, transitions::ERootEid};
+use super::{
+    epoint::{EPoint, EPointGroup, ESelected},
+    transitions::ERootEid,
+};
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct EField {
@@ -70,6 +75,8 @@ pub(super) fn spawn_field(
 pub(super) fn update_fields(
     gs: Res<GameState>,
     mut fields_q: Query<(Entity, &mut EField, &mut EPointGroup)>,
+    selected_q: Query<&IntMoveable, (With<EPoint>, With<ESelected>)>,
+    keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     // Update the minimum number of points in the point group for all rocks not being created
     // NOTE: The "needs_init" hack is a lil nasty but needed bc the SetMetaEvent may not
@@ -86,13 +93,24 @@ pub(super) fn update_fields(
             field_data.1.needs_init = false;
             if field_data.2.poses.len() == 2 {
                 // When creating the field, make it's dir according to the first two points you add
-                let par = field_data.2.poses[1] - field_data.2.poses[0];
-                let perp = IVec2::new(-par.y, par.x);
-                field_data.1.dir = perp.as_vec2().normalize_or_zero();
+                field_data.1.dir = ifield_norm(field_data.2.poses[0], field_data.2.poses[1]);
             }
         } else {
             if !field_data.1.needs_init {
                 field_data.2.minimum = 3;
+            }
+        }
+    }
+    // When editing a field, you can select two points (clockwise order) then press g to reset
+    // the gravity of that field according to those two points
+    if keyboard.just_pressed(KeyCode::KeyG) {
+        if let Some(EditingMode::EditingField(eid)) = gs.get_editing_mode() {
+            let mut field_data = fields_q.get_mut(eid).unwrap();
+            if selected_q.iter().count() == 2 {
+                let mut iter = selected_q.iter();
+                let p1 = iter.next().unwrap().get_ipos().truncate();
+                let p2 = iter.next().unwrap().get_ipos().truncate();
+                field_data.1.dir = ifield_norm(p1, p2);
             }
         }
     }
