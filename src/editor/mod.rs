@@ -26,6 +26,10 @@ impl Plugin for EditorPlugin {
         );
 
         // EPoint
+        app.register_type::<epoint::EPoint>();
+        app.register_type::<epoint::EPointGroup>();
+        app.register_type::<epoint::EHovered>();
+        app.register_type::<epoint::ESelected>();
         app.add_systems(
             Update,
             (
@@ -41,12 +45,15 @@ impl Plugin for EditorPlugin {
         );
 
         // ERock
+        app.register_type::<erock::ERock>();
         app.add_systems(
             Update,
             (erock::animate_rocks).chain().after(epoint::cleanup_points),
         );
 
         // Help
+        app.register_type::<help::HelpBarData>();
+        app.add_systems(Update, help::update_editor_texts);
         app.add_systems(Update, help::editor_help_input);
         app.add_systems(Update, help::update_editor_help_bar);
 

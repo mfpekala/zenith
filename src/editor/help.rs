@@ -17,10 +17,12 @@ pub(super) fn spawn_help(In(()): In<()>, hroot: Res<HRootEid>, mut commands: Com
     commands.entity(hroot.0).with_children(|parent| {
         let (help_bar, input_bg, input_text, output_bg, output_text) = HelpBarData::new_hierarchy();
         parent.spawn(help_bar).with_children(|bar| {
-            bar.spawn(input_bg);
-            bar.spawn(input_text);
-            bar.spawn(output_bg);
-            bar.spawn(output_text);
+            bar.spawn(input_bg).with_children(|input| {
+                input.spawn(input_text);
+            });
+            bar.spawn(output_bg).with_children(|output| {
+                output.spawn(output_text);
+            });
         });
     });
 }
@@ -78,11 +80,106 @@ pub(super) fn submit_help_command(
 }
 
 // VERBOSE BULLSHIT
+
+/// Specific data for managing the input bar
 #[derive(Component, Debug, Reflect)]
 pub(super) struct HelpBarData {
     pub input: String,
     pub captured: bool,
     pub output: Vec<String>,
+}
+
+/// Common piece used for displaying the background of a text box
+#[derive(Component, Debug, Reflect)]
+pub(super) struct HelpTextBg {
+    pub color: Color,
+    /// Center pos IN SCREEN SPACE (not menu space)
+    pub pos: IVec3,
+    /// Dimensions of the box IN SCREEN SPACE (not menu space)
+    pub dims: UVec2,
+}
+impl HelpTextBg {
+    fn new(color: Color, pos: IVec3, dims: UVec2) -> Self {
+        Self { color, pos, dims }
+    }
+
+    fn to_bundle(self) -> HelpTextBgBundle {
+        HelpTextBgBundle::new(self)
+    }
+}
+#[derive(Bundle)]
+struct HelpTextBgBundle {
+    driver: HelpTextBg,
+    sprite: SpriteBundle,
+    render_layers: RenderLayers,
+}
+impl HelpTextBgBundle {
+    fn new(driver: HelpTextBg) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    color: driver.color,
+                    custom_size: Some(driver.dims.as_vec2()),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: driver.pos.as_vec3() * MENU_GROWTH_F32,
+                    ..default()
+                },
+                ..default()
+            },
+            render_layers: menu_layer(),
+            driver,
+        }
+    }
+}
+
+/// Common piece used for displaying the actual text of a text box
+#[derive(Component, Debug, Reflect)]
+pub(super) struct HelpTextFg {
+    pub color: Color,
+    pub font_size: f32,
+    pub content: String,
+}
+impl HelpTextFg {
+    fn new(color: Color, font_size: f32, content: String) -> Self {
+        Self {
+            color,
+            font_size,
+            content,
+        }
+    }
+
+    fn to_bundle(self) -> HelpTextFgBundle {
+        HelpTextFgBundle::new(self)
+    }
+}
+#[derive(Bundle)]
+struct HelpTextFgBundle {
+    driver: HelpTextFg,
+    text: Text2dBundle,
+    render_layers: RenderLayers,
+}
+impl HelpTextFgBundle {
+    fn new(driver: HelpTextFg) -> Self {
+        Self {
+            text: Text2dBundle {
+                text: Text::from_section(
+                    &driver.content,
+                    TextStyle {
+                        font_size: driver.font_size,
+                        color: driver.color,
+                        ..default()
+                    },
+                )
+                .with_justify(JustifyText::Left),
+                transform: Transform::from_translation(Vec3::Z),
+                ..default()
+            },
+            render_layers: menu_layer(),
+            driver,
+        }
+    }
 }
 
 #[derive(Component, Debug)]
@@ -91,27 +188,15 @@ pub(super) struct HelpBarInputBg;
 struct HelpBarInputBgBundle {
     name: Name,
     marker: HelpBarInputBg,
-    sprite: SpriteBundle,
-    render_layers: RenderLayers,
+    bg: HelpTextBgBundle,
 }
 impl HelpBarInputBgBundle {
     fn new() -> Self {
         Self {
             name: Name::new("input_bg"),
             marker: HelpBarInputBg,
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: Color::GRAY,
-                    ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(0.0, -5.0, -1.0) * MENU_GROWTH_F32,
-                    scale: (Vec2::new(160.0, 10.0) * MENU_GROWTH_F32).extend(1.0),
-                    ..default()
-                },
-                ..default()
-            },
-            render_layers: menu_layer(),
+            bg: HelpTextBg::new(Color::GRAY, IVec3::new(0, -5, -1), UVec2::new(160, 10))
+                .to_bundle(),
         }
     }
 }
@@ -121,30 +206,14 @@ pub(super) struct HelpBarInputText;
 pub(super) struct HelpBarInputTextBundle {
     name: Name,
     marker: HelpBarInputText,
-    text: Text2dBundle,
-    render_layers: RenderLayers,
+    fg: HelpTextFgBundle,
 }
 impl HelpBarInputTextBundle {
     fn new() -> Self {
         Self {
             name: Name::new("input_text"),
             marker: HelpBarInputText,
-            text: Text2dBundle {
-                text: Text::from_section(
-                    "",
-                    TextStyle {
-                        font_size: 48.0,
-                        ..default()
-                    },
-                )
-                .with_justify(JustifyText::Left),
-                text_2d_bounds: Text2dBounds {
-                    size: Vec2::new(160.0, 10.0) * MENU_GROWTH_F32,
-                },
-                transform: Transform::from_translation(Vec3::new(0.0, -5.0, 0.0) * MENU_GROWTH_F32),
-                ..default()
-            },
-            render_layers: menu_layer(),
+            fg: HelpTextFg::new(Color::BLACK, 48.0, "".into()).to_bundle(),
         }
     }
 }
@@ -155,27 +224,15 @@ pub(super) struct HelpBarOutputBg;
 struct HelpBarOutputBgBundle {
     name: Name,
     marker: HelpBarOutputBg,
-    sprite: SpriteBundle,
-    render_layers: RenderLayers,
+    bg: HelpTextBgBundle,
 }
 impl HelpBarOutputBgBundle {
     fn new() -> Self {
         Self {
             name: Name::new("output_bg"),
             marker: HelpBarOutputBg,
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: Color::DARK_GRAY,
-                    ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(0.0, 5.0, -1.0) * MENU_GROWTH_F32,
-                    scale: (Vec2::new(160.0, 10.0) * MENU_GROWTH_F32).extend(1.0),
-                    ..default()
-                },
-                ..default()
-            },
-            render_layers: menu_layer(),
+            bg: HelpTextBg::new(Color::DARK_GRAY, IVec3::new(0, 5, -1), UVec2::new(160, 10))
+                .to_bundle(),
         }
     }
 }
@@ -186,30 +243,14 @@ pub(super) struct HelpBarOutputText;
 struct HelpBarOutputTextBundle {
     name: Name,
     marker: HelpBarOutputText,
-    text: Text2dBundle,
-    render_layers: RenderLayers,
+    fg: HelpTextFgBundle,
 }
 impl HelpBarOutputTextBundle {
     fn new() -> Self {
         Self {
             name: Name::new("output_text"),
             marker: HelpBarOutputText,
-            text: Text2dBundle {
-                text: Text::from_section(
-                    "",
-                    TextStyle {
-                        font_size: 48.0,
-                        ..default()
-                    },
-                )
-                .with_justify(JustifyText::Left),
-                text_2d_bounds: Text2dBounds {
-                    size: Vec2::new(160.0, 10.0) * MENU_GROWTH_F32,
-                },
-                transform: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0) * MENU_GROWTH_F32),
-                ..default()
-            },
-            render_layers: menu_layer(),
+            fg: HelpTextFg::new(Color::WHITE, 48.0, "".into()).to_bundle(),
         }
     }
 }
@@ -243,50 +284,62 @@ impl HelpBarData {
     }
 }
 
+/// Common logic for updating text fg and bg
+pub(super) fn update_editor_texts(
+    mut bgs: Query<(&HelpTextBg, &mut Sprite, &mut Transform)>,
+    mut fgs: Query<(&HelpTextFg, &Parent, &mut Text, &mut Text2dBounds)>,
+) {
+    for (bg, mut sprite, mut tran) in bgs.iter_mut() {
+        sprite.color = bg.color;
+        sprite.custom_size = Some(bg.dims.as_vec2() * MENU_GROWTH_F32);
+        tran.translation = bg.pos.as_vec3() * MENU_GROWTH_F32;
+    }
+
+    for (fg, parent, mut text, mut bounds) in fgs.iter_mut() {
+        let bg = bgs.get(parent.get()).unwrap().0;
+        text.sections = vec![TextSection::new(
+            &fg.content,
+            TextStyle {
+                font_size: fg.font_size,
+                color: fg.color,
+                ..default()
+            },
+        )];
+        bounds.size = bg.dims.as_vec2() * MENU_GROWTH_F32;
+    }
+}
+
 pub(super) fn update_editor_help_bar(
     help_bar: Query<&HelpBarData>,
-    mut input_background: Query<&mut Sprite, With<HelpBarInputBg>>,
-    mut input_text: Query<&mut Text, With<HelpBarInputText>>,
-    mut output_text: Query<&mut Text, (With<HelpBarOutputText>, Without<HelpBarInputText>)>,
+    mut input_bg: Query<&mut HelpTextBg, With<HelpBarInputBg>>,
+    mut input_text: Query<&mut HelpTextFg, With<HelpBarInputText>>,
+    mut output_text: Query<&mut HelpTextFg, (With<HelpBarOutputText>, Without<HelpBarInputText>)>,
 ) {
-    let (Ok(help_bar), Ok(mut input_background), Ok(mut input_text), Ok(mut output_text)) = (
+    let (Ok(help_bar), Ok(mut input_bg), Ok(mut input_text), Ok(mut output_text)) = (
         help_bar.get_single(),
-        input_background.get_single_mut(),
+        input_bg.get_single_mut(),
         input_text.get_single_mut(),
         output_text.get_single_mut(),
     ) else {
         return;
     };
-    input_background.color = if help_bar.captured {
+    input_bg.color = if help_bar.captured {
         Color::YELLOW
     } else {
         Color::GRAY
     };
 
     // Update the text
-    input_text.sections = vec![TextSection::new(
-        format!("{}", help_bar.input),
-        TextStyle {
-            font_size: 48.0,
-            color: Color::BLACK,
-            ..default()
-        },
-    )];
-    output_text.sections = vec![TextSection::new(
-        format!(
-            "{}",
-            help_bar
-                .output
-                .iter()
-                .last()
-                .cloned()
-                .unwrap_or("(no output yet)".to_string())
-        ),
-        TextStyle {
-            font_size: 48.0,
-            ..default()
-        },
-    )];
+    input_text.content = format!("{}", help_bar.input);
+    output_text.content = format!(
+        "{}",
+        help_bar
+            .output
+            .iter()
+            .last()
+            .cloned()
+            .unwrap_or("(no output yet)".to_string())
+    );
 }
 
 pub(super) fn editor_help_input(

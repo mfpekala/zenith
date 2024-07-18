@@ -11,7 +11,7 @@ use crate::{
 
 use super::{epoint::EPointGroup, transitions::ERootEid};
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct ERock {
     pub kind: RockKind,
 }

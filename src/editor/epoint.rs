@@ -9,14 +9,14 @@ use crate::{
 
 use super::{erock::ERock, transitions::ERootEid};
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct EPoint {
     /// Points are squares. This is the length of a side
     pub size: f32,
 }
 
 /// Anything that requires multiple points
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct EPointGroup {
     /// Ids of the points in this group
     pub eids: Vec<Entity>,
@@ -39,11 +39,11 @@ impl EPointGroup {
 }
 
 /// Given to point entities that are hovered
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct EHovered;
 
 /// Given to point entities that are selected
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct ESelected {
     pub order: u32,
     pub offset: Vec2,
