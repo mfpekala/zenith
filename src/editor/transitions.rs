@@ -14,7 +14,7 @@ use crate::{
 };
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use super::{epoint::ShinyThingBundle, eoneshots::EOneshots};
+use super::{eoneshots::EOneshots, epoint::ShinyThingBundle};
 
 fn is_editing_helper(gs: &GameState) -> bool {
     match gs.meta {
@@ -170,18 +170,34 @@ pub(super) fn destroy_testing() {}
 pub(super) fn start_testing_exclusive(
     In(()): In<()>,
     world: &mut World,
-    params: &mut SystemState<Res<LevelDataOneshots>>,
+    params: &mut SystemState<(
+        Res<EOneshots>,
+        Res<LevelDataOneshots>,
+        EventWriter<SetMetaState>,
+    )>,
 ) {
-    let level_oneshots = params.get_mut(world);
-    let level_oneshots = level_oneshots.clone();
-    match world.run_system(level_oneshots.crystallize_level_data_id) {
-        Ok(level_data) => {
-            world
-                .run_system_with_input(level_oneshots.old_spawn_level, (1, level_data, TROOT_HOME))
-                .unwrap();
+    let (eoneshots, loneshots, _) = params.get_mut(world);
+    let (eoneshots, loneshots) = (eoneshots.clone(), loneshots.clone());
+    let success = match world.run_system(eoneshots.freeze_level_data) {
+        Ok(Ok(level_data)) => {
+            // world
+            //     .run_system_with_input(level_oneshots.old_spawn_level, (1, level_data, TROOT_HOME))
+            //     .unwrap();
+            true
+        }
+        Ok(Err(s)) => {
+            warn!("I fucked up: Failed to freeze level data: {s:?}");
+            false
         }
         Err(e) => {
-            warn!("Failed to crystallize level data (system): {e:?}");
+            warn!("Intrinsic: Failed to crystallize level data (system): {e:?}");
+            false
         }
+    };
+    if !success {
+        let (_, _, mut meta_writer) = params.get_mut(world);
+        meta_writer.send(SetMetaState(
+            EditorState::Editing(EditingState::blank()).to_meta_state(),
+        ));
     }
 }

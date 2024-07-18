@@ -9,12 +9,13 @@ use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
 pub(self) mod efield;
 pub(self) mod egoal;
 mod einput;
+mod eoneshots;
 pub(self) mod epoint;
 pub(self) mod ereplenish;
 pub(self) mod erock;
 pub(self) mod estart;
+pub mod export;
 mod help;
-mod eoneshots;
 mod transitions;
 
 pub struct EditorPlugin;

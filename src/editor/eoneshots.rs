@@ -1,6 +1,6 @@
 use bevy::{ecs::system::SystemId, prelude::*};
 
-use crate::meta::game_state::EditingMode;
+use crate::meta::{game_state::EditingMode, level_data::LevelData};
 
 use super::{
     efield::spawn_field,
@@ -9,11 +9,12 @@ use super::{
     ereplenish::spawn_replenish,
     erock::spawn_rock,
     estart::spawn_start,
+    export::freeze_level_data,
     help::{spawn_help, submit_help_command},
     transitions::start_testing_exclusive,
 };
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(super) struct EOneshots {
     pub(super) start_testing_exclusive: SystemId<(), ()>,
     pub(super) spawn_help: SystemId<(), ()>,
@@ -25,6 +26,7 @@ pub(super) struct EOneshots {
     pub(super) spawn_replenish: SystemId<IVec2, ()>,
     pub(super) spawn_start: SystemId<IVec2, ()>,
     pub(super) spawn_goal: SystemId<IVec2, ()>,
+    pub(super) freeze_level_data: SystemId<(), Result<LevelData, String>>,
 }
 
 pub(super) fn register_oneshots(app: &mut App) {
@@ -39,6 +41,7 @@ pub(super) fn register_oneshots(app: &mut App) {
         spawn_replenish: app.world.register_system(spawn_replenish),
         spawn_start: app.world.register_system(spawn_start),
         spawn_goal: app.world.register_system(spawn_goal),
+        freeze_level_data: app.world.register_system(freeze_level_data),
     };
     app.insert_resource(oneshots);
 }

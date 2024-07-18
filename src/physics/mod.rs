@@ -8,6 +8,7 @@ use crate::{
     meta::game_state::{EditorState, GameState, MetaState},
 };
 use bevy::prelude::*;
+use dyno::IntMoveable;
 
 pub mod collider;
 pub mod dyno;
@@ -90,6 +91,7 @@ impl Plugin for PhysicsPlugin {
         register_int_dynos(app);
         app.insert_resource(BulletTime::new());
         app.register_type::<IntDyno>();
+        app.register_type::<IntMoveable>();
         app.add_systems(Update, materialize_collider_stubs);
         app.add_systems(Update, trickle_active);
         app.add_systems(FixedUpdate, update_bullet_time.before(move_int_dynos));

@@ -172,61 +172,66 @@ pub fn camera_movement(
     };
     // Update the last pos (cursed vel calc for bg ents)
     // Handle movement
-    match &mut marker.mode {
-        CameraMode::Follow { dislodgement } => {
-            moveable.vel = Vec2::ZERO;
-            let Ok(dyno) = dynos.get_single() else {
-                return;
-            };
-            let Ok(root) = level_root.get_single() else {
-                return;
-            };
-            let end_dislodgement = match dislodgement {
-                Some(dislodgement) => {
-                    // We are trying to follow the ship but just started doing so
-                    // The camera should move over smoothly so it looks better
-                    let adjusted_start_pos =
-                        dislodgement.start_pos.as_vec2() + root.translation().truncate();
-                    let adjusted_goal_pos =
-                        dyno.get_ipos().truncate().as_vec2() + root.translation().truncate();
-                    dislodgement.timer.tick(time.delta());
-                    let pos = adjusted_start_pos
-                        + dislodgement.spleen.interp(dislodgement.timer.fraction())
-                            * (adjusted_goal_pos - adjusted_start_pos);
-                    moveable.fpos.x = pos.x;
-                    moveable.fpos.y = pos.y;
-                    dislodgement.timer.finished()
-                }
-                None => {
-                    moveable.fpos.x = root.translation().x.round() + dyno.fpos.x;
-                    moveable.fpos.y = root.translation().y.round() + dyno.fpos.y;
-                    false
-                }
-            };
-            if end_dislodgement {
-                *dislodgement = None;
-            }
-        }
-        CameraMode::Free => {
-            if control_state.wasd_dir.length_squared() < 0.1 {
-                // Slow to a stop
-                moveable.vel *= 0.6;
-                if moveable.vel.length_squared() < 0.1 {
-                    moveable.vel = Vec2::ZERO;
-                }
-            } else {
-                // Move around
-                let max_speed = 16.0 * marker.scale.to_f32();
-                moveable.vel += control_state.wasd_dir * marker.scale.to_f32();
-                if moveable.vel.length_squared() > max_speed * max_speed {
-                    moveable.vel = moveable.vel.normalize() * max_speed;
+    let mut handle_pos = || {
+        // In a helper function so the early returns to prevent heinous nesting
+        // don't fuck up the zooming or actual camera movement logic
+        match &mut marker.mode {
+            CameraMode::Follow { dislodgement } => {
+                moveable.vel = Vec2::ZERO;
+                let Ok(dyno) = dynos.get_single() else {
+                    return;
+                };
+                let Ok(root) = level_root.get_single() else {
+                    return;
+                };
+                let end_dislodgement = match dislodgement {
+                    Some(dislodgement) => {
+                        // We are trying to follow the ship but just started doing so
+                        // The camera should move over smoothly so it looks better
+                        let adjusted_start_pos =
+                            dislodgement.start_pos.as_vec2() + root.translation().truncate();
+                        let adjusted_goal_pos =
+                            dyno.get_ipos().truncate().as_vec2() + root.translation().truncate();
+                        dislodgement.timer.tick(time.delta());
+                        let pos = adjusted_start_pos
+                            + dislodgement.spleen.interp(dislodgement.timer.fraction())
+                                * (adjusted_goal_pos - adjusted_start_pos);
+                        moveable.fpos.x = pos.x;
+                        moveable.fpos.y = pos.y;
+                        dislodgement.timer.finished()
+                    }
+                    None => {
+                        moveable.fpos.x = root.translation().x.round() + dyno.fpos.x;
+                        moveable.fpos.y = root.translation().y.round() + dyno.fpos.y;
+                        false
+                    }
+                };
+                if end_dislodgement {
+                    *dislodgement = None;
                 }
             }
+            CameraMode::Free => {
+                if control_state.wasd_dir.length_squared() < 0.1 {
+                    // Slow to a stop
+                    moveable.vel *= 0.6;
+                    if moveable.vel.length_squared() < 0.1 {
+                        moveable.vel = Vec2::ZERO;
+                    }
+                } else {
+                    // Move around
+                    let max_speed = 16.0 * marker.scale.to_f32();
+                    moveable.vel += control_state.wasd_dir * marker.scale.to_f32();
+                    if moveable.vel.length_squared() > max_speed * max_speed {
+                        moveable.vel = moveable.vel.normalize() * max_speed;
+                    }
+                }
+            }
+            CameraMode::Controlled => {
+                // Do nothing, something else is driving us
+            }
         }
-        CameraMode::Controlled => {
-            // Do nothing, something else is driving us
-        }
-    }
+    };
+    handle_pos();
     // Handle zoom
     let mut zoom_total: i32 = 0;
     for zoom_ev in zooms.read() {
