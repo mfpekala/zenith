@@ -43,19 +43,19 @@ fn spawn_level(In((parent_eid, level_data)): In<(Entity, LevelData)>, mut comman
         let points = &level_data.points;
         let start_pos = points.get(&level_data.start.uid).unwrap();
         parent.spawn(ShipBundle::new(*start_pos));
-        parent.spawn(level_data.start.rehydrate(points).unwrap());
-        parent.spawn(level_data.goal.rehydrate(points).unwrap());
+        parent.spawn(level_data.start.rehydrate_real(points).unwrap());
+        parent.spawn(level_data.goal.rehydrate_real(points).unwrap());
         for rock in level_data.rocks {
-            parent.spawn(rock.rehydrate(points).unwrap());
+            parent.spawn(rock.rehydrate_real(points).unwrap());
         }
         for field in level_data.fields {
-            parent.spawn(field.rehydrate(points).unwrap());
+            parent.spawn(field.rehydrate_real(points).unwrap());
         }
         for replenish in level_data.replenishes {
-            parent.spawn(replenish.rehydrate(points).unwrap());
+            parent.spawn(replenish.rehydrate_real(points).unwrap());
         }
         for live_poly in level_data.live_polys {
-            parent.spawn(live_poly.rehydrate(points).unwrap());
+            parent.spawn(live_poly.rehydrate_real(points).unwrap());
         }
     });
     commands.entity(parent_eid).insert(LevelRoot);
@@ -73,8 +73,8 @@ pub(super) fn register_level_data_oneshots(app: &mut App) {
     app.insert_resource(oneshots);
 }
 
-trait Rehydrate<T> {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<T, String>;
+trait RehydrateReal<T> {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<T, String>;
 }
 
 #[derive(
@@ -132,29 +132,29 @@ fn get_poses(uids: &[u64], points: &HashMap<u64, IVec2>) -> Result<Vec<IVec2>, S
     Ok(result)
 }
 
-impl Rehydrate<StartBundle> for ExportedStart {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<StartBundle, String> {
+impl RehydrateReal<StartBundle> for ExportedStart {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<StartBundle, String> {
         let pos = points.get(&self.uid).ok_or("Bad uid rehydrate start")?;
         Ok(StartBundle::new(StartSize::Medium, *pos))
     }
 }
 
-impl Rehydrate<GoalBundle> for ExportedGoal {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<GoalBundle, String> {
+impl RehydrateReal<GoalBundle> for ExportedGoal {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<GoalBundle, String> {
         let pos = points.get(&self.uid).ok_or("Bad uid rehydrate goal")?;
         Ok(GoalBundle::new(GoalSize::Medium, *pos))
     }
 }
 
-impl Rehydrate<RockBundle> for ExportedRock {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<RockBundle, String> {
+impl RehydrateReal<RockBundle> for ExportedRock {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<RockBundle, String> {
         let poses = get_poses(&self.points, points)?;
         Ok(RockBundle::new(self.kind, poses))
     }
 }
 
-impl Rehydrate<FieldBundle> for ExportedField {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<FieldBundle, String> {
+impl RehydrateReal<FieldBundle> for ExportedField {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<FieldBundle, String> {
         let poses = get_poses(&self.points, points)?;
         Ok(FieldBundle::new(
             Field {
@@ -167,15 +167,15 @@ impl Rehydrate<FieldBundle> for ExportedField {
     }
 }
 
-impl Rehydrate<ReplenishBundle> for ExportedReplenish {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<ReplenishBundle, String> {
+impl RehydrateReal<ReplenishBundle> for ExportedReplenish {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<ReplenishBundle, String> {
         let pos = points.get(&self.uid).ok_or("Bad uid rehydrate replenish")?;
         Ok(ReplenishBundle::new(*pos))
     }
 }
 
-impl Rehydrate<LivePolyBundle> for ExportedLivePoly {
-    fn rehydrate(self, points: &HashMap<u64, IVec2>) -> Result<LivePolyBundle, String> {
+impl RehydrateReal<LivePolyBundle> for ExportedLivePoly {
+    fn rehydrate_real(self, points: &HashMap<u64, IVec2>) -> Result<LivePolyBundle, String> {
         let poses = get_poses(&self.points, points)?;
         Ok(LivePolyBundle::new(
             poses.into_iter().map(|v| v.as_vec2()).collect(),

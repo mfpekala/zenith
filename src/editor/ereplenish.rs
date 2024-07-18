@@ -11,12 +11,12 @@ use super::{epoint::EPointBundle, transitions::ERootEid};
 pub struct EReplenish;
 
 #[derive(Bundle)]
-struct EReplenishBundle {
+pub(super) struct EReplenishBundle {
     ereplenish: EReplenish,
     point: EPointBundle,
 }
 impl EReplenishBundle {
-    fn new(world_pos: IVec2) -> Self {
+    pub(super) fn new(world_pos: IVec2) -> Self {
         let mut point_bund = EPointBundle::new(world_pos);
         point_bund.name = Name::new("replenish");
         point_bund.multi.map.insert(

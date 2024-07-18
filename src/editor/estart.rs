@@ -11,12 +11,12 @@ use super::{epoint::EPointBundle, transitions::ERootEid};
 pub struct EStart;
 
 #[derive(Bundle)]
-struct EStartBundle {
+pub(super) struct EStartBundle {
     estart: EStart,
     point: EPointBundle,
 }
 impl EStartBundle {
-    fn new(world_pos: IVec2) -> Self {
+    pub(super) fn new(world_pos: IVec2) -> Self {
         let mut point_bund = EPointBundle::new(world_pos);
         point_bund.name = Name::new("start");
         point_bund.multi.map.insert(

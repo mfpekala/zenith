@@ -10,7 +10,7 @@ use super::{
     ereplenish::spawn_replenish,
     erock::spawn_rock,
     estart::spawn_start,
-    export::freeze_level_data,
+    export::{freeze_level_data, load_level, save_level},
     help::{spawn_help, submit_help_command},
     transitions::start_testing_exclusive,
 };
@@ -29,6 +29,8 @@ pub(super) struct EOneshots {
     pub(super) spawn_goal: SystemId<IVec2, ()>,
     pub(super) spawn_live_poly: SystemId<(), ()>,
     pub(super) freeze_level_data: SystemId<(), Result<LevelData, String>>,
+    pub(super) save_level: SystemId<String, ()>,
+    pub(super) load_level: SystemId<String, ()>,
 }
 
 pub(super) fn register_oneshots(app: &mut App) {
@@ -45,6 +47,8 @@ pub(super) fn register_oneshots(app: &mut App) {
         spawn_goal: app.world.register_system(spawn_goal),
         spawn_live_poly: app.world.register_system(spawn_live_poly),
         freeze_level_data: app.world.register_system(freeze_level_data),
+        save_level: app.world.register_system(save_level),
+        load_level: app.world.register_system(load_level),
     };
     app.insert_resource(oneshots);
 }

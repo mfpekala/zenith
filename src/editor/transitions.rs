@@ -197,7 +197,7 @@ pub(super) fn start_testing_exclusive(
             false
         }
         Err(e) => {
-            warn!("Intrinsic: Failed to crystallize level data (system): {e:?}");
+            warn!("Intrinsic: Failed to freeze level data (system): {e:?}");
             false
         }
     };

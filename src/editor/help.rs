@@ -32,12 +32,16 @@ pub(super) fn submit_help_command(
     In(command): In<String>,
     gs: Res<GameState>,
     mut meta_writer: EventWriter<SetMetaState>,
+    mut commands: Commands,
+    oneshots: Res<EOneshots>,
 ) {
     let parts = format!("help {command}");
     let parts = parts.split_whitespace().collect::<Vec<_>>();
     let Ok(matches) = Command::new("help")
         .subcommand(Command::new("test"))
         .subcommand(Command::new("edit"))
+        .subcommand(Command::new("save").arg(Arg::new("name")))
+        .subcommand(Command::new("load").arg(Arg::new("name")))
         .subcommand(Command::new("field").arg(Arg::new("x")).arg(Arg::new("y")))
         .try_get_matches_from(parts)
     else {
@@ -65,6 +69,23 @@ pub(super) fn submit_help_command(
                     EditorState::Editing(EditingState::blank()).to_meta_state(),
                 ));
             }
+        }
+        ("save", args) => {
+            let Ok(Some(name)) = args.try_get_one::<String>("name") else {
+                warn!("No name provided");
+                return;
+            };
+            commands.run_system_with_input(oneshots.save_level, name.clone());
+        }
+        ("load", args) => {
+            let Ok(Some(name)) = args.try_get_one::<String>("name") else {
+                warn!("No name provided");
+                return;
+            };
+            meta_writer.send(SetMetaState(
+                EditorState::Editing(EditingState::blank()).to_meta_state(),
+            ));
+            commands.run_system_with_input(oneshots.load_level, name.clone());
         }
         ("field", args) => {
             println!(

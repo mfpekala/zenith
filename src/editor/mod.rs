@@ -38,6 +38,7 @@ impl Plugin for EditorPlugin {
             Update,
             einput::watch_dramatic_editing_input
                 .after(watch_mouse)
+                .after(help::editor_help_input)
                 .run_if(in_editing),
         );
 

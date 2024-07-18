@@ -3,7 +3,10 @@ use bevy::prelude::*;
 use crate::{
     drawing::{animation::MultiAnimationManager, mesh::ioutline_points},
     environment::rock::RockKind,
-    meta::game_state::{EditingMode, GameState, SetMetaState},
+    meta::{
+        game_state::{EditingMode, GameState, SetMetaState},
+        level_data::ExportedRock,
+    },
 };
 
 use super::{
@@ -28,12 +31,26 @@ impl ERock {
 }
 
 #[derive(Bundle)]
-pub struct ERockBundle {
+pub(super) struct ERockBundle {
     name: Name,
     erock: ERock,
     point_group: EPointGroup,
     spatial: SpatialBundle,
     multi: MultiAnimationManager,
+}
+impl ERockBundle {
+    pub(super) fn new(kind: RockKind, point_group: EPointGroup) -> Self {
+        let (inner, outer) = kind.to_sprite_infos();
+        // If point_group is not empty, this will be updated by some system
+        let multi = MultiAnimationManager::bordered_mesh(vec![], inner, outer, 6.0);
+        Self {
+            name: Name::new("rock"),
+            erock: ERock::new(kind),
+            point_group,
+            spatial: default(),
+            multi,
+        }
+    }
 }
 
 pub(super) fn spawn_rock(
@@ -42,19 +59,13 @@ pub(super) fn spawn_rock(
     mut meta_writer: EventWriter<SetMetaState>,
     eroot: Res<ERootEid>,
 ) {
-    let kind = RockKind::default();
-    let (inner, outer) = kind.to_sprite_infos();
-    let multi = MultiAnimationManager::bordered_mesh(vec![], inner, outer, 6.0);
     let mut eid = Entity::PLACEHOLDER;
     commands.entity(eroot.0).with_children(|eroot| {
         eid = eroot
-            .spawn(ERockBundle {
-                name: Name::new("rock"),
-                erock: ERock::new(kind),
-                point_group: EPointGroup::default(),
-                spatial: default(),
-                multi,
-            })
+            .spawn(ERockBundle::new(
+                RockKind::default(),
+                EPointGroup::default(),
+            ))
             .id();
     });
     meta_writer.send(SetMetaState(EditingMode::CreatingRock(eid).to_meta_state()));
