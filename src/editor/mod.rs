@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    input::watch_mouse,
+    input::{watch_camera_input, watch_mouse},
     meta::game_state::{entered_editor, left_editor},
 };
 use transitions::{in_editing, in_testing, ERootEid, HRootEid, TRootEid};
@@ -48,14 +48,17 @@ impl Plugin for EditorPlugin {
         app.register_type::<erock::ERock>();
         app.add_systems(
             Update,
-            (erock::animate_rocks).chain().after(epoint::cleanup_points),
+            (erock::update_rocks, erock::animate_rocks)
+                .chain()
+                .after(epoint::cleanup_points),
         );
 
         // Help
         app.register_type::<help::HelpBarData>();
         app.add_systems(Update, help::update_editor_texts);
-        app.add_systems(Update, help::editor_help_input);
+        app.add_systems(Update, help::editor_help_input.before(watch_camera_input));
         app.add_systems(Update, help::update_editor_help_bar);
+        app.add_systems(Update, help::update_help_box);
 
         // Oneshots
         oneshots::register_oneshots(app);

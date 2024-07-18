@@ -1,11 +1,11 @@
-use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds};
+use bevy::{prelude::*, render::view::RenderLayers, text::Text2dBounds, utils::HashMap};
 use clap::{Arg, Command};
 
 use crate::{
     drawing::layering::menu_layer,
     meta::{
         consts::MENU_GROWTH_F32,
-        game_state::{EditingState, EditorState, GameState, SetMetaState},
+        game_state::{EditingMode, EditingState, EditorState, GameState, SetMetaState},
     },
 };
 
@@ -24,6 +24,7 @@ pub(super) fn spawn_help(In(()): In<()>, hroot: Res<HRootEid>, mut commands: Com
                 output.spawn(output_text);
             });
         });
+        HelpBoxData::spawn_hierarchy(parent);
     });
 }
 
@@ -77,6 +78,46 @@ pub(super) fn submit_help_command(
             return;
         }
     }
+}
+
+pub(super) fn update_help_box(
+    gs: Res<GameState>,
+    mut help_box_q: Query<(&mut HelpBoxData, &mut Visibility)>,
+    mut help_box_fg_q: Query<&mut HelpTextFg, With<HelpBoxFg>>,
+) {
+    let Ok((mut help_box, mut visibility)) = help_box_q.get_single_mut() else {
+        return;
+    };
+    let Ok(mut help_box_fg) = help_box_fg_q.get_single_mut() else {
+        return;
+    };
+    let Some(editing_mode) = gs.get_editing_mode() else {
+        return;
+    };
+    match editing_mode {
+        EditingMode::Free => {
+            help_box.pairs.remove("mode");
+        }
+        EditingMode::CreatingRock(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("creating({eid:?})"));
+        }
+        EditingMode::EditingRock(eid) => {
+            help_box
+                .pairs
+                .insert("mode".into(), format!("editing({eid:?})"));
+        }
+    }
+    help_box_fg.content = String::new();
+    for (key, value) in help_box.pairs.iter() {
+        help_box_fg.content.push_str(&format!("{key}: {value}"));
+    }
+    *visibility = if help_box_fg.content.len() > 0 {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
 }
 
 // VERBOSE BULLSHIT
@@ -281,6 +322,45 @@ impl HelpBarData {
             HelpBarOutputBgBundle::new(),
             HelpBarOutputTextBundle::new(),
         )
+    }
+}
+
+#[derive(Component, Debug)]
+pub(super) struct HelpBoxBg;
+#[derive(Component, Debug)]
+pub(super) struct HelpBoxFg;
+
+/// Key/value data that is shown in the bottom left corner of the screen
+#[derive(Component, Debug, Reflect)]
+pub(super) struct HelpBoxData {
+    pairs: HashMap<String, String>,
+}
+impl HelpBoxData {
+    fn spawn_hierarchy(commands: &mut ChildBuilder) {
+        commands
+            .spawn((
+                Name::new("help_box_data"),
+                HelpBoxData { pairs: default() },
+                SpatialBundle::from_transform(Transform::from_translation(
+                    Vec3::new(-130.0, -75.0, 0.0) * MENU_GROWTH_F32,
+                )),
+            ))
+            .with_children(|parent| {
+                parent
+                    .spawn((
+                        Name::new("help_box_bg"),
+                        HelpBoxBg,
+                        HelpTextBg::new(Color::ANTIQUE_WHITE, IVec3::ZERO, UVec2::new(60, 30))
+                            .to_bundle(),
+                    ))
+                    .with_children(|bg| {
+                        bg.spawn((
+                            Name::new("help_box_fg"),
+                            HelpBoxFg,
+                            HelpTextFg::new(Color::BLACK, 36.0, "".into()).to_bundle(),
+                        ));
+                    });
+            });
     }
 }
 

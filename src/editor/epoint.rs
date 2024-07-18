@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::hashbrown::HashMap};
 
 use crate::{
     drawing::animation::{AnimationManager, MultiAnimationManager, SpriteInfo},
@@ -129,20 +129,20 @@ pub(super) fn spawn_point(
                     let mut pg = rocks_q.get_mut(eid).unwrap();
                     let mut closest_pos = IVec2::ZERO;
                     let mut closest_dist = i32::MAX;
-                    let mut closest_ix = 0;
+                    let mut closest_ix = 0_i32;
                     for (ix, pos) in pg.poses.iter().enumerate() {
                         let dist = pos.distance_squared(world_pos);
                         if dist < closest_dist {
                             closest_dist = dist;
-                            closest_ix = ix;
+                            closest_ix = ix as i32;
                             closest_pos = *pos;
                         }
                     }
                     let anchor_vec = (world_pos - closest_pos).as_vec2();
-                    let left_ix = (closest_ix - 1).rem_euclid(pg.eids.len() as usize);
-                    let right_ix = (closest_ix + 1).rem_euclid(pg.eids.len() as usize);
-                    let left_mv = points_q.get(pg.eids[left_ix]).unwrap();
-                    let right_mv = points_q.get(pg.eids[right_ix]).unwrap();
+                    let left_ix = (closest_ix - 1).rem_euclid(pg.eids.len() as i32);
+                    let right_ix = (closest_ix + 1).rem_euclid(pg.eids.len() as i32);
+                    let left_mv = points_q.get(pg.eids[left_ix as usize]).unwrap();
+                    let right_mv = points_q.get(pg.eids[right_ix as usize]).unwrap();
                     let left_vec =
                         (left_mv.fpos.truncate() - world_pos.as_vec2()).normalize_or_zero();
                     let right_vec =
@@ -196,7 +196,9 @@ pub(super) fn select_points(
     mouse: Res<MouseState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     points_q: Query<(Entity, Option<&EHovered>, Option<&ESelected>, &IntMoveable), With<EPoint>>,
+    rocks_q: Query<(Entity, &EPointGroup), With<ERock>>,
     mut commands: Commands,
+    mut meta_writer: EventWriter<SetMetaState>,
 ) {
     if !mouse.button_input.just_pressed(MouseButton::Left) {
         return;
@@ -242,6 +244,25 @@ pub(super) fn select_points(
                 next_order += 1;
             }
         }
+        // We only update the editing state on such "clean" presses
+        let mut next_emode = EditingMode::Free;
+        if next_order > 0 {
+            // At least one point is hovered
+            let mut rock_map = HashMap::<Entity, Entity>::new();
+            for (parent_eid, pg) in rocks_q.iter() {
+                for point_eid in &pg.eids {
+                    rock_map.insert(*point_eid, parent_eid);
+                }
+            }
+            for point_data in points_q.iter() {
+                if point_data.1.is_some() {
+                    if let Some(parent_eid) = rock_map.get(&point_data.0) {
+                        next_emode = EditingMode::EditingRock(*parent_eid);
+                    }
+                }
+            }
+        }
+        meta_writer.send(SetMetaState(next_emode.to_meta_state()));
     }
 }
 
